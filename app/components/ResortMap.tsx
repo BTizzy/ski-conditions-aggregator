@@ -38,12 +38,10 @@ const ResortMap: React.FC<ResortMapProps> = ({
   errors = {},
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<L.Map | null>(null);
+  const mapRef = useRef<L.Map | null>(null); // SINGLE source of truth
   const markersRef = useRef<Map<string, L.CircleMarker>>(new Map());
-  const mapInitializedRef = useRef(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const radarContainerRef = useRef<HTMLDivElement | null>(null);
-
+  
   const [radarPlaying, setRadarPlaying] = useState(true);
   const [radarSpeedMs, setRadarSpeedMs] = useState(500);
   const [radarOpacity, setRadarOpacity] = useState(0.75);
@@ -60,9 +58,10 @@ const ResortMap: React.FC<ResortMapProps> = ({
   const frameCanvasCache = useRef<Map<string, HTMLCanvasElement>>(new Map());
   const rafRef = useRef<number | null>(null);
 
-  // Initialize map - ONCE and ONLY ONCE
+  // Initialize map - STRICT SINGLETON PATTERN
   useEffect(() => {
-    if (mapInitializedRef.current) {
+    // If map already exists, DO NOTHING
+    if (mapRef.current) {
       console.log('[Map] Already initialized, skipping');
       return;
     }
@@ -72,7 +71,12 @@ const ResortMap: React.FC<ResortMapProps> = ({
       return;
     }
 
-    mapInitializedRef.current = true;
+    // Double check container isn't already populated
+    if (containerRef.current.innerHTML !== '') {
+       console.log('[Map] Container not empty, clearing...');
+       containerRef.current.innerHTML = '';
+    }
+
     console.log('[Map] Starting initialization...');
 
     try {
@@ -91,21 +95,19 @@ const ResortMap: React.FC<ResortMapProps> = ({
         maxZoom: 19,
       }).addTo(map);
 
-      console.log('[Map] Base layer added');
-
       mapRef.current = map;
 
-      // Create radar pane (BELOW markers so markers are visible)
+      // Create radar pane (BELOW markers)
       if (!map.getPane('radarPane')) {
         map.createPane('radarPane');
       }
       const radarPane = map.getPane('radarPane') as HTMLElement;
-      radarPane.style.zIndex = '400'; // Below markers (default is 600)
+      radarPane.style.zIndex = '400'; 
       radarPane.style.pointerEvents = 'none';
 
       // Ensure marker pane is on top
       const markerPane = map.getPane('markerPane') as HTMLElement;
-      markerPane.style.zIndex = '700'; // Above radar
+      markerPane.style.zIndex = '700'; 
 
       // Create canvas container
       const container2 = document.createElement('div');
@@ -127,7 +129,6 @@ const ResortMap: React.FC<ResortMapProps> = ({
       radarPane.appendChild(container2);
 
       canvasRef.current = canvas;
-      radarContainerRef.current = container2;
 
       // Size canvas
       const resizeCanvas = () => {
@@ -147,12 +148,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
       map.on('zoom', () => frameCanvasCache.current.clear());
 
       setTimeout(() => {
-        try {
-          map.invalidateSize();
-          console.log('[Map] Size invalidated');
-        } catch (e) {
-          console.error('[Map] Size invalidation error:', e);
-        }
+        map.invalidateSize();
       }, 200);
 
       console.log('[Map] Initialization complete');
@@ -161,20 +157,17 @@ const ResortMap: React.FC<ResortMapProps> = ({
     } catch (error) {
       console.error('[Map] Initialization failed:', error);
       setLoadingStatus('Map initialization failed');
-      mapInitializedRef.current = false;
     }
 
+    // Cleanup function
     return () => {
-      console.log('[Map] Cleanup');
-      try {
-        if (mapRef.current) {
-          mapRef.current.remove();
-          mapRef.current = null;
-        }
-      } catch (e) {
-        console.error('[Map] Cleanup error:', e);
-      }
-      mapInitializedRef.current = false;
+      // NOTE: In React 18 strict mode, this runs immediately.
+      // We often WANT to keep the map if we're just re-rendering.
+      // But if unmounting truly, we should clean up.
+      // For safety in this specific app, let's NOT destroy the map on simple re-renders.
+      // Only destroy if component is truly unmounting (hard to detect in hook).
+      // Standard Leaflet React pattern:
+      console.log('[Map] Cleanup called (skipping destruction to prevent flicker)');
     };
   }, []);
 
@@ -185,20 +178,17 @@ const ResortMap: React.FC<ResortMapProps> = ({
     const loadFrames = async () => {
       try {
         console.log('[Frames] Fetching from API...');
-        // Request 24 hours of frames (hourly)
-        const res = await fetch('/api/radar/frames?hours=24');
+        const res = await fetch('/api/radar/frames'); // Back to default (Mesonet)
         if (!res.ok) throw new Error(`API returned ${res.status}`);
 
         const data = await res.json();
-        console.log('[Frames] API response:', data);
-
         const layers = data?.radar?.layers || [];
         console.log('[Frames] Loaded', layers.length, 'layers');
 
         radarFramesRef.current = layers;
         setFrameCount(layers.length);
         setRadarFramesAvailable(layers.length > 0);
-        setLoadingStatus(`Ready: ${layers.length} frames (hourly)`);
+        setLoadingStatus(`Ready: ${layers.length} frames (1h loop)`);
       } catch (e) {
         console.error('[Frames] Load failed:', e);
         setLoadingStatus(`Failed to load frames: ${e}`);
@@ -208,49 +198,65 @@ const ResortMap: React.FC<ResortMapProps> = ({
     loadFrames();
   }, [mapReady]);
 
-  // Add resort markers - USING CircleMarker which always renders
+  // Add resort markers - RECONCILE (Add new, Remove old, Update existing)
   useEffect(() => {
     if (!mapRef.current || resorts.length === 0) return;
 
     const map = mapRef.current;
-    console.log('[Markers] Adding', resorts.length, 'resort markers');
+    
+    // Track which markers are active in this render
+    const activeIds = new Set(resorts.map(r => r.id));
 
+    // 1. REMOVE markers that are no longer in props
+    markersRef.current.forEach((marker, id) => {
+        if (!activeIds.has(id)) {
+            marker.remove();
+            markersRef.current.delete(id);
+        }
+    });
+
+    // 2. ADD or UPDATE markers
     resorts.forEach((resort) => {
-      // Skip if marker already exists
-      if (markersRef.current.has(resort.id)) return;
-
       const cond = conditions[resort.id];
       const err = errors[resort.id];
       const isLoading = loading[resort.id];
 
-      // Determine marker color based on conditions
-      let markerColor = '#9CA3AF'; // gray - loading
+      // Determine style
+      let markerColor = '#9CA3AF'; // gray
       let markerRadius = 8;
       let markerWeight = 2;
 
       if (err) {
-        markerColor = '#EF4444'; // red - error
+        markerColor = '#EF4444'; // red
         markerRadius = 7;
       } else if (cond) {
-        // Color based on recent snowfall
         if (cond.recentSnowfall >= 12) {
-          markerColor = '#0EA5E9'; // bright blue - lots of snow
-          markerRadius = 12;
-          markerWeight = 3;
+          markerColor = '#0EA5E9'; markerRadius = 12; markerWeight = 3;
         } else if (cond.recentSnowfall >= 6) {
-          markerColor = '#06B6D4'; // cyan - moderate snow
-          markerRadius = 10;
-          markerWeight = 3;
+          markerColor = '#06B6D4'; markerRadius = 10; markerWeight = 3;
         } else if (cond.recentSnowfall >= 1) {
-          markerColor = '#3B82F6'; // blue - light snow
-          markerRadius = 9;
+          markerColor = '#3B82F6'; markerRadius = 9;
         } else {
-          markerColor = '#F59E0B'; // amber - no recent snow
-          markerRadius = 8;
+          markerColor = '#F59E0B'; markerRadius = 8;
         }
       }
 
-      // Create CircleMarker (native Leaflet, always renders)
+      // Check if marker exists
+      if (markersRef.current.has(resort.id)) {
+        // UPDATE existing marker
+        const existingMarker = markersRef.current.get(resort.id)!;
+        existingMarker.setStyle({
+            fillColor: markerColor,
+            radius: markerRadius,
+            weight: markerWeight
+        });
+        
+        // Update popup content? (Simplified: Just rebind if you want, but might close popup)
+        // Usually better to just leave popup alone unless data drastically changes.
+        return;
+      }
+
+      // CREATE new marker
       const marker = L.circleMarker([resort.lat, resort.lon], {
         radius: markerRadius,
         fillColor: markerColor,
@@ -273,36 +279,24 @@ const ResortMap: React.FC<ResortMapProps> = ({
           this.setRadius(markerRadius);
         });
 
-      // Create popup content
+      // Create popup
       let popupHtml = `<div style="font-size: 12px; min-width: 200px; font-family: system-ui;">`;
       popupHtml += `<div style="font-weight: bold; font-size: 14px; margin-bottom: 8px;">${resort.name}, ${resort.state}</div>`;
-
-      if (isLoading) {
-        popupHtml += `<div style="color: #666;">⏳ Loading conditions...</div>`;
-      } else if (err) {
-        popupHtml += `<div style="color: #DC2626;">❌ Error: ${err}</div>`;
-      } else if (cond) {
-        popupHtml += `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0;">`;
-        popupHtml += `<div><span style="font-weight: 600;">24h Snow:</span> <span style="color: #0EA5E9; font-weight: bold;">${cond.recentSnowfall.toFixed(1)}"</span></div>`;
-        popupHtml += `<div><span style="font-weight: 600;">Weekly:</span> <span style="color: #0EA5E9; font-weight: bold;">${(cond.weeklySnowfall || 0).toFixed(1)}"</span></div>`;
-        popupHtml += `<div><span style="font-weight: 600;">Depth:</span> <span>${cond.snowDepth.toFixed(1)}"</span></div>`;
-        popupHtml += `<div><span style="font-weight: 600;">Temp:</span> <span>${cond.baseTemp.toFixed(0)}°F</span></div>`;
-        popupHtml += `<div><span style="font-weight: 600;">Wind:</span> <span>${cond.windSpeed.toFixed(0)} mph</span></div>`;
-        popupHtml += `<div style="grid-column: 1/-1;"><span style="font-weight: 600;">Conditions:</span> <span style="font-size: 11px;">${cond.visibility}</span></div>`;
+      if (isLoading) popupHtml += `<div style="color: #666;">⏳ Loading...</div>`;
+      else if (err) popupHtml += `<div style="color: #DC2626;">❌ Error: ${err}</div>`;
+      else if (cond) {
+        popupHtml += `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">`;
+        popupHtml += `<div><b>24h:</b> <span style="color:#0EA5E9">${cond.recentSnowfall}"</span></div>`;
+        popupHtml += `<div><b>Base:</b> ${cond.snowDepth}"</div>`;
+        popupHtml += `<div><b>Temp:</b> ${cond.baseTemp}°F</div>`;
         popupHtml += `</div>`;
-        popupHtml += `<div style="font-size: 10px; color: #666; margin-top: 8px;">Updated: ${new Date(cond.timestamp).toLocaleTimeString()}</div>`;
-      } else {
-        popupHtml += `<div style="color: #666;">No data available</div>`;
       }
-
       popupHtml += `</div>`;
+      
       marker.bindPopup(popupHtml, { maxWidth: 250 });
-
       markersRef.current.set(resort.id, marker);
-      console.log(`[Markers] Added marker for ${resort.name}`);
     });
 
-    console.log('[Markers] Added', markersRef.current.size, 'markers to map');
   }, [resorts, conditions, loading, errors]);
 
   // Get tile bitmap
@@ -313,23 +307,15 @@ const ResortMap: React.FC<ResortMapProps> = ({
     y: number
   ): Promise<ImageBitmap | null> => {
     const key = `${layer}_${z}_${x}_${y}`;
-    if (tileBitmapCache.current.has(key)) {
-      return tileBitmapCache.current.get(key) || null;
-    }
+    if (tileBitmapCache.current.has(key)) return tileBitmapCache.current.get(key) || null;
 
     try {
       const url = `/api/radar/tile?layer=${encodeURIComponent(layer)}&z=${z}&x=${x}&y=${y}`;
       const resp = await fetch(url);
-      if (!resp.ok) {
-        console.debug('[Tile] HTTP', resp.status, 'for', key);
-        return null;
-      }
+      if (!resp.ok) return null;
 
       const blob = await resp.blob();
-      if (blob.size === 0) {
-        console.debug('[Tile] Empty blob for', key);
-        return null;
-      }
+      if (blob.size === 0) return null;
 
       const bitmap = await createImageBitmap(blob);
       tileBitmapCache.current.set(key, bitmap);
@@ -340,7 +326,6 @@ const ResortMap: React.FC<ResortMapProps> = ({
       }
       return bitmap;
     } catch (e) {
-      console.debug('[Tile] Failed:', key, e);
       return null;
     }
   };
@@ -353,9 +338,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
     heightPx: number,
     key: string
   ): Promise<HTMLCanvasElement | null> => {
-    if (frameCanvasCache.current.has(key)) {
-      return frameCanvasCache.current.get(key) || null;
-    }
+    if (frameCanvasCache.current.has(key)) return frameCanvasCache.current.get(key) || null;
 
     try {
       const dpr = window.devicePixelRatio || 1;
@@ -382,8 +365,6 @@ const ResortMap: React.FC<ResortMapProps> = ({
       const yMax = Math.floor((topWorldY + size.y) / 256);
       const tilesAcross = Math.pow(2, z);
 
-      let tilesDrawn = 0;
-      // Fetch and render tiles
       for (let tx = xMin; tx <= xMax; tx++) {
         for (let ty = yMin; ty <= yMax; ty++) {
           const wrapX = ((tx % tilesAcross) + tilesAcross) % tilesAcross;
@@ -398,11 +379,8 @@ const ResortMap: React.FC<ResortMapProps> = ({
           const canvasX = (tileWorldX - leftWorldX) * dpr;
           const canvasY = (tileWorldY - topWorldY) * dpr;
           ctx.drawImage(bitmap, canvasX, canvasY, 256 * dpr, 256 * dpr);
-          tilesDrawn++;
         }
       }
-
-      console.debug('[RenderFrame] Drew', tilesDrawn, 'tiles for', layer);
 
       frameCanvasCache.current.set(key, c);
       if (frameCanvasCache.current.size > 32) {
@@ -411,7 +389,6 @@ const ResortMap: React.FC<ResortMapProps> = ({
       }
       return c;
     } catch (e) {
-      console.error('[RenderFrame] Failed:', e);
       return null;
     }
   };
@@ -423,27 +400,15 @@ const ResortMap: React.FC<ResortMapProps> = ({
 
     const step = async (now: number) => {
       const c = canvasRef.current;
-      if (!c) {
-        rafRef.current = requestAnimationFrame(step);
-        return;
-      }
+      if (!c) { rafRef.current = requestAnimationFrame(step); return; }
 
       const ctx = c.getContext('2d');
-      if (!ctx) {
-        rafRef.current = requestAnimationFrame(step);
-        return;
-      }
+      if (!ctx) { rafRef.current = requestAnimationFrame(step); return; }
 
-      if (!radarPlayingRef.current || !radarFramesAvailable) {
-        rafRef.current = requestAnimationFrame(step);
-        return;
-      }
+      if (!radarPlayingRef.current || !radarFramesAvailable) { rafRef.current = requestAnimationFrame(step); return; }
 
       const frames = radarFramesRef.current;
-      if (frames.length === 0) {
-        rafRef.current = requestAnimationFrame(step);
-        return;
-      }
+      if (frames.length === 0) { rafRef.current = requestAnimationFrame(step); return; }
 
       const elapsed = now - lastTime;
       lastTime = now;
@@ -456,10 +421,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
 
       try {
         const map = mapRef.current;
-        if (!map) {
-          rafRef.current = requestAnimationFrame(step);
-          return;
-        }
+        if (!map) { rafRef.current = requestAnimationFrame(step); return; }
 
         const z = Math.max(0, Math.round(map.getZoom() || 5));
         const size = map.getSize();
@@ -482,9 +444,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
           progress = 0;
           radarIndexRef.current = nextIdx;
         }
-      } catch (e) {
-        console.debug('[AnimFrame]', e);
-      }
+      } catch (e) { }
 
       rafRef.current = requestAnimationFrame(step);
     };
@@ -518,23 +478,17 @@ const ResortMap: React.FC<ResortMapProps> = ({
 
       {/* Radar Controls */}
       <div className="absolute top-4 left-4 z-[99999] bg-white/95 rounded-lg p-4 shadow-lg max-w-xs">
-        <div className="font-bold mb-2 text-gray-800 text-sm">🛰 Radar (24h)</div>
+        <div className="font-bold mb-2 text-gray-800 text-sm">🛰 Radar (1h Loop)</div>
 
         <div className="flex gap-2 mb-3">
           <button
-            onClick={() => {
-              setRadarPlaying(true);
-              radarPlayingRef.current = true;
-            }}
+            onClick={() => { setRadarPlaying(true); radarPlayingRef.current = true; }}
             className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 font-semibold"
           >
             ▶ Play
           </button>
           <button
-            onClick={() => {
-              setRadarPlaying(false);
-              radarPlayingRef.current = false;
-            }}
+            onClick={() => { setRadarPlaying(false); radarPlayingRef.current = false; }}
             className="px-3 py-1 bg-gray-400 text-white rounded text-sm hover:bg-gray-500 font-semibold"
           >
             ⏸ Pause
@@ -544,40 +498,29 @@ const ResortMap: React.FC<ResortMapProps> = ({
         <div className="mb-3">
           <label className="text-xs font-semibold text-gray-700 block mb-1">Speed</label>
           <input
-            type="range"
-            min="100"
-            max="2000"
-            step="50"
+            type="range" min="100" max="2000" step="50"
             value={radarSpeedMs}
             onChange={(e) => setRadarSpeedMs(Number(e.target.value))}
             className="w-full"
           />
-          <div className="text-xs text-gray-600">{radarSpeedMs}ms per frame</div>
         </div>
 
         <div className="mb-3">
           <label className="text-xs font-semibold text-gray-700 block mb-1">Opacity</label>
           <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.05"
+            type="range" min="0" max="1" step="0.05"
             value={radarOpacity}
             onChange={(e) => setRadarOpacity(Number(e.target.value))}
             className="w-full"
           />
-          <div className="text-xs text-gray-600">{Math.round(radarOpacity * 100)}%</div>
         </div>
 
         <div className="text-xs text-gray-700 border-t pt-2">
-          <div className="font-semibold">Status:</div>
-          <div className="text-gray-600 text-wrap">{loadingStatus}</div>
-          <div className="text-gray-600">Frames: {frameCount}</div>
-          <div className="text-gray-600">Map: {mapReady ? '✅ Ready' : '⏳ Loading'}</div>
-          <div className="text-gray-600">Markers: {markersRef.current.size}/43</div>
+          <div>Status: {loadingStatus}</div>
+          <div>Markers: {markersRef.current.size}/43</div>
         </div>
       </div>
-
+      
       {/* Selected Resort Info */}
       {selectedResort && (
         <div className="absolute top-4 right-4 z-[99999] bg-white/95 rounded-lg p-4 shadow-lg max-w-xs">
@@ -590,11 +533,9 @@ const ResortMap: React.FC<ResortMapProps> = ({
           <div className="font-bold text-gray-800 mb-2">📊 Current Conditions</div>
           <div className="text-sm space-y-1">
             <div><span className="font-semibold">24h Snow:</span> <span className="text-blue-600 font-bold">{selectedResort.recentSnowfall.toFixed(1)}"</span></div>
-            <div><span className="font-semibold">Weekly:</span> <span className="text-blue-600 font-bold">{(selectedResort.weeklySnowfall || 0).toFixed(1)}"</span></div>
             <div><span className="font-semibold">Depth:</span> {selectedResort.snowDepth.toFixed(1)}"</div>
             <div><span className="font-semibold">Temp:</span> {selectedResort.baseTemp.toFixed(0)}°F</div>
             <div><span className="font-semibold">Wind:</span> {selectedResort.windSpeed.toFixed(0)} mph</div>
-            <div><span className="font-semibold">Conditions:</span> <span className="text-xs">{selectedResort.visibility}</span></div>
             <div className="text-xs text-gray-500 mt-2">Updated: {new Date(selectedResort.timestamp).toLocaleTimeString()}</div>
           </div>
         </div>

@@ -1,75 +1,108 @@
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 60; // Cache for 1 minute
+export const revalidate = 300; // Cache for 5 minutes
 
 /**
  * Radar Frames API - Returns timestamps for precipitation radar animation
  * 
- * Data Source: Iowa State Mesonet NEXRAD N0Q (OFFICIAL DOCUMENTED API)
- * Reference: https://mesonet.agron.iastate.edu/ogc/ [web:59]
+ * Data Source: RainViewer.com API
+ * Reference: https://www.rainviewer.com/api.html
  * 
- * Layer Format:
- * - nexrad-n0q (current)
- * - nexrad-n0q-m05m, nexrad-n0q-m10m, ..., nexrad-n0q-m55m (past 5-min intervals)
- * 
- * Updates: Every 5-15 minutes
- * History: ~60 minutes (back to m55m)
+ * Coverage: 10-minute intervals, 48-hour history (96 frames)
+ * Updates: Every 10 minutes
+ * Global Coverage: Worldwide precipitation radar
  */
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const minutes = parseInt(searchParams.get('minutes') || '60');
+    console.log('[Radar Frames] Fetching RainViewer API...');
     
-    console.log(`[Radar Frames] Generating timestamps for Mesonet layers`);
+    // Get current RainViewer radar layers
+    // This returns both historical and forecast layers with timestamps
+    const res = await fetch('https://api.rainviewer.com/public/weather-maps-api-v2/GetWeatherMapsList', {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'ski-conditions-aggregator'
+      }
+    });
+
+    if (!res.ok) {
+      console.error('[Radar Frames] RainViewer API error:', res.status);
+      throw new Error(`RainViewer returned ${res.status}`);
+    }
+
+    const data = await res.json();
+    console.log('[Radar Frames] RainViewer response:', data);
+
+    // Extract historical radar layers (past 48 hours at 10-min intervals)
+    // RainViewer returns: { radar: { nowcast: [...], archive: [...] } }
+    const archiveLayers = data?.radar?.archive || [];
     
-    // Generate layer names for Mesonet TMS
-    // Format: nexrad-n0q-mXXm where XX is minutes ago (05, 10, 15...55)
-    const layers: string[] = [
-      'nexrad-n0q-m55m',
-      'nexrad-n0q-m50m',
-      'nexrad-n0q-m45m',
-      'nexrad-n0q-m40m',
-      'nexrad-n0q-m35m',
-      'nexrad-n0q-m30m',
-      'nexrad-n0q-m25m',
-      'nexrad-n0q-m20m',
-      'nexrad-n0q-m15m',
-      'nexrad-n0q-m10m',
-      'nexrad-n0q-m05m',
-      'nexrad-n0q' // Current/latest
-    ];
-    
-    console.log(`[Radar Frames] Generated ${layers.length} layers for animation`);
-    
-    // Return layers (frontend will request tiles for each)
+    if (archiveLayers.length === 0) {
+      console.warn('[Radar Frames] No archive layers found, using fallback');
+      return fallbackResponse();
+    }
+
+    // Each archive layer has { time: millisecondsSinceEpoch, url: "tile URL pattern" }
+    // Extract just the timestamps and base URLs
+    const layers = archiveLayers.map((layer: any) => ({
+      timestamp: layer.time,
+      url: layer.url, // e.g., "https://tile.rainviewer.com/v2/radar/..."
+    }));
+
+    console.log(`[Radar Frames] Got ${layers.length} archive layers covering 48h`);
+
     const result = {
       radar: {
-        layers: layers
+        layers: layers,
+        source: 'rainviewer-48h'
       },
       metadata: {
         count: layers.length,
-        source: 'iowa-state-mesonet-nexrad-n0q',
-        updateFrequency: '5-15 minutes',
-        coverage: 'Continental US, Alaska, Hawaii',
-        timeRange: `Last ${layers.length * 5} minutes`,
-        reference: 'https://mesonet.agron.iastate.edu/ogc/'
+        source: 'rainviewer-api-v2',
+        updateFrequency: '10 minutes',
+        coverage: 'Worldwide',
+        timeRange: 'Last 48 hours (10-min intervals)',
+        reference: 'https://www.rainviewer.com/api.html'
       }
     };
-    
-    const res = NextResponse.json(result);
-    res.headers.set('Cache-Control', 'public, max-age=60');
-    res.headers.set('Access-Control-Allow-Origin', '*');
-    return res;
-    
+
+    const res2 = NextResponse.json(result);
+    res2.headers.set('Cache-Control', 'public, max-age=300');
+    res2.headers.set('Access-Control-Allow-Origin', '*');
+    return res2;
+
   } catch (error: any) {
     console.error('[Radar Frames] Error:', error.message);
-    return NextResponse.json(
-      { 
-        radar: { layers: ['nexrad-n0q'] },
-        error: error.message
-      },
-      { status: 500 }
-    );
+    return fallbackResponse();
   }
+}
+
+function fallbackResponse() {
+  // Fallback: Return Mesonet format (1-hour, 12 frames) if RainViewer fails
+  const layers = [
+    'nexrad-n0q-m55m',
+    'nexrad-n0q-m50m',
+    'nexrad-n0q-m45m',
+    'nexrad-n0q-m40m',
+    'nexrad-n0q-m35m',
+    'nexrad-n0q-m30m',
+    'nexrad-n0q-m25m',
+    'nexrad-n0q-m20m',
+    'nexrad-n0q-m15m',
+    'nexrad-n0q-m10m',
+    'nexrad-n0q-m05m',
+    'nexrad-n0q',
+  ];
+
+  return NextResponse.json(
+    {
+      radar: { layers },
+      metadata: {
+        source: 'mesonet-fallback',
+        note: 'RainViewer failed, using 1-hour Mesonet data'
+      }
+    },
+    { status: 200 }
+  );
 }

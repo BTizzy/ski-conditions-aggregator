@@ -6,55 +6,54 @@ export const revalidate = 60; // Cache for 1 minute
 /**
  * Radar Frames API - Returns timestamps for precipitation radar animation
  * 
- * UPGRADED Data Source: NOAA GIS Radar Imagery Server
- * URL: https://api.weather.gov/radar/servers
- * This provides hourly intervals going back 48+ hours (instead of just 60 min)
+ * Data Source: Iowa State Mesonet NEXRAD N0Q (OFFICIAL DOCUMENTED API)
+ * Reference: https://mesonet.agron.iastate.edu/ogc/ [web:59]
  * 
- * Alternative: OpenWeather Radar API (premium but unlimited history)
- * Fallback: Iowa State Mesonet (current, 60-min history, 5-min intervals)
+ * Layer Format:
+ * - nexrad-n0q (current)
+ * - nexrad-n0q-m05m, nexrad-n0q-m10m, ..., nexrad-n0q-m55m (past 5-min intervals)
+ * 
+ * Updates: Every 5-15 minutes
+ * History: ~60 minutes (back to m55m)
  */
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const hours = parseInt(searchParams.get('hours') || '6'); // Default 6 hours
+    const minutes = parseInt(searchParams.get('minutes') || '60');
     
-    console.log(`[Radar Frames] Generating hourly timestamps for ${hours} hours`);
+    console.log(`[Radar Frames] Generating timestamps for Mesonet layers`);
     
-    // STRATEGY: Generate hourly frames for last N hours
-    // This gives us 24 frames for 24 hours, 6 frames for 6 hours, etc.
-    const layers: string[] = [];
-    const now = new Date();
+    // Generate layer names for Mesonet TMS
+    // Format: nexrad-n0q-mXXm where XX is minutes ago (05, 10, 15...55)
+    const layers: string[] = [
+      'nexrad-n0q-m55m',
+      'nexrad-n0q-m50m',
+      'nexrad-n0q-m45m',
+      'nexrad-n0q-m40m',
+      'nexrad-n0q-m35m',
+      'nexrad-n0q-m30m',
+      'nexrad-n0q-m25m',
+      'nexrad-n0q-m20m',
+      'nexrad-n0q-m15m',
+      'nexrad-n0q-m10m',
+      'nexrad-n0q-m05m',
+      'nexrad-n0q' // Current/latest
+    ];
     
-    // Generate timestamps going back in time (most recent first)
-    for (let h = 0; h < hours; h++) {
-      const time = new Date(now.getTime() - h * 60 * 60 * 1000);
-      const year = time.getUTCFullYear();
-      const month = String(time.getUTCMonth() + 1).padStart(2, '0');
-      const day = String(time.getUTCDate()).padStart(2, '0');
-      const hour = String(time.getUTCHours()).padStart(2, '0');
-      const min = String(time.getUTCMinutes()).padStart(2, '0');
-      
-      // Layer format: "YYYYMMDDHHMM" (NOAA standard)
-      const layer = `${year}${month}${day}${hour}${min}`;
-      layers.push(layer);
-    }
+    console.log(`[Radar Frames] Generated ${layers.length} layers for animation`);
     
-    console.log(`[Radar Frames] Generated ${layers.length} hourly frames`);
-    
+    // Return layers (frontend will request tiles for each)
     const result = {
       radar: {
-        layers: layers,
-        source: 'noaa-radar-hourly',
-        cadence: '1 hour'
+        layers: layers
       },
       metadata: {
         count: layers.length,
-        source: 'noaa-weather-radar-servers',
-        updateFrequency: '1 hour',
-        coverage: 'Continental US',
-        timeRange: `Last ${hours} hours`,
-        reference: 'https://api.weather.gov/radar/servers',
-        note: 'Each layer is 1 hour apart for smooth 6+ hour animation'
+        source: 'iowa-state-mesonet-nexrad-n0q',
+        updateFrequency: '5-15 minutes',
+        coverage: 'Continental US, Alaska, Hawaii',
+        timeRange: `Last ${layers.length * 5} minutes`,
+        reference: 'https://mesonet.agron.iastate.edu/ogc/'
       }
     };
     
@@ -65,33 +64,12 @@ export async function GET(request: Request) {
     
   } catch (error: any) {
     console.error('[Radar Frames] Error:', error.message);
-    
-    // Fallback to Mesonet if NOAA fails
-    const fallbackLayers = [
-      'nexrad-n0q',
-      'nexrad-n0q-m05m',
-      'nexrad-n0q-m10m',
-      'nexrad-n0q-m15m',
-      'nexrad-n0q-m20m',
-      'nexrad-n0q-m25m',
-      'nexrad-n0q-m30m',
-      'nexrad-n0q-m35m',
-      'nexrad-n0q-m40m',
-      'nexrad-n0q-m45m',
-      'nexrad-n0q-m50m',
-      'nexrad-n0q-m55m',
-    ];
-    
     return NextResponse.json(
-      {
-        radar: { layers: fallbackLayers },
-        metadata: {
-          source: 'iowa-state-mesonet-fallback',
-          note: 'Using fallback (60-min history, 5-min intervals)'
-        },
+      { 
+        radar: { layers: ['nexrad-n0q'] },
         error: error.message
       },
-      { status: 200 }
+      { status: 500 }
     );
   }
 }

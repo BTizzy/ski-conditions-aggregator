@@ -3,115 +3,107 @@ import { NextResponse, NextRequest } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 /**
- * Radar Tile Proxy - Returns NEXRAD precipitation radar tile images
+ * Radar Tile Proxy - Returns radar tile images
  * 
- * Data Source: Iowa State Mesonet Tile Map Service (TMS)
- * Official Docs: https://mesonet.agron.iastate.edu/ogc/
+ * Primary Source: RainViewer API v2 (48-hour history)
+ * Fallback: Iowa State Mesonet (1-hour history)
  * 
- * Layer Format (WORKING):
- * - nexrad-n0q (current/latest)
- * - nexrad-n0q-m05m, m10m, m15m, ... m55m (past 5-min intervals)
- * 
- * TMS Endpoint: /cache/tile.py/1.0.0/{LAYER}/{Z}/{X}/{Y}.png
- * Cache: 5 minutes
+ * RainViewer Layer Format: { timestamp: ms, url: "tile URL pattern" }
+ * Mesonet Layer Format: "nexrad-n0q-mXXm"
  * 
  * Query Params:
- *   layer - Mesonet layer name (e.g., 'nexrad-n0q' or 'nexrad-n0q-m15m')
- *   z - Zoom level (0-18)
- *   x - Tile X coordinate
- *   y - Tile Y coordinate
+ *   layer - Either RainViewer URL or Mesonet layer name
+ *   z, x, y - Tile coordinates
  */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = request.nextUrl;
     
-    // Parse parameters
-    const layer = searchParams.get('layer') || 'nexrad-n0q'; // Default to current
+    const layer = searchParams.get('layer');
     const z = searchParams.get('z');
     const x = searchParams.get('x');
     const y = searchParams.get('y');
     
-    if (!z || !x || !y) {
+    if (!z || !x || !y || !layer) {
       return NextResponse.json(
-        { error: 'Missing parameters. Required: z, x, y (layer optional)' },
+        { error: 'Missing parameters. Required: layer, z, x, y' },
         { status: 400 }
       );
     }
     
-    // Parse and validate coordinates
     const zNum = parseInt(z);
     const xNum = parseInt(x);
     const yNum = parseInt(y);
     
     if (isNaN(zNum) || isNaN(xNum) || isNaN(yNum)) {
-      return NextResponse.json(
-        { error: 'Invalid tile coordinates' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid tile coordinates' }, { status: 400 });
     }
+
+    if (zNum < 0 || zNum > 18) return getTransparentTile();
     
-    // Validate zoom level
-    if (zNum < 0 || zNum > 18) {
-      return getTransparentTile();
-    }
-    
-    // Validate tile bounds
     const maxTile = Math.pow(2, zNum);
     if (xNum < 0 || xNum >= maxTile || yNum < 0 || yNum >= maxTile) {
       return getTransparentTile();
     }
-    
-    // Validate layer format
-    if (!layer.startsWith('nexrad-n0q')) {
-      return NextResponse.json(
-        { error: 'Invalid layer. Must be nexrad-n0q or nexrad-n0q-mXXm' },
-        { status: 400 }
-      );
+
+    let tileUrl: string;
+
+    // DETECT SOURCE: RainViewer or Mesonet
+    if (layer.startsWith('http')) {
+      // RainViewer: layer is a URL template like "https://tile.rainviewer.com/v2/radar/1704033600/{z}/{x}/{y}/..."
+      // Replace {z}, {x}, {y} with actual coordinates
+      tileUrl = layer
+        .replace('{z}', String(zNum))
+        .replace('{x}', String(xNum))
+        .replace('{y}', String(yNum));
+      
+      console.log(`[Tile] RainViewer: z=${zNum} x=${xNum} y=${yNum}`);
+    } else if (layer.startsWith('nexrad-n0q')) {
+      // Mesonet: layer name like "nexrad-n0q-m15m"
+      // Validate Mesonet layer format
+      if (!/^nexrad-n0q(-m\d{2}m)?$/.test(layer)) {
+        return NextResponse.json({ error: 'Invalid Mesonet layer' }, { status: 400 });
+      }
+
+      tileUrl = `https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/${layer}/${zNum}/${xNum}/${yNum}.png`;
+      console.log(`[Tile] Mesonet: layer=${layer} z=${zNum}`);
+    } else {
+      return NextResponse.json({ error: 'Invalid layer format' }, { status: 400 });
     }
-    
-    // Build Mesonet TMS URL
-    // https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/{LAYER}/{Z}/{X}/{Y}.png
-    const tileUrl = `https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/${layer}/${zNum}/${xNum}/${yNum}.png`;
-    
-    console.log(`[Tile] Fetching: layer=${layer} z=${zNum} x=${xNum} y=${yNum}`);
-    console.log(`[Tile] URL: ${tileUrl}`);
-    
-    // Fetch from Mesonet
+
+    // Fetch tile from source
     const response = await fetch(tileUrl, {
       headers: {
         'User-Agent': 'ski-conditions-aggregator',
-        'Accept': 'image/png'
+        'Accept': 'image/png,image/webp,*/*'
       },
-      next: { revalidate: 300 } // Cache 5 minutes (matches Mesonet)
+      next: { revalidate: 300 } // Cache 5 minutes
     });
-    
+
     if (!response.ok) {
-      console.warn(`[Tile] Mesonet returned ${response.status} for layer=${layer}`);
+      console.warn(`[Tile] Source returned ${response.status}`);
       return getTransparentTile();
     }
-    
-    // Return PNG tile
+
     const imageBuffer = await response.arrayBuffer();
-    
+    if (imageBuffer.byteLength === 0) return getTransparentTile();
+
     return new NextResponse(imageBuffer, {
       headers: {
         'Content-Type': 'image/png',
-        'Cache-Control': 'public, max-age=300', // 5-minute cache (Mesonet default)
+        'Cache-Control': 'public, max-age=300',
         'Access-Control-Allow-Origin': '*'
       }
     });
-    
+
   } catch (error: any) {
     console.error('[Tile] Error:', error.message);
     return getTransparentTile();
   }
 }
 
-/**
- * Returns a 1x1 transparent PNG as fallback when no data available
- */
 function getTransparentTile(): Response {
-  // 1x1 transparent PNG (67 bytes)
+  // 1x1 transparent PNG
   const transparentPng = Buffer.from([
     0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
     0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,

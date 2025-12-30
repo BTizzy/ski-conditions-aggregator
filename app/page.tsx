@@ -28,7 +28,10 @@ interface ResortConditions {
 
 const fetchConditions = async (resortId: string) => {
   const res = await fetch(`/api/scrape?resortId=${resortId}`);
-  if (!res.ok) throw new Error('Failed to fetch');
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Failed to fetch');
+  }
   return res.json();
 };
 
@@ -45,9 +48,12 @@ const HomePage: React.FC = () => {
       setTimeout(() => {
         setLoading(l => ({ ...l, [resort.id]: true }));
         fetchConditions(resort.id)
-          .then(cond => setData(d => ({ ...d, [resort.id]: cond })))
+          .then(cond => {
+            console.log(`✅ Loaded ${resort.name}:`, cond);
+            setData(d => ({ ...d, [resort.id]: cond }));
+          })
           .catch(e => {
-            console.error(`Failed to load ${resort.name}:`, e);
+            console.error(`❌ Failed to load ${resort.name}:`, e.message);
             setError(er => ({ ...er, [resort.id]: e.message }));
           })
           .finally(() => setLoading(l => ({ ...l, [resort.id]: false })));
@@ -57,8 +63,6 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-blue-300 via-white to-blue-500 flex flex-col relative overflow-hidden">
-      <div className="absolute inset-0 -z-10 bg-[url('/ski-bg.jpg')] bg-cover bg-center opacity-20" />
-
       {/* Header */}
       <header className="relative z-10 p-6 text-center bg-white/10 backdrop-blur-sm rounded-lg mx-4 mt-4 shadow-lg">
         <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-4 drop-shadow-2xl tracking-tight flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
@@ -70,6 +74,11 @@ const HomePage: React.FC = () => {
           Interactive map showing real-time weather conditions
         </p>
       </header>
+
+      {/* Status Bar */}
+      <div className="relative z-10 px-4 py-2 text-center bg-white/20 backdrop-blur-sm text-blue-100 text-sm font-medium">
+        <span>🗻 {resorts.length} resorts • Loading conditions with 2-second rate limiting...</span>
+      </div>
 
       {/* Map */}
       <div className="flex-1 relative">

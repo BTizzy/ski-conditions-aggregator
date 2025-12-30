@@ -54,7 +54,8 @@ const ResortMap: React.FC<ResortMapProps> = ({
   const [mapReady, setMapReady] = useState(false);
   const [selectedResort, setSelectedResort] = useState<{ resort: Resort; conditions: ResortConditions } | null>(null);
 
-  const radarFramesRef = useRef<Array<{ url: string; time?: number }>([]);
+  // FIXED: Properly initialize radarFramesRef as a Ref, not a boolean
+  const radarFramesRef = useRef<Array<{ url: string; time?: number }>>([]); 
   const radarIndexRef = useRef(0);
   const radarPlayingRef = useRef(true);
   const tileBitmapCache = useRef<Map<string, ImageBitmap>>(new Map());
@@ -167,12 +168,14 @@ const ResortMap: React.FC<ResortMapProps> = ({
           }
         });
 
+        // FIXED: Properly assign to ref.current
         radarFramesRef.current = frameObjects;
         setFrameCount(frameObjects.length);
         setRadarFramesAvailable(frameObjects.length > 0);
         
         const sourceLabel = data?.radar?.source === 'rainviewer-48h' ? '48h RainViewer' : '1h Mesonet (fallback)';
         setLoadingStatus(`Ready: ${frameObjects.length} frames (${sourceLabel})`);
+        console.log('[Frames] Ready. Frames set:', frameObjects.length);
       } catch (e) {
         console.error('[Frames] Load failed:', e);
         setLoadingStatus(`Failed to load frames: ${e}`);

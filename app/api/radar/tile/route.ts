@@ -3,18 +3,25 @@ import { NextResponse, NextRequest } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 /**
- * Radar Tile Proxy - Returns precipitation radar tile images
+ * Radar Tile Proxy - Returns NEXRAD precipitation radar tile images
  * 
- * Data Source: RainViewer (confirmed working 2025-12-30)
- * Tile URL format: https://tilecache.rainviewer.com/v2/radar/{timestamp}/{z}/{x}/{y}/256/png
+ * Data Source: Iowa State Mesonet Tile Map Service (TMS)
+ * Tile Service: https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/
+ * 
+ * Layer: nexrad-n0q-900913
+ * - N0Q = Base Reflectivity (Doppler radar measurement)
+ * - 900913 = Web Mercator projection
+ * - Updates every 5-15 minutes
+ * - 60+ minutes of history
  * 
  * Query Params:
  *   time - Unix timestamp (seconds)
- *   z - Zoom level
- *   x - Tile X coordinate  
+ *   z - Zoom level (0-18)
+ *   x - Tile X coordinate
  *   y - Tile Y coordinate
  * 
- * Returns: 256x256 PNG image with precipitation overlay
+ * Returns: 256x256 PNG image
+ * Reference: https://mesonet.agron.iastate.edu/ogc/
  */
 export async function GET(request: NextRequest) {
   try {
@@ -33,7 +40,7 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    // Validate coordinates
+    // Parse and validate coordinates
     const zNum = parseInt(z);
     const xNum = parseInt(x);
     const yNum = parseInt(y);
@@ -45,8 +52,8 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    // Validate zoom level (typical range 0-18)
-    if (zNum < 0 || zNum > 20) {
+    // Validate zoom level (Web Mercator typical range 0-18)
+    if (zNum < 0 || zNum > 18) {
       return getTransparentTile();
     }
     
@@ -56,53 +63,95 @@ export async function GET(request: NextRequest) {
       return getTransparentTile();
     }
     
-    // RainViewer tile URL
-    // Format: /v2/radar/{timestamp}/{z}/{x}/{y}/{tile_size}/options.png
-    // tile_size: 256 or 512
-    // options: color scheme and smoothing (256 is default)
-    const tileUrl = `https://tilecache.rainviewer.com/v2/radar/${time}/256/${zNum}/${xNum}/${yNum}/2/1_1.png`;
+    // Convert Unix timestamp (seconds) to YYYYMMDDHHmi format for Mesonet
+    const timeNum = parseInt(time);
+    if (isNaN(timeNum)) {
+      return getTransparentTile();
+    }
     
-    console.log(`[Tile API] Fetching: z=${z} x=${x} y=${y} time=${time}`);
+    const date = new Date(timeNum * 1000);
+    const yyyy = date.getUTCFullYear();
+    const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const dd = String(date.getUTCDate()).padStart(2, '0');
+    const hh = String(date.getUTCHours()).padStart(2, '0');
+    const mi = String(date.getUTCMinutes()).padStart(2, '0');
     
-    // Fetch tile from RainViewer
+    const timeFormatted = `${yyyy}${mm}${dd}${hh}${mi}`;
+    
+    // Mesonet TMS endpoint for NEXRAD N0Q (Base Reflectivity)
+    // Format: /cache/tile.py/1.0.0/{LAYER}/{Z}/{X}/{Y}.png
+    // Layer with timestamp: ridge::{RADAR-PRODUCT-TIMESTAMP}
+    const tileUrl = `https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/ridge::DMX-N0Q-${timeFormatted}/${zNum}/${xNum}/${yNum}.png`;
+    
+    console.log(`[Tile] Fetching: z=${z} x=${x} y=${y} time=${timeFormatted} url=${tileUrl}`);
+    
+    // Fetch from Mesonet
     const response = await fetch(tileUrl, {
       headers: {
         'User-Agent': 'ski-conditions-aggregator',
         'Accept': 'image/png'
       },
-      next: { revalidate: 3600 } // Cache 1 hour
+      // Mesonet caches tiles for 5+ minutes
+      next: { revalidate: 300 }
     });
     
     if (!response.ok) {
-      console.warn(`[Tile API] RainViewer returned ${response.status} for ${tileUrl}`);
-      return getTransparentTile();
+      console.warn(`[Tile] Mesonet returned ${response.status} for ${tileUrl}`);
+      // Try with current time (latest available)
+      const now = new Date();
+      const nowYyyy = now.getUTCFullYear();
+      const nowMm = String(now.getUTCMonth() + 1).padStart(2, '0');
+      const nowDd = String(now.getUTCDate()).padStart(2, '0');
+      const nowHh = String(now.getUTCHours()).padStart(2, '0');
+      const nowMi = String(now.getUTCMinutes()).padStart(2, '0');
+      const nowTime = `${nowYyyy}${nowMm}${nowDd}${nowHh}${nowMi}`;
+      
+      const fallbackUrl = `https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/ridge::DMX-N0Q-${nowTime}/${zNum}/${xNum}/${yNum}.png`;
+      console.log(`[Tile] Trying fallback with current time: ${fallbackUrl}`);
+      
+      const fallbackResponse = await fetch(fallbackUrl, {
+        headers: {
+          'User-Agent': 'ski-conditions-aggregator',
+          'Accept': 'image/png'
+        }
+      });
+      
+      if (!fallbackResponse.ok) {
+        console.warn(`[Tile] Fallback also failed, returning transparent`);
+        return getTransparentTile();
+      }
+      
+      return returnTile(fallbackResponse);
     }
     
-    // Return the PNG tile
-    const imageBuffer = await response.arrayBuffer();
-    
-    const result = new NextResponse(imageBuffer, {
-      headers: {
-        'Content-Type': 'image/png',
-        'Cache-Control': 'public, max-age=3600', // Cache 1 hour
-        'Access-Control-Allow-Origin': '*'
-      }
-    });
-    
-    return result;
+    return returnTile(response);
     
   } catch (error: any) {
-    console.error('[Tile API] Error:', error.message);
+    console.error('[Tile] Error:', error.message);
     return getTransparentTile();
   }
 }
 
 /**
- * Returns a 1x1 transparent PNG as fallback
- * 67 bytes - minimal overhead
+ * Process and return tile response
+ */
+async function returnTile(response: Response): Promise<Response> {
+  const imageBuffer = await response.arrayBuffer();
+  
+  return new NextResponse(imageBuffer, {
+    headers: {
+      'Content-Type': 'image/png',
+      'Cache-Control': 'public, max-age=300', // 5-minute cache (Mesonet standard)
+      'Access-Control-Allow-Origin': '*'
+    }
+  });
+}
+
+/**
+ * Returns a 1x1 transparent PNG as fallback when no data available
  */
 function getTransparentTile(): Response {
-  // 1x1 transparent PNG
+  // 1x1 transparent PNG (67 bytes)
   const transparentPng = Buffer.from([
     0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
     0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
@@ -118,7 +167,7 @@ function getTransparentTile(): Response {
   return new NextResponse(transparentPng, {
     headers: {
       'Content-Type': 'image/png',
-      'Cache-Control': 'public, max-age=3600',
+      'Cache-Control': 'public, max-age=300',
       'Access-Control-Allow-Origin': '*'
     }
   });

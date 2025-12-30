@@ -38,7 +38,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
   errors = {},
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<L.Map | null>(null); // SINGLE source of truth
+  const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<Map<string, L.CircleMarker>>(new Map());
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   
@@ -51,45 +51,29 @@ const ResortMap: React.FC<ResortMapProps> = ({
   const [mapReady, setMapReady] = useState(false);
   const [selectedResort, setSelectedResort] = useState<ResortConditions | null>(null);
 
-  const radarFramesRef = useRef<string[]>([]);
+  const radarFramesRef = useRef<Array<{ url: string; time?: number }>>([]); // Support both RainViewer & Mesonet
   const radarIndexRef = useRef(0);
   const radarPlayingRef = useRef(true);
   const tileBitmapCache = useRef<Map<string, ImageBitmap>>(new Map());
   const frameCanvasCache = useRef<Map<string, HTMLCanvasElement>>(new Map());
   const rafRef = useRef<number | null>(null);
 
-  // Initialize map - STRICT SINGLETON PATTERN
+  // Initialize map
   useEffect(() => {
-    // If map already exists, DO NOTHING
-    if (mapRef.current) {
-      console.log('[Map] Already initialized, skipping');
-      return;
-    }
+    if (mapRef.current) return; // Already initialized
 
-    if (!containerRef.current) {
-      console.error('[Map] Container ref not available');
-      return;
-    }
-
-    // Double check container isn't already populated
-    if (containerRef.current.innerHTML !== '') {
-       console.log('[Map] Container not empty, clearing...');
-       containerRef.current.innerHTML = '';
-    }
+    if (!containerRef.current) return;
+    if (containerRef.current.innerHTML !== '') containerRef.current.innerHTML = '';
 
     console.log('[Map] Starting initialization...');
 
     try {
-      // Create map
       const map = L.map(containerRef.current, {
         center: [43.5, -71.5],
         zoom: 7,
         scrollWheelZoom: true,
       });
 
-      console.log('[Map] Leaflet map created successfully');
-
-      // Add base layer
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors',
         maxZoom: 19,
@@ -97,19 +81,14 @@ const ResortMap: React.FC<ResortMapProps> = ({
 
       mapRef.current = map;
 
-      // Create radar pane (BELOW markers)
-      if (!map.getPane('radarPane')) {
-        map.createPane('radarPane');
-      }
+      if (!map.getPane('radarPane')) map.createPane('radarPane');
       const radarPane = map.getPane('radarPane') as HTMLElement;
-      radarPane.style.zIndex = '400'; 
+      radarPane.style.zIndex = '400';
       radarPane.style.pointerEvents = 'none';
 
-      // Ensure marker pane is on top
       const markerPane = map.getPane('markerPane') as HTMLElement;
-      markerPane.style.zIndex = '700'; 
+      markerPane.style.zIndex = '700';
 
-      // Create canvas container
       const container2 = document.createElement('div');
       container2.style.position = 'absolute';
       container2.style.left = '0';
@@ -127,10 +106,8 @@ const ResortMap: React.FC<ResortMapProps> = ({
 
       container2.appendChild(canvas);
       radarPane.appendChild(container2);
-
       canvasRef.current = canvas;
 
-      // Size canvas
       const resizeCanvas = () => {
         if (!canvas || !map) return;
         const size = map.getSize();
@@ -147,9 +124,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
       map.on('resize', resizeCanvas);
       map.on('zoom', () => frameCanvasCache.current.clear());
 
-      setTimeout(() => {
-        map.invalidateSize();
-      }, 200);
+      setTimeout(() => map.invalidateSize(), 200);
 
       console.log('[Map] Initialization complete');
       setMapReady(true);
@@ -158,37 +133,39 @@ const ResortMap: React.FC<ResortMapProps> = ({
       console.error('[Map] Initialization failed:', error);
       setLoadingStatus('Map initialization failed');
     }
-
-    // Cleanup function
-    return () => {
-      // NOTE: In React 18 strict mode, this runs immediately.
-      // We often WANT to keep the map if we're just re-rendering.
-      // But if unmounting truly, we should clean up.
-      // For safety in this specific app, let's NOT destroy the map on simple re-renders.
-      // Only destroy if component is truly unmounting (hard to detect in hook).
-      // Standard Leaflet React pattern:
-      console.log('[Map] Cleanup called (skipping destruction to prevent flicker)');
-    };
   }, []);
 
-  // Load radar frames
+  // Load radar frames (RainViewer 48-hour with Mesonet fallback)
   useEffect(() => {
     if (!mapReady) return;
 
     const loadFrames = async () => {
       try {
         console.log('[Frames] Fetching from API...');
-        const res = await fetch('/api/radar/frames'); // Back to default (Mesonet)
+        const res = await fetch('/api/radar/frames');
         if (!res.ok) throw new Error(`API returned ${res.status}`);
 
         const data = await res.json();
         const layers = data?.radar?.layers || [];
-        console.log('[Frames] Loaded', layers.length, 'layers');
+        console.log('[Frames] Loaded', layers.length, 'layers, source:', data?.radar?.source);
 
-        radarFramesRef.current = layers;
-        setFrameCount(layers.length);
-        setRadarFramesAvailable(layers.length > 0);
-        setLoadingStatus(`Ready: ${layers.length} frames (1h loop)`);
+        // Handle both RainViewer (array of objects with url/timestamp) and Mesonet (array of strings)
+        const frameObjects = layers.map((layer: any) => {
+          if (typeof layer === 'string') {
+            // Mesonet format
+            return { url: layer, time: 0 };
+          } else {
+            // RainViewer format
+            return { url: layer.url, time: layer.timestamp };
+          }
+        });
+
+        radarFramesRef.current = frameObjects;
+        setFrameCount(frameObjects.length);
+        setRadarFramesAvailable(frameObjects.length > 0);
+        
+        const sourceLabel = data?.radar?.source === 'rainviewer-48h' ? '48h RainViewer' : '1h Mesonet (fallback)';
+        setLoadingStatus(`Ready: ${frameObjects.length} frames (${sourceLabel})`);
       } catch (e) {
         console.error('[Frames] Load failed:', e);
         setLoadingStatus(`Failed to load frames: ${e}`);
@@ -198,36 +175,33 @@ const ResortMap: React.FC<ResortMapProps> = ({
     loadFrames();
   }, [mapReady]);
 
-  // Add resort markers - RECONCILE (Add new, Remove old, Update existing)
+  // Add resort markers with reconciliation
   useEffect(() => {
     if (!mapRef.current || resorts.length === 0) return;
 
     const map = mapRef.current;
-    
-    // Track which markers are active in this render
     const activeIds = new Set(resorts.map(r => r.id));
 
-    // 1. REMOVE markers that are no longer in props
+    // Remove old markers
     markersRef.current.forEach((marker, id) => {
-        if (!activeIds.has(id)) {
-            marker.remove();
-            markersRef.current.delete(id);
-        }
+      if (!activeIds.has(id)) {
+        marker.remove();
+        markersRef.current.delete(id);
+      }
     });
 
-    // 2. ADD or UPDATE markers
+    // Add or update markers
     resorts.forEach((resort) => {
       const cond = conditions[resort.id];
       const err = errors[resort.id];
       const isLoading = loading[resort.id];
 
-      // Determine style
-      let markerColor = '#9CA3AF'; // gray
+      let markerColor = '#9CA3AF';
       let markerRadius = 8;
       let markerWeight = 2;
 
       if (err) {
-        markerColor = '#EF4444'; // red
+        markerColor = '#EF4444';
         markerRadius = 7;
       } else if (cond) {
         if (cond.recentSnowfall >= 12) {
@@ -241,22 +215,12 @@ const ResortMap: React.FC<ResortMapProps> = ({
         }
       }
 
-      // Check if marker exists
       if (markersRef.current.has(resort.id)) {
-        // UPDATE existing marker
-        const existingMarker = markersRef.current.get(resort.id)!;
-        existingMarker.setStyle({
-            fillColor: markerColor,
-            radius: markerRadius,
-            weight: markerWeight
-        });
-        
-        // Update popup content? (Simplified: Just rebind if you want, but might close popup)
-        // Usually better to just leave popup alone unless data drastically changes.
+        const existing = markersRef.current.get(resort.id)!;
+        existing.setStyle({ fillColor: markerColor, radius: markerRadius, weight: markerWeight });
         return;
       }
 
-      // CREATE new marker
       const marker = L.circleMarker([resort.lat, resort.lon], {
         radius: markerRadius,
         fillColor: markerColor,
@@ -265,21 +229,12 @@ const ResortMap: React.FC<ResortMapProps> = ({
         opacity: 1,
         fillOpacity: 0.9,
         pane: 'markerPane',
-        className: 'resort-marker',
       })
         .addTo(map)
-        .on('click', () => {
-          if (cond) setSelectedResort(cond);
-          marker.openPopup();
-        })
-        .on('mouseover', function () {
-          this.setRadius(markerRadius * 1.3);
-        })
-        .on('mouseout', function () {
-          this.setRadius(markerRadius);
-        });
+        .on('click', () => { if (cond) setSelectedResort(cond); marker.openPopup(); })
+        .on('mouseover', function () { this.setRadius(markerRadius * 1.3); })
+        .on('mouseout', function () { this.setRadius(markerRadius); });
 
-      // Create popup
       let popupHtml = `<div style="font-size: 12px; min-width: 200px; font-family: system-ui;">`;
       popupHtml += `<div style="font-weight: bold; font-size: 14px; margin-bottom: 8px;">${resort.name}, ${resort.state}</div>`;
       if (isLoading) popupHtml += `<div style="color: #666;">⏳ Loading...</div>`;
@@ -296,21 +251,21 @@ const ResortMap: React.FC<ResortMapProps> = ({
       marker.bindPopup(popupHtml, { maxWidth: 250 });
       markersRef.current.set(resort.id, marker);
     });
-
   }, [resorts, conditions, loading, errors]);
 
-  // Get tile bitmap
+  // Get tile
   const getTileBitmap = async (
-    layer: string,
+    layer: string | { url: string; time?: number },
     z: number,
     x: number,
     y: number
   ): Promise<ImageBitmap | null> => {
-    const key = `${layer}_${z}_${x}_${y}`;
+    const layerStr = typeof layer === 'string' ? layer : layer.url;
+    const key = `${layerStr}_${z}_${x}_${y}`;
     if (tileBitmapCache.current.has(key)) return tileBitmapCache.current.get(key) || null;
 
     try {
-      const url = `/api/radar/tile?layer=${encodeURIComponent(layer)}&z=${z}&x=${x}&y=${y}`;
+      const url = `/api/radar/tile?layer=${encodeURIComponent(layerStr)}&z=${z}&x=${x}&y=${y}`;
       const resp = await fetch(url);
       if (!resp.ok) return null;
 
@@ -330,9 +285,9 @@ const ResortMap: React.FC<ResortMapProps> = ({
     }
   };
 
-  // Render frame
+  // Render frame to canvas
   const renderFrameToCanvas = async (
-    layer: string,
+    layer: string | { url: string; time?: number },
     z: number,
     widthPx: number,
     heightPx: number,
@@ -425,8 +380,8 @@ const ResortMap: React.FC<ResortMapProps> = ({
 
         const z = Math.max(0, Math.round(map.getZoom() || 5));
         const size = map.getSize();
-        const keyPrev = `${frames[idx]}_${z}_${size.x}_${size.y}`;
-        const keyNext = `${frames[nextIdx]}_${z}_${size.x}_${size.y}`;
+        const keyPrev = `${frames[idx].url}_${z}_${size.x}_${size.y}`;
+        const keyNext = `${frames[nextIdx].url}_${z}_${size.x}_${size.y}`;
 
         ctx.clearRect(0, 0, c.width, c.height);
 
@@ -450,94 +405,33 @@ const ResortMap: React.FC<ResortMapProps> = ({
     };
 
     rafRef.current = requestAnimationFrame(step);
-    return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
   }, [radarFramesAvailable, radarSpeedMs]);
 
-  // Update opacity
   useEffect(() => {
-    if (canvasRef.current) {
-      canvasRef.current.style.opacity = String(radarOpacity);
-    }
+    if (canvasRef.current) canvasRef.current.style.opacity = String(radarOpacity);
   }, [radarOpacity]);
 
   return (
     <div className="relative w-full h-screen bg-gray-100 flex flex-col">
-      {/* Map container */}
-      <div
-        ref={containerRef}
-        className="flex-1 w-full"
-        style={{
-          position: 'relative',
-          width: '100%',
-          height: '100%',
-          minHeight: '400px',
-        }}
-      />
+      <div ref={containerRef} className="flex-1 w-full" style={{ position: 'relative', width: '100%', height: '100%', minHeight: '400px' }} />
 
-      {/* Radar Controls */}
       <div className="absolute top-4 left-4 z-[99999] bg-white/95 rounded-lg p-4 shadow-lg max-w-xs">
-        <div className="font-bold mb-2 text-gray-800 text-sm">🛰 Radar (1h Loop)</div>
-
+        <div className="font-bold mb-2 text-gray-800 text-sm">🛰 Radar 48h</div>
         <div className="flex gap-2 mb-3">
-          <button
-            onClick={() => { setRadarPlaying(true); radarPlayingRef.current = true; }}
-            className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 font-semibold"
-          >
-            ▶ Play
-          </button>
-          <button
-            onClick={() => { setRadarPlaying(false); radarPlayingRef.current = false; }}
-            className="px-3 py-1 bg-gray-400 text-white rounded text-sm hover:bg-gray-500 font-semibold"
-          >
-            ⏸ Pause
-          </button>
+          <button onClick={() => { setRadarPlaying(true); radarPlayingRef.current = true; }} className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 font-semibold">▶ Play</button>
+          <button onClick={() => { setRadarPlaying(false); radarPlayingRef.current = false; }} className="px-3 py-1 bg-gray-400 text-white rounded text-sm hover:bg-gray-500 font-semibold">⏸ Pause</button>
         </div>
-
-        <div className="mb-3">
-          <label className="text-xs font-semibold text-gray-700 block mb-1">Speed</label>
-          <input
-            type="range" min="100" max="2000" step="50"
-            value={radarSpeedMs}
-            onChange={(e) => setRadarSpeedMs(Number(e.target.value))}
-            className="w-full"
-          />
-        </div>
-
-        <div className="mb-3">
-          <label className="text-xs font-semibold text-gray-700 block mb-1">Opacity</label>
-          <input
-            type="range" min="0" max="1" step="0.05"
-            value={radarOpacity}
-            onChange={(e) => setRadarOpacity(Number(e.target.value))}
-            className="w-full"
-          />
-        </div>
-
-        <div className="text-xs text-gray-700 border-t pt-2">
-          <div>Status: {loadingStatus}</div>
-          <div>Markers: {markersRef.current.size}/43</div>
-        </div>
+        <div className="mb-3"><label className="text-xs font-semibold text-gray-700 block mb-1">Speed</label><input type="range" min="100" max="2000" step="50" value={radarSpeedMs} onChange={(e) => setRadarSpeedMs(Number(e.target.value))} className="w-full" /></div>
+        <div className="mb-3"><label className="text-xs font-semibold text-gray-700 block mb-1">Opacity</label><input type="range" min="0" max="1" step="0.05" value={radarOpacity} onChange={(e) => setRadarOpacity(Number(e.target.value))} className="w-full" /></div>
+        <div className="text-xs text-gray-700 border-t pt-2"><div>Status: {loadingStatus}</div><div>Markers: {markersRef.current.size}/43</div></div>
       </div>
       
-      {/* Selected Resort Info */}
       {selectedResort && (
         <div className="absolute top-4 right-4 z-[99999] bg-white/95 rounded-lg p-4 shadow-lg max-w-xs">
-          <button
-            onClick={() => setSelectedResort(null)}
-            className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-lg"
-          >
-            ✕
-          </button>
-          <div className="font-bold text-gray-800 mb-2">📊 Current Conditions</div>
-          <div className="text-sm space-y-1">
-            <div><span className="font-semibold">24h Snow:</span> <span className="text-blue-600 font-bold">{selectedResort.recentSnowfall.toFixed(1)}"</span></div>
-            <div><span className="font-semibold">Depth:</span> {selectedResort.snowDepth.toFixed(1)}"</div>
-            <div><span className="font-semibold">Temp:</span> {selectedResort.baseTemp.toFixed(0)}°F</div>
-            <div><span className="font-semibold">Wind:</span> {selectedResort.windSpeed.toFixed(0)} mph</div>
-            <div className="text-xs text-gray-500 mt-2">Updated: {new Date(selectedResort.timestamp).toLocaleTimeString()}</div>
-          </div>
+          <button onClick={() => setSelectedResort(null)} className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-lg">✕</button>
+          <div className="font-bold text-gray-800 mb-2">📊 Conditions</div>
+          <div className="text-sm space-y-1"><div><span className="font-semibold">24h Snow:</span> <span className="text-blue-600 font-bold">{selectedResort.recentSnowfall}"</span></div><div><span className="font-semibold">Depth:</span> {selectedResort.snowDepth}"</div><div><span className="font-semibold">Temp:</span> {selectedResort.baseTemp}°F</div></div>
         </div>
       )}
     </div>

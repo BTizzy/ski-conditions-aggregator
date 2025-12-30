@@ -1,0 +1,492 @@
+{
+  "sample": [
+    {
+      "resortId": "loon-mountain",
+      "name": "Loon Mountain",
+      "stationId": "KHIE",
+      "stationDistanceKm": 37.02797947070157,
+      "obsCount": 500,
+      "stationWeekly": 8.5,
+      "resortReportedWeekly": null,
+      "modelWeekly": 8.5,
+      "apiRaw": {
+        "resortId": "loon-mountain",
+        "timestamp": "2025-12-30T17:00:14.027Z",
+        "snowDepth": 1.5,
+        "recentSnowfall": 1.5,
+        "weeklySnowfall": 8.5,
+        "expectedOnGround": 1.5,
+        "baseTemp": 6,
+        "windSpeed": 20,
+        "visibility": "Slight Chance Snow Showers",
+        "trailStatus": {
+          "open": 0,
+          "total": 0,
+          "groomed": 0
+        },
+        "rawData": {
+          "nws": {
+            "temperature": 6,
+            "windSpeed": 20,
+            "windDirection": "W",
+            "textDescription": "Slight Chance Snow Showers",
+            "icon": "https://api.weather.gov/icons/land/day/snow,20?size=medium",
+            "timestamp": "2025-12-30T09:00:00-05:00",
+            "raw": {
+              "number": 1,
+              "name": "Today",
+              "startTime": "2025-12-30T09:00:00-05:00",
+              "endTime": "2025-12-30T18:00:00-05:00",
+              "isDaytime": true,
+              "temperature": 6,
+              "temperatureUnit": "F",
+              "temperatureTrend": null,
+              "probabilityOfPrecipitation": {
+                "unitCode": "wmoUnit:percent",
+                "value": 24
+              },
+              "windSpeed": "20 mph",
+              "windDirection": "W",
+              "icon": "https://api.weather.gov/icons/land/day/snow,20?size=medium",
+              "shortForecast": "Slight Chance Snow Showers",
+              "detailedForecast": "A slight chance of snow showers. Mostly cloudy, with a high near 6. Wind chill values as low as -19. West wind around 20 mph, with gusts as high as 40 mph. Chance of precipitation is 20%. New snow accumulation of less than one inch possible."
+            }
+          },
+          "model": {
+            "recentSnowfall": 1.5,
+            "snowDepth": 1.5,
+            "baseTemp": 6,
+            "windSpeed": 20,
+            "visibility": "Slight Chance Snow Showers",
+            "powderScore": 58,
+            "factors": [],
+            "weeklySnowfall": 8.5,
+            "expectedOnGround": 1.5
+          }
+        }
+      }
+    },
+    {
+      "resortId": "stowe",
+      "name": "Stowe",
+      "stationId": "KMVL",
+      "stationDistanceKm": 9.658044523884529,
+      "obsCount": 500,
+      "stationWeekly": 7.5,
+      "resortReportedWeekly": null,
+      "modelWeekly": 7.5,
+      "apiRaw": {
+        "resortId": "stowe",
+        "timestamp": "2025-12-30T17:00:25.917Z",
+        "snowDepth": 2,
+        "recentSnowfall": 2,
+        "weeklySnowfall": 7.5,
+        "expectedOnGround": 2,
+        "baseTemp": 12,
+        "windSpeed": 10,
+        "visibility": "Scattered Snow Showers",
+        "trailStatus": {
+          "open": 0,
+          "total": 0,
+          "groomed": 0
+        },
+        "rawData": {
+          "nws": {
+            "temperature": 12,
+            "windSpeed": 10,
+            "windDirection": "W",
+            "textDescription": "Scattered Snow Showers",
+            "icon": "https://api.weather.gov/icons/land/day/snow,40?size=medium",
+            "timestamp": "2025-12-30T09:00:00-05:00",
+            "raw": {
+              "number": 1,
+              "name": "Today",
+              "startTime": "2025-12-30T09:00:00-05:00",
+              "endTime": "2025-12-30T18:00:00-05:00",
+              "isDaytime": true,
+              "temperature": 12,
+              "temperatureUnit": "F",
+              "temperatureTrend": null,
+              "probabilityOfPrecipitation": {
+                "unitCode": "wmoUnit:percent",
+                "value": 38
+              },
+              "windSpeed": "10 to 15 mph",
+              "windDirection": "W",
+              "icon": "https://api.weather.gov/icons/land/day/snow,40?size=medium",
+              "shortForecast": "Scattered Snow Showers",
+              "detailedForecast": "Scattered snow showers. Cloudy, with a high near 12. Wind chill values as low as -10. West wind 10 to 15 mph, with gusts as high as 32 mph. Chance of precipitation is 40%. New snow accumulation of less than one inch possible."
+            }
+          },
+          "model": {
+            "recentSnowfall": 2,
+            "snowDepth": 2,
+            "baseTemp": 12,
+            "windSpeed": 10,
+            "visibility": "Scattered Snow Showers",
+            "powderScore": 60,
+            "factors": [
+              "recent-light"
+            ],
+            "weeklySnowfall": 7.5,
+            "expectedOnGround": 2
+          }
+        }
+      }
+    },
+    {
+      "resortId": "smugglers-notch",
+      "name": "Smugglers' Notch",
+      "stationId": "KMVL",
+      "stationDistanceKm": 14.334983857747806,
+      "obsCount": 500,
+      "stationWeekly": 7.5,
+      "resortReportedWeekly": null,
+      "modelWeekly": 7.5,
+      "apiRaw": {
+        "resortId": "smugglers-notch",
+        "timestamp": "2025-12-30T17:00:28.778Z",
+        "snowDepth": 3,
+        "recentSnowfall": 3,
+        "weeklySnowfall": 7.5,
+        "expectedOnGround": 3,
+        "baseTemp": 9,
+        "windSpeed": 23,
+        "visibility": "Scattered Snow Showers",
+        "trailStatus": {
+          "open": 0,
+          "total": 0,
+          "groomed": 0
+        },
+        "rawData": {
+          "nws": {
+            "temperature": 9,
+            "windSpeed": 23,
+            "windDirection": "W",
+            "textDescription": "Scattered Snow Showers",
+            "icon": "https://api.weather.gov/icons/land/day/snow,50?size=medium",
+            "timestamp": "2025-12-30T09:00:00-05:00",
+            "raw": {
+              "number": 1,
+              "name": "Today",
+              "startTime": "2025-12-30T09:00:00-05:00",
+              "endTime": "2025-12-30T18:00:00-05:00",
+              "isDaytime": true,
+              "temperature": 9,
+              "temperatureUnit": "F",
+              "temperatureTrend": null,
+              "probabilityOfPrecipitation": {
+                "unitCode": "wmoUnit:percent",
+                "value": 53
+              },
+              "windSpeed": "23 mph",
+              "windDirection": "W",
+              "icon": "https://api.weather.gov/icons/land/day/snow,50?size=medium",
+              "shortForecast": "Scattered Snow Showers",
+              "detailedForecast": "Scattered snow showers. Cloudy, with a high near 9. Wind chill values as low as -18. West wind around 23 mph, with gusts as high as 45 mph. Chance of precipitation is 50%. New snow accumulation of less than one inch possible."
+            }
+          },
+          "model": {
+            "recentSnowfall": 3,
+            "snowDepth": 3,
+            "baseTemp": 9,
+            "windSpeed": 23,
+            "visibility": "Scattered Snow Showers",
+            "powderScore": 64,
+            "factors": [
+              "recent-light"
+            ],
+            "weeklySnowfall": 7.5,
+            "expectedOnGround": 3
+          }
+        }
+      }
+    },
+    {
+      "resortId": "killington",
+      "name": "Killington",
+      "stationId": "KRUT",
+      "stationDistanceKm": 13.120745591255512,
+      "obsCount": 500,
+      "stationWeekly": 6.5,
+      "resortReportedWeekly": null,
+      "modelWeekly": 6.5,
+      "apiRaw": {
+        "resortId": "killington",
+        "timestamp": "2025-12-30T17:00:34.251Z",
+        "snowDepth": 1,
+        "recentSnowfall": 1,
+        "weeklySnowfall": 6.5,
+        "expectedOnGround": 0.8,
+        "baseTemp": 3,
+        "windSpeed": 33,
+        "visibility": "Isolated Snow Showers",
+        "trailStatus": {
+          "open": 0,
+          "total": 0,
+          "groomed": 0
+        },
+        "rawData": {
+          "nws": {
+            "temperature": 3,
+            "windSpeed": 33,
+            "windDirection": "W",
+            "textDescription": "Isolated Snow Showers",
+            "icon": "https://api.weather.gov/icons/land/day/snow,20?size=medium",
+            "timestamp": "2025-12-30T09:00:00-05:00",
+            "raw": {
+              "number": 1,
+              "name": "Today",
+              "startTime": "2025-12-30T09:00:00-05:00",
+              "endTime": "2025-12-30T18:00:00-05:00",
+              "isDaytime": true,
+              "temperature": 3,
+              "temperatureUnit": "F",
+              "temperatureTrend": null,
+              "probabilityOfPrecipitation": {
+                "unitCode": "wmoUnit:percent",
+                "value": 22
+              },
+              "windSpeed": "33 to 37 mph",
+              "windDirection": "W",
+              "icon": "https://api.weather.gov/icons/land/day/snow,20?size=medium",
+              "shortForecast": "Isolated Snow Showers",
+              "detailedForecast": "Isolated snow showers. Mostly cloudy, with a high near 3. Wind chill values as low as -32. West wind 33 to 37 mph, with gusts as high as 53 mph. Chance of precipitation is 20%. New snow accumulation of less than half an inch possible."
+            }
+          },
+          "model": {
+            "recentSnowfall": 1,
+            "snowDepth": 1,
+            "baseTemp": 3,
+            "windSpeed": 33,
+            "visibility": "Isolated Snow Showers",
+            "powderScore": 36,
+            "factors": [
+              "windy"
+            ],
+            "weeklySnowfall": 6.5,
+            "expectedOnGround": 0.8
+          }
+        }
+      }
+    }
+  ],
+  "sweep": [
+    {
+      "rMult": 0.9,
+      "sd": 0.5,
+      "rw": 0,
+      "mae": 1.875
+    },
+    {
+      "rMult": 0.9,
+      "sd": 0.5,
+      "rw": 0.5,
+      "mae": 1.875
+    },
+    {
+      "rMult": 0.9,
+      "sd": 0.5,
+      "rw": 0.7,
+      "mae": 1.875
+    },
+    {
+      "rMult": 0.9,
+      "sd": 0.5,
+      "rw": 0.9,
+      "mae": 1.875
+    },
+    {
+      "rMult": 0.9,
+      "sd": 0.6,
+      "rw": 0,
+      "mae": 0.625
+    },
+    {
+      "rMult": 0.9,
+      "sd": 0.6,
+      "rw": 0.5,
+      "mae": 0.625
+    },
+    {
+      "rMult": 0.9,
+      "sd": 0.6,
+      "rw": 0.7,
+      "mae": 0.625
+    },
+    {
+      "rMult": 0.9,
+      "sd": 0.6,
+      "rw": 0.9,
+      "mae": 0.625
+    },
+    {
+      "rMult": 0.9,
+      "sd": 0.8,
+      "rw": 0,
+      "mae": 1.5
+    },
+    {
+      "rMult": 0.9,
+      "sd": 0.8,
+      "rw": 0.5,
+      "mae": 1.5
+    },
+    {
+      "rMult": 0.9,
+      "sd": 0.8,
+      "rw": 0.7,
+      "mae": 1.5
+    },
+    {
+      "rMult": 0.9,
+      "sd": 0.8,
+      "rw": 0.9,
+      "mae": 1.5
+    },
+    {
+      "rMult": 1,
+      "sd": 0.5,
+      "rw": 0,
+      "mae": 1.125
+    },
+    {
+      "rMult": 1,
+      "sd": 0.5,
+      "rw": 0.5,
+      "mae": 1.125
+    },
+    {
+      "rMult": 1,
+      "sd": 0.5,
+      "rw": 0.7,
+      "mae": 1.125
+    },
+    {
+      "rMult": 1,
+      "sd": 0.5,
+      "rw": 0.9,
+      "mae": 1.125
+    },
+    {
+      "rMult": 1,
+      "sd": 0.6,
+      "rw": 0,
+      "mae": 0
+    },
+    {
+      "rMult": 1,
+      "sd": 0.6,
+      "rw": 0.5,
+      "mae": 0
+    },
+    {
+      "rMult": 1,
+      "sd": 0.6,
+      "rw": 0.7,
+      "mae": 0
+    },
+    {
+      "rMult": 1,
+      "sd": 0.6,
+      "rw": 0.9,
+      "mae": 0
+    },
+    {
+      "rMult": 1,
+      "sd": 0.8,
+      "rw": 0,
+      "mae": 2.375
+    },
+    {
+      "rMult": 1,
+      "sd": 0.8,
+      "rw": 0.5,
+      "mae": 2.375
+    },
+    {
+      "rMult": 1,
+      "sd": 0.8,
+      "rw": 0.7,
+      "mae": 2.375
+    },
+    {
+      "rMult": 1,
+      "sd": 0.8,
+      "rw": 0.9,
+      "mae": 2.375
+    },
+    {
+      "rMult": 1.1,
+      "sd": 0.5,
+      "rw": 0,
+      "mae": 0.625
+    },
+    {
+      "rMult": 1.1,
+      "sd": 0.5,
+      "rw": 0.5,
+      "mae": 0.625
+    },
+    {
+      "rMult": 1.1,
+      "sd": 0.5,
+      "rw": 0.7,
+      "mae": 0.625
+    },
+    {
+      "rMult": 1.1,
+      "sd": 0.5,
+      "rw": 0.9,
+      "mae": 0.625
+    },
+    {
+      "rMult": 1.1,
+      "sd": 0.6,
+      "rw": 0,
+      "mae": 0.875
+    },
+    {
+      "rMult": 1.1,
+      "sd": 0.6,
+      "rw": 0.5,
+      "mae": 0.875
+    },
+    {
+      "rMult": 1.1,
+      "sd": 0.6,
+      "rw": 0.7,
+      "mae": 0.875
+    },
+    {
+      "rMult": 1.1,
+      "sd": 0.6,
+      "rw": 0.9,
+      "mae": 0.875
+    },
+    {
+      "rMult": 1.1,
+      "sd": 0.8,
+      "rw": 0,
+      "mae": 3.5
+    },
+    {
+      "rMult": 1.1,
+      "sd": 0.8,
+      "rw": 0.5,
+      "mae": 3.5
+    },
+    {
+      "rMult": 1.1,
+      "sd": 0.8,
+      "rw": 0.7,
+      "mae": 3.5
+    },
+    {
+      "rMult": 1.1,
+      "sd": 0.8,
+      "rw": 0.9,
+      "mae": 3.5
+    }
+  ]
+}

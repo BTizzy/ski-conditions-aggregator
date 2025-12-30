@@ -1,0 +1,21 @@
+/* stylelint: disable the at-rule-no-unknown rule for Tailwind directives so editors
+  that don't understand Tailwind's @tailwind at-rules don't show warnings. */
+/* stylelint-disable at-rule-no-unknown */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+/* stylelint-enable at-rule-no-unknown */
+
+/* Leaflet CSS is imported in the map component (`app/components/ResortMap.tsx`) to avoid
+  ordering issues with Tailwind's preflight. */
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* Animation indicator pulse */
+@keyframes pulse {
+  0% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
+  100% { opacity: 1; transform: scale(1); }
+}

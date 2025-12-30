@@ -1,0 +1,5 @@
+{
+  // Reset terminal shell to default for macOS
+  "terminal.integrated.shell.osx": null,
+  "terminal.integrated.defaultProfile.osx": null
+}

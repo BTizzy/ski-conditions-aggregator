@@ -6,36 +6,34 @@ export const dynamic = 'force-dynamic';
  * Radar Tile Proxy - Returns NEXRAD precipitation radar tile images
  * 
  * Data Source: Iowa State Mesonet Tile Map Service (TMS)
- * Tile Service: https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/
+ * Official Docs: https://mesonet.agron.iastate.edu/ogc/
  * 
- * Layer: nexrad-n0q-900913
- * - N0Q = Base Reflectivity (Doppler radar measurement)
- * - 900913 = Web Mercator projection
- * - Updates every 5-15 minutes
- * - 60+ minutes of history
+ * Layer Format (WORKING):
+ * - nexrad-n0q (current/latest)
+ * - nexrad-n0q-m05m, m10m, m15m, ... m55m (past 5-min intervals)
+ * 
+ * TMS Endpoint: /cache/tile.py/1.0.0/{LAYER}/{Z}/{X}/{Y}.png
+ * Cache: 5 minutes
  * 
  * Query Params:
- *   time - Unix timestamp (seconds)
+ *   layer - Mesonet layer name (e.g., 'nexrad-n0q' or 'nexrad-n0q-m15m')
  *   z - Zoom level (0-18)
  *   x - Tile X coordinate
  *   y - Tile Y coordinate
- * 
- * Returns: 256x256 PNG image
- * Reference: https://mesonet.agron.iastate.edu/ogc/
  */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = request.nextUrl;
     
-    // Parse tile parameters
-    const time = searchParams.get('time');
+    // Parse parameters
+    const layer = searchParams.get('layer') || 'nexrad-n0q'; // Default to current
     const z = searchParams.get('z');
     const x = searchParams.get('x');
     const y = searchParams.get('y');
     
-    if (!time || !z || !x || !y) {
+    if (!z || !x || !y) {
       return NextResponse.json(
-        { error: 'Missing parameters. Required: time, z, x, y' },
+        { error: 'Missing parameters. Required: z, x, y (layer optional)' },
         { status: 400 }
       );
     }
@@ -52,38 +50,31 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    // Validate zoom level (Web Mercator typical range 0-18)
+    // Validate zoom level
     if (zNum < 0 || zNum > 18) {
       return getTransparentTile();
     }
     
-    // Validate tile bounds for zoom level
+    // Validate tile bounds
     const maxTile = Math.pow(2, zNum);
     if (xNum < 0 || xNum >= maxTile || yNum < 0 || yNum >= maxTile) {
       return getTransparentTile();
     }
     
-    // Convert Unix timestamp (seconds) to YYYYMMDDHHmi format for Mesonet
-    const timeNum = parseInt(time);
-    if (isNaN(timeNum)) {
-      return getTransparentTile();
+    // Validate layer format
+    if (!layer.startsWith('nexrad-n0q')) {
+      return NextResponse.json(
+        { error: 'Invalid layer. Must be nexrad-n0q or nexrad-n0q-mXXm' },
+        { status: 400 }
+      );
     }
     
-    const date = new Date(timeNum * 1000);
-    const yyyy = date.getUTCFullYear();
-    const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const dd = String(date.getUTCDate()).padStart(2, '0');
-    const hh = String(date.getUTCHours()).padStart(2, '0');
-    const mi = String(date.getUTCMinutes()).padStart(2, '0');
+    // Build Mesonet TMS URL
+    // https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/{LAYER}/{Z}/{X}/{Y}.png
+    const tileUrl = `https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/${layer}/${zNum}/${xNum}/${yNum}.png`;
     
-    const timeFormatted = `${yyyy}${mm}${dd}${hh}${mi}`;
-    
-    // Mesonet TMS endpoint for NEXRAD N0Q (Base Reflectivity)
-    // Format: /cache/tile.py/1.0.0/{LAYER}/{Z}/{X}/{Y}.png
-    // Layer with timestamp: ridge::{RADAR-PRODUCT-TIMESTAMP}
-    const tileUrl = `https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/ridge::DMX-N0Q-${timeFormatted}/${zNum}/${xNum}/${yNum}.png`;
-    
-    console.log(`[Tile] Fetching: z=${z} x=${x} y=${y} time=${timeFormatted} url=${tileUrl}`);
+    console.log(`[Tile] Fetching: layer=${layer} z=${zNum} x=${xNum} y=${yNum}`);
+    console.log(`[Tile] URL: ${tileUrl}`);
     
     // Fetch from Mesonet
     const response = await fetch(tileUrl, {
@@ -91,60 +82,29 @@ export async function GET(request: NextRequest) {
         'User-Agent': 'ski-conditions-aggregator',
         'Accept': 'image/png'
       },
-      // Mesonet caches tiles for 5+ minutes
-      next: { revalidate: 300 }
+      next: { revalidate: 300 } // Cache 5 minutes (matches Mesonet)
     });
     
     if (!response.ok) {
-      console.warn(`[Tile] Mesonet returned ${response.status} for ${tileUrl}`);
-      // Try with current time (latest available)
-      const now = new Date();
-      const nowYyyy = now.getUTCFullYear();
-      const nowMm = String(now.getUTCMonth() + 1).padStart(2, '0');
-      const nowDd = String(now.getUTCDate()).padStart(2, '0');
-      const nowHh = String(now.getUTCHours()).padStart(2, '0');
-      const nowMi = String(now.getUTCMinutes()).padStart(2, '0');
-      const nowTime = `${nowYyyy}${nowMm}${nowDd}${nowHh}${nowMi}`;
-      
-      const fallbackUrl = `https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/ridge::DMX-N0Q-${nowTime}/${zNum}/${xNum}/${yNum}.png`;
-      console.log(`[Tile] Trying fallback with current time: ${fallbackUrl}`);
-      
-      const fallbackResponse = await fetch(fallbackUrl, {
-        headers: {
-          'User-Agent': 'ski-conditions-aggregator',
-          'Accept': 'image/png'
-        }
-      });
-      
-      if (!fallbackResponse.ok) {
-        console.warn(`[Tile] Fallback also failed, returning transparent`);
-        return getTransparentTile();
-      }
-      
-      return returnTile(fallbackResponse);
+      console.warn(`[Tile] Mesonet returned ${response.status} for layer=${layer}`);
+      return getTransparentTile();
     }
     
-    return returnTile(response);
+    // Return PNG tile
+    const imageBuffer = await response.arrayBuffer();
+    
+    return new NextResponse(imageBuffer, {
+      headers: {
+        'Content-Type': 'image/png',
+        'Cache-Control': 'public, max-age=300', // 5-minute cache (Mesonet default)
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
     
   } catch (error: any) {
     console.error('[Tile] Error:', error.message);
     return getTransparentTile();
   }
-}
-
-/**
- * Process and return tile response
- */
-async function returnTile(response: Response): Promise<Response> {
-  const imageBuffer = await response.arrayBuffer();
-  
-  return new NextResponse(imageBuffer, {
-    headers: {
-      'Content-Type': 'image/png',
-      'Cache-Control': 'public, max-age=300', // 5-minute cache (Mesonet standard)
-      'Access-Control-Allow-Origin': '*'
-    }
-  });
 }
 
 /**

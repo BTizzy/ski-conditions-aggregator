@@ -18,21 +18,20 @@ interface ResortMapProps {
 }
 
 const ResortMap: React.FC<ResortMapProps> = ({ resorts = [], conditions = {} }) => {
-  const mapDivRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
-  const mapInitializedRef = useRef<boolean>(false);
-  const markerLayerRef = useRef<L.LayerGroup | null>(null);
+  const mapInitializedRef = useRef(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const radarContainerRef = useRef<HTMLDivElement | null>(null);
 
-  // Radar state
   const [radarPlaying, setRadarPlaying] = useState(true);
   const [radarSpeedMs, setRadarSpeedMs] = useState(500);
   const [radarOpacity, setRadarOpacity] = useState(0.75);
   const [radarFramesAvailable, setRadarFramesAvailable] = useState(false);
   const [frameCount, setFrameCount] = useState(0);
-  const [loadingStatus, setLoadingStatus] = useState('Initializing...');
-  
+  const [loadingStatus, setLoadingStatus] = useState('Initializing map...');
+  const [mapReady, setMapReady] = useState(false);
+
   const radarFramesRef = useRef<string[]>([]);
   const radarIndexRef = useRef(0);
   const radarPlayingRef = useRef(true);
@@ -40,32 +39,38 @@ const ResortMap: React.FC<ResortMapProps> = ({ resorts = [], conditions = {} }) 
   const frameCanvasCache = useRef<Map<string, HTMLCanvasElement>>(new Map());
   const rafRef = useRef<number | null>(null);
 
-  // Initialize map - ONCE
+  // Initialize map - ONCE and ONLY ONCE
   useEffect(() => {
-    if (mapInitializedRef.current || !mapDivRef.current) return;
+    if (mapInitializedRef.current) {
+      console.log('[Map] Already initialized, skipping');
+      return;
+    }
+
+    if (!containerRef.current) {
+      console.error('[Map] Container ref not available');
+      return;
+    }
+
     mapInitializedRef.current = true;
+    console.log('[Map] Starting initialization...');
 
     try {
-      const container = mapDivRef.current;
-      
-      // Check if already initialized
-      if (container.classList.contains('leaflet-container')) {
-        console.log('[Map] Container already has Leaflet, reusing');
-        return;
-      }
-
-      console.log('[Map] Initializing Leaflet map');
-      const map = L.map(mapDivRef.current, {
+      // Create map
+      const map = L.map(containerRef.current, {
         center: [44, -72],
         zoom: 7,
-        scrollWheelZoom: true
+        scrollWheelZoom: true,
       });
+
+      console.log('[Map] Leaflet map created successfully');
 
       // Add base layer
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap',
-        maxZoom: 19
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19,
       }).addTo(map);
+
+      console.log('[Map] Base layer added');
 
       mapRef.current = map;
 
@@ -77,7 +82,7 @@ const ResortMap: React.FC<ResortMapProps> = ({ resorts = [], conditions = {} }) 
       pane.style.zIndex = '480';
       pane.style.pointerEvents = 'none';
 
-      // Create canvas
+      // Create canvas container
       const container2 = document.createElement('div');
       container2.style.position = 'absolute';
       container2.style.left = '0';
@@ -90,11 +95,12 @@ const ResortMap: React.FC<ResortMapProps> = ({ resorts = [], conditions = {} }) 
       canvas.style.position = 'absolute';
       canvas.style.left = '0';
       canvas.style.top = '0';
-      canvas.style.opacity = String(radarOpacity);
       canvas.style.pointerEvents = 'none';
+      canvas.style.opacity = String(radarOpacity);
 
       container2.appendChild(canvas);
       pane.appendChild(container2);
+
       canvasRef.current = canvas;
       radarContainerRef.current = container2;
 
@@ -115,50 +121,74 @@ const ResortMap: React.FC<ResortMapProps> = ({ resorts = [], conditions = {} }) 
       map.on('resize', resizeCanvas);
       map.on('zoom', () => frameCanvasCache.current.clear());
 
-      setTimeout(() => map.invalidateSize(), 200);
-      console.log('[Map] Leaflet initialized successfully');
-    } catch (e) {
-      console.error('[Map] Failed to initialize:', e);
-      setLoadingStatus('Map init failed');
+      setTimeout(() => {
+        try {
+          map.invalidateSize();
+          console.log('[Map] Size invalidated');
+        } catch (e) {
+          console.error('[Map] Size invalidation error:', e);
+        }
+      }, 200);
+
+      console.log('[Map] Initialization complete');
+      setMapReady(true);
+      setLoadingStatus('Map ready. Loading frames...');
+    } catch (error) {
+      console.error('[Map] Initialization failed:', error);
+      setLoadingStatus('Map initialization failed');
+      mapInitializedRef.current = false;
     }
 
     return () => {
+      console.log('[Map] Cleanup');
       try {
         if (mapRef.current) {
           mapRef.current.remove();
           mapRef.current = null;
         }
       } catch (e) {
-        console.error('[Cleanup] Error removing map:', e);
+        console.error('[Map] Cleanup error:', e);
       }
       mapInitializedRef.current = false;
     };
   }, []);
 
-  // Load frames
+  // Load radar frames
   useEffect(() => {
+    if (!mapReady) return;
+
     const loadFrames = async () => {
       try {
-        setLoadingStatus('Loading radar frames...');
+        console.log('[Frames] Fetching from API...');
         const res = await fetch('/api/radar/frames');
+        if (!res.ok) throw new Error(`API returned ${res.status}`);
+
         const data = await res.json();
+        console.log('[Frames] API response:', data);
+
         const layers = data?.radar?.layers || [];
-        console.log('[Frames] Loaded:', layers.length, 'layers');
+        console.log('[Frames] Loaded', layers.length, 'layers:', layers);
+
         radarFramesRef.current = layers;
         setFrameCount(layers.length);
         setRadarFramesAvailable(layers.length > 0);
         setLoadingStatus(`Ready: ${layers.length} frames`);
       } catch (e) {
         console.error('[Frames] Load failed:', e);
-        setLoadingStatus('Failed to load frames');
+        setLoadingStatus(`Failed to load frames: ${e}`);
       }
     };
 
     loadFrames();
-  }, []);
+  }, [mapReady]);
 
   // Get tile bitmap
-  const getTileBitmap = async (layer: string, z: number, x: number, y: number): Promise<ImageBitmap | null> => {
+  const getTileBitmap = async (
+    layer: string,
+    z: number,
+    x: number,
+    y: number
+  ): Promise<ImageBitmap | null> => {
     const key = `${layer}_${z}_${x}_${y}`;
     if (tileBitmapCache.current.has(key)) {
       return tileBitmapCache.current.get(key) || null;
@@ -167,17 +197,27 @@ const ResortMap: React.FC<ResortMapProps> = ({ resorts = [], conditions = {} }) 
     try {
       const url = `/api/radar/tile?layer=${encodeURIComponent(layer)}&z=${z}&x=${x}&y=${y}`;
       const resp = await fetch(url);
-      if (!resp.ok) return null;
+      if (!resp.ok) {
+        console.debug('[Tile] HTTP', resp.status, 'for', key);
+        return null;
+      }
+
       const blob = await resp.blob();
+      if (blob.size === 0) {
+        console.debug('[Tile] Empty blob for', key);
+        return null;
+      }
+
       const bitmap = await createImageBitmap(blob);
       tileBitmapCache.current.set(key, bitmap);
+
       if (tileBitmapCache.current.size > 256) {
         const firstKey = tileBitmapCache.current.keys().next().value;
         if (firstKey) tileBitmapCache.current.delete(firstKey);
       }
       return bitmap;
     } catch (e) {
-      console.debug('[Tile] Fetch failed:', e);
+      console.debug('[Tile] Failed:', key, e);
       return null;
     }
   };
@@ -219,7 +259,8 @@ const ResortMap: React.FC<ResortMapProps> = ({ resorts = [], conditions = {} }) 
       const yMax = Math.floor((topWorldY + size.y) / 256);
       const tilesAcross = Math.pow(2, z);
 
-      // Fetch tiles
+      let tilesDrawn = 0;
+      // Fetch and render tiles
       for (let tx = xMin; tx <= xMax; tx++) {
         for (let ty = yMin; ty <= yMax; ty++) {
           const wrapX = ((tx % tilesAcross) + tilesAcross) % tilesAcross;
@@ -234,8 +275,11 @@ const ResortMap: React.FC<ResortMapProps> = ({ resorts = [], conditions = {} }) 
           const canvasX = (tileWorldX - leftWorldX) * dpr;
           const canvasY = (tileWorldY - topWorldY) * dpr;
           ctx.drawImage(bitmap, canvasX, canvasY, 256 * dpr, 256 * dpr);
+          tilesDrawn++;
         }
       }
+
+      console.debug('[RenderFrame] Drew', tilesDrawn, 'tiles for', layer);
 
       frameCanvasCache.current.set(key, c);
       if (frameCanvasCache.current.size > 32) {
@@ -244,7 +288,7 @@ const ResortMap: React.FC<ResortMapProps> = ({ resorts = [], conditions = {} }) 
       }
       return c;
     } catch (e) {
-      console.debug('[RenderFrame] Failed:', e);
+      console.error('[RenderFrame] Failed:', e);
       return null;
     }
   };
@@ -316,7 +360,7 @@ const ResortMap: React.FC<ResortMapProps> = ({ resorts = [], conditions = {} }) 
           radarIndexRef.current = nextIdx;
         }
       } catch (e) {
-        console.debug('[AnimFrame] Failed:', e);
+        console.debug('[AnimFrame]', e);
       }
 
       rafRef.current = requestAnimationFrame(step);
@@ -335,42 +379,19 @@ const ResortMap: React.FC<ResortMapProps> = ({ resorts = [], conditions = {} }) 
     }
   }, [radarOpacity]);
 
-  // Update markers
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-
-    try {
-      if (markerLayerRef.current) {
-        markerLayerRef.current.clearLayers();
-        markerLayerRef.current.remove();
-      }
-
-      const mg = L.layerGroup();
-      for (const resort of resorts) {
-        const marker = L.marker([resort.lat, resort.lon], {
-          icon: L.icon({
-            iconUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyOCIgaGVpZ2h0PSIzNiIgdmlld0JveD0iMCAwIDI4IDM2Ij48cGF0aCBkPSJNMTQgMEM2LjI3MiAwIDAgNi4yNzIgMCAxNGMwIDE0IDE0IDIyIDE0IDIyczE0LTggMTQtMjJDMjggNi4yNzIgMjEuNzI4IDAgMTQgMHoiIGZpbGw9IiMyNTYzZWIiIHN0cm9rZT0iIzFkNGVkOCIgc3Ryb2tlLXdpZHRoPSIxLjgiLz48Y2lyY2xlIGN4PSIxNCIgY3k9IjEyIiByPSI1IiBmaWxsPSJ3aGl0ZSIvPjwvc3ZnPg==',
-            iconSize: [28, 36],
-            iconAnchor: [14, 34],
-            popupAnchor: [0, -30]
-          })
-        });
-
-        let html = `<div class="font-bold">${resort.name}</div><div class="text-sm">${resort.state}</div>`;
-        marker.bindPopup(html);
-        mg.addLayer(marker);
-      }
-      mg.addTo(map);
-      markerLayerRef.current = mg;
-    } catch (e) {
-      console.error('[Markers] Failed:', e);
-    }
-  }, [resorts]);
-
   return (
-    <div className="w-full h-screen relative rounded-lg overflow-hidden shadow-2xl border-4 border-white/20 bg-gray-200">
-      <div ref={mapDivRef} className="w-full h-full" style={{ minHeight: '600px' }} />
+    <div className="relative w-full h-screen bg-gray-100 flex flex-col">
+      {/* Map container - MUST have explicit height */}
+      <div
+        ref={containerRef}
+        className="flex-1 w-full"
+        style={{
+          position: 'relative',
+          width: '100%',
+          height: '100%',
+          minHeight: '400px',
+        }}
+      />
 
       {/* Controls */}
       <div className="absolute top-4 left-4 z-[99999] bg-white/95 rounded-lg p-4 shadow-lg max-w-xs">
@@ -427,8 +448,9 @@ const ResortMap: React.FC<ResortMapProps> = ({ resorts = [], conditions = {} }) 
 
         <div className="text-xs text-gray-700 border-t pt-2">
           <div className="font-semibold">Status:</div>
-          <div className="text-gray-600">{loadingStatus}</div>
+          <div className="text-gray-600 text-wrap">{loadingStatus}</div>
           <div className="text-gray-600">Frames: {frameCount}</div>
+          <div className="text-gray-600">Map: {mapReady ? '✅ Ready' : '⏳ Loading'}</div>
         </div>
       </div>
     </div>

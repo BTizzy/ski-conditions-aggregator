@@ -39,7 +39,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
-  const markersRef = useRef<Map<string, L.Marker>>(new Map());
+  const markersRef = useRef<Map<string, L.CircleMarker>>(new Map());
   const mapInitializedRef = useRef(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const radarContainerRef = useRef<HTMLDivElement | null>(null);
@@ -103,12 +103,9 @@ const ResortMap: React.FC<ResortMapProps> = ({
       radarPane.style.zIndex = '400'; // Below markers (default is 600)
       radarPane.style.pointerEvents = 'none';
 
-      // Create markers pane (ABOVE radar)
-      if (!map.getPane('markerPane')) {
-        // markerPane already exists by default, just adjust z-index
-        const markerPane = map.getPane('markerPane') as HTMLElement;
-        markerPane.style.zIndex = '700'; // Above radar
-      }
+      // Ensure marker pane is on top
+      const markerPane = map.getPane('markerPane') as HTMLElement;
+      markerPane.style.zIndex = '700'; // Above radar
 
       // Create canvas container
       const container2 = document.createElement('div');
@@ -188,19 +185,20 @@ const ResortMap: React.FC<ResortMapProps> = ({
     const loadFrames = async () => {
       try {
         console.log('[Frames] Fetching from API...');
-        const res = await fetch('/api/radar/frames');
+        // Request 24 hours of frames (hourly)
+        const res = await fetch('/api/radar/frames?hours=24');
         if (!res.ok) throw new Error(`API returned ${res.status}`);
 
         const data = await res.json();
         console.log('[Frames] API response:', data);
 
         const layers = data?.radar?.layers || [];
-        console.log('[Frames] Loaded', layers.length, 'layers:', layers);
+        console.log('[Frames] Loaded', layers.length, 'layers');
 
         radarFramesRef.current = layers;
         setFrameCount(layers.length);
         setRadarFramesAvailable(layers.length > 0);
-        setLoadingStatus(`Ready: ${layers.length} frames`);
+        setLoadingStatus(`Ready: ${layers.length} frames (hourly)`);
       } catch (e) {
         console.error('[Frames] Load failed:', e);
         setLoadingStatus(`Failed to load frames: ${e}`);
@@ -210,7 +208,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
     loadFrames();
   }, [mapReady]);
 
-  // Add resort markers
+  // Add resort markers - USING CircleMarker which always renders
   useEffect(() => {
     if (!mapRef.current || resorts.length === 0) return;
 
@@ -227,42 +225,52 @@ const ResortMap: React.FC<ResortMapProps> = ({
 
       // Determine marker color based on conditions
       let markerColor = '#9CA3AF'; // gray - loading
-      let markerIcon = '⏳';
+      let markerRadius = 8;
+      let markerWeight = 2;
 
       if (err) {
         markerColor = '#EF4444'; // red - error
-        markerIcon = '⚠️';
+        markerRadius = 7;
       } else if (cond) {
         // Color based on recent snowfall
         if (cond.recentSnowfall >= 12) {
           markerColor = '#0EA5E9'; // bright blue - lots of snow
-          markerIcon = '❄️';
+          markerRadius = 12;
+          markerWeight = 3;
         } else if (cond.recentSnowfall >= 6) {
           markerColor = '#06B6D4'; // cyan - moderate snow
-          markerIcon = '⛷️';
+          markerRadius = 10;
+          markerWeight = 3;
         } else if (cond.recentSnowfall >= 1) {
           markerColor = '#3B82F6'; // blue - light snow
-          markerIcon = '🏂';
+          markerRadius = 9;
         } else {
           markerColor = '#F59E0B'; // amber - no recent snow
-          markerIcon = '⛰️';
+          markerRadius = 8;
         }
       }
 
-      // Create custom HTML icon with proper styling
-      const htmlIcon = L.divIcon({
-        html: `<div style="background-color: ${markerColor}; border-radius: 50%; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.4); font-size: 24px; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">${markerIcon}</div>`,
-        iconSize: [48, 48],
-        iconAnchor: [24, 24],
-        popupAnchor: [0, -24],
+      // Create CircleMarker (native Leaflet, always renders)
+      const marker = L.circleMarker([resort.lat, resort.lon], {
+        radius: markerRadius,
+        fillColor: markerColor,
+        color: '#FFFFFF',
+        weight: markerWeight,
+        opacity: 1,
+        fillOpacity: 0.9,
+        pane: 'markerPane',
         className: 'resort-marker',
-      });
-
-      const marker = L.marker([resort.lat, resort.lon], { icon: htmlIcon, pane: 'markerPane' })
+      })
         .addTo(map)
         .on('click', () => {
           if (cond) setSelectedResort(cond);
           marker.openPopup();
+        })
+        .on('mouseover', function () {
+          this.setRadius(markerRadius * 1.3);
+        })
+        .on('mouseout', function () {
+          this.setRadius(markerRadius);
         });
 
       // Create popup content
@@ -291,6 +299,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
       marker.bindPopup(popupHtml, { maxWidth: 250 });
 
       markersRef.current.set(resort.id, marker);
+      console.log(`[Markers] Added marker for ${resort.name}`);
     });
 
     console.log('[Markers] Added', markersRef.current.size, 'markers to map');
@@ -509,7 +518,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
 
       {/* Radar Controls */}
       <div className="absolute top-4 left-4 z-[99999] bg-white/95 rounded-lg p-4 shadow-lg max-w-xs">
-        <div className="font-bold mb-2 text-gray-800 text-sm">📡 Radar (Past 72h)</div>
+        <div className="font-bold mb-2 text-gray-800 text-sm">🛰 Radar (24h)</div>
 
         <div className="flex gap-2 mb-3">
           <button

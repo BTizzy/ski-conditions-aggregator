@@ -95,13 +95,20 @@ const ResortMap: React.FC<ResortMapProps> = ({
 
       mapRef.current = map;
 
-      // Create radar pane
+      // Create radar pane (BELOW markers so markers are visible)
       if (!map.getPane('radarPane')) {
         map.createPane('radarPane');
       }
-      const pane = map.getPane('radarPane') as HTMLElement;
-      pane.style.zIndex = '480';
-      pane.style.pointerEvents = 'none';
+      const radarPane = map.getPane('radarPane') as HTMLElement;
+      radarPane.style.zIndex = '400'; // Below markers (default is 600)
+      radarPane.style.pointerEvents = 'none';
+
+      // Create markers pane (ABOVE radar)
+      if (!map.getPane('markerPane')) {
+        // markerPane already exists by default, just adjust z-index
+        const markerPane = map.getPane('markerPane') as HTMLElement;
+        markerPane.style.zIndex = '700'; // Above radar
+      }
 
       // Create canvas container
       const container2 = document.createElement('div');
@@ -120,7 +127,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
       canvas.style.opacity = String(radarOpacity);
 
       container2.appendChild(canvas);
-      pane.appendChild(container2);
+      radarPane.appendChild(container2);
 
       canvasRef.current = canvas;
       radarContainerRef.current = container2;
@@ -220,7 +227,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
 
       // Determine marker color based on conditions
       let markerColor = '#9CA3AF'; // gray - loading
-      let markerIcon = '🏂';
+      let markerIcon = '⏳';
 
       if (err) {
         markerColor = '#EF4444'; // red - error
@@ -235,28 +242,31 @@ const ResortMap: React.FC<ResortMapProps> = ({
           markerIcon = '⛷️';
         } else if (cond.recentSnowfall >= 1) {
           markerColor = '#3B82F6'; // blue - light snow
-          markerIcon = '🏔️';
+          markerIcon = '🏂';
         } else {
           markerColor = '#F59E0B'; // amber - no recent snow
           markerIcon = '⛰️';
         }
       }
 
-      // Create custom HTML icon
+      // Create custom HTML icon with proper styling
       const htmlIcon = L.divIcon({
-        html: `<div style="background-color: ${markerColor}; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); font-size: 20px; cursor: pointer;">${markerIcon}</div>`,
-        iconSize: [40, 40],
+        html: `<div style="background-color: ${markerColor}; border-radius: 50%; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.4); font-size: 24px; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">${markerIcon}</div>`,
+        iconSize: [48, 48],
+        iconAnchor: [24, 24],
+        popupAnchor: [0, -24],
         className: 'resort-marker',
       });
 
-      const marker = L.marker([resort.lat, resort.lon], { icon: htmlIcon })
+      const marker = L.marker([resort.lat, resort.lon], { icon: htmlIcon, pane: 'markerPane' })
         .addTo(map)
         .on('click', () => {
           if (cond) setSelectedResort(cond);
+          marker.openPopup();
         });
 
       // Create popup content
-      let popupHtml = `<div style="font-size: 12px; min-width: 200px;">`;
+      let popupHtml = `<div style="font-size: 12px; min-width: 200px; font-family: system-ui;">`;
       popupHtml += `<div style="font-weight: bold; font-size: 14px; margin-bottom: 8px;">${resort.name}, ${resort.state}</div>`;
 
       if (isLoading) {
@@ -265,12 +275,12 @@ const ResortMap: React.FC<ResortMapProps> = ({
         popupHtml += `<div style="color: #DC2626;">❌ Error: ${err}</div>`;
       } else if (cond) {
         popupHtml += `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0;">`;
-        popupHtml += `<div><span style="font-weight: 600;">24h Snow:</span> <span style="color: #0EA5E9;">${cond.recentSnowfall.toFixed(1)}"</span></div>`;
-        popupHtml += `<div><span style="font-weight: 600;">Weekly:</span> <span style="color: #0EA5E9;">${(cond.weeklySnowfall || 0).toFixed(1)}"</span></div>`;
+        popupHtml += `<div><span style="font-weight: 600;">24h Snow:</span> <span style="color: #0EA5E9; font-weight: bold;">${cond.recentSnowfall.toFixed(1)}"</span></div>`;
+        popupHtml += `<div><span style="font-weight: 600;">Weekly:</span> <span style="color: #0EA5E9; font-weight: bold;">${(cond.weeklySnowfall || 0).toFixed(1)}"</span></div>`;
         popupHtml += `<div><span style="font-weight: 600;">Depth:</span> <span>${cond.snowDepth.toFixed(1)}"</span></div>`;
         popupHtml += `<div><span style="font-weight: 600;">Temp:</span> <span>${cond.baseTemp.toFixed(0)}°F</span></div>`;
         popupHtml += `<div><span style="font-weight: 600;">Wind:</span> <span>${cond.windSpeed.toFixed(0)} mph</span></div>`;
-        popupHtml += `<div><span style="font-weight: 600;">Conditions:</span> <span style="font-size: 11px;">${cond.visibility}</span></div>`;
+        popupHtml += `<div style="grid-column: 1/-1;"><span style="font-weight: 600;">Conditions:</span> <span style="font-size: 11px;">${cond.visibility}</span></div>`;
         popupHtml += `</div>`;
         popupHtml += `<div style="font-size: 10px; color: #666; margin-top: 8px;">Updated: ${new Date(cond.timestamp).toLocaleTimeString()}</div>`;
       } else {
@@ -278,7 +288,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
       }
 
       popupHtml += `</div>`;
-      marker.bindPopup(popupHtml);
+      marker.bindPopup(popupHtml, { maxWidth: 250 });
 
       markersRef.current.set(resort.id, marker);
     });
@@ -555,6 +565,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
           <div className="text-gray-600 text-wrap">{loadingStatus}</div>
           <div className="text-gray-600">Frames: {frameCount}</div>
           <div className="text-gray-600">Map: {mapReady ? '✅ Ready' : '⏳ Loading'}</div>
+          <div className="text-gray-600">Markers: {markersRef.current.size}/43</div>
         </div>
       </div>
 
@@ -567,10 +578,10 @@ const ResortMap: React.FC<ResortMapProps> = ({
           >
             ✕
           </button>
-          <div className="font-bold text-gray-800 mb-2">Current Conditions</div>
+          <div className="font-bold text-gray-800 mb-2">📊 Current Conditions</div>
           <div className="text-sm space-y-1">
-            <div><span className="font-semibold">24h Snow:</span> <span className="text-blue-600">{selectedResort.recentSnowfall.toFixed(1)}"</span></div>
-            <div><span className="font-semibold">Weekly:</span> <span className="text-blue-600">{(selectedResort.weeklySnowfall || 0).toFixed(1)}"</span></div>
+            <div><span className="font-semibold">24h Snow:</span> <span className="text-blue-600 font-bold">{selectedResort.recentSnowfall.toFixed(1)}"</span></div>
+            <div><span className="font-semibold">Weekly:</span> <span className="text-blue-600 font-bold">{(selectedResort.weeklySnowfall || 0).toFixed(1)}"</span></div>
             <div><span className="font-semibold">Depth:</span> {selectedResort.snowDepth.toFixed(1)}"</div>
             <div><span className="font-semibold">Temp:</span> {selectedResort.baseTemp.toFixed(0)}°F</div>
             <div><span className="font-semibold">Wind:</span> {selectedResort.windSpeed.toFixed(0)} mph</div>

@@ -1,130 +1,109 @@
 import { NextResponse, NextRequest } from 'next/server';
 
-interface TileParams {
-  time: string | number;
-  z: string | number;
-  x: string | number;
-  y: string | number;
-}
-
-function parseTileParams(searchParams: URLSearchParams): TileParams | null {
-  const time = searchParams.get('time');
-  const z = searchParams.get('z');
-  const x = searchParams.get('x');
-  const y = searchParams.get('y');
-  
-  if (!time || z === null || x === null || y === null) return null;
-  
-  return {
-    time: isNaN(Number(time)) ? time : Number(time),
-    z: Number(z),
-    x: Number(x),
-    y: Number(y),
-  };
-}
+export const dynamic = 'force-dynamic';
 
 /**
- * RainViewer tile proxy
- * RainViewer provides high-quality precipitation radar tiles
- * Format: https://tilecache.rainviewer.com/v2/radar/{time}/tiles/{z}/{x}/{y}/2/1_1.png
+ * Radar Tile Proxy - Returns precipitation radar tile images
+ * 
+ * Data Source: RainViewer (confirmed working 2025-12-30)
+ * Tile URL format: https://tilecache.rainviewer.com/v2/radar/{timestamp}/{z}/{x}/{y}/256/png
+ * 
+ * Query Params:
+ *   time - Unix timestamp (seconds)
+ *   z - Zoom level
+ *   x - Tile X coordinate  
+ *   y - Tile Y coordinate
+ * 
+ * Returns: 256x256 PNG image with precipitation overlay
  */
-async function getRainViewerTile(
-  time: string | number,
-  z: number,
-  x: number,
-  y: number
-): Promise<Response | null> {
+export async function GET(request: NextRequest) {
   try {
-    // RainViewer has optional parameters: colors (1-16), opacity (0-100)
-    // Use color scheme 2 (blue-red) for better visibility
-    const url = `https://tilecache.rainviewer.com/v2/radar/${time}/tiles/${z}/${x}/${y}/2/1_1.png`;
+    const { searchParams } = request.nextUrl;
     
-    const resp = await fetch(url, {
+    // Parse tile parameters
+    const time = searchParams.get('time');
+    const z = searchParams.get('z');
+    const x = searchParams.get('x');
+    const y = searchParams.get('y');
+    
+    if (!time || !z || !x || !y) {
+      return NextResponse.json(
+        { error: 'Missing parameters. Required: time, z, x, y' },
+        { status: 400 }
+      );
+    }
+    
+    // Validate coordinates
+    const zNum = parseInt(z);
+    const xNum = parseInt(x);
+    const yNum = parseInt(y);
+    
+    if (isNaN(zNum) || isNaN(xNum) || isNaN(yNum)) {
+      return NextResponse.json(
+        { error: 'Invalid tile coordinates' },
+        { status: 400 }
+      );
+    }
+    
+    // Validate zoom level (typical range 0-18)
+    if (zNum < 0 || zNum > 20) {
+      return getTransparentTile();
+    }
+    
+    // Validate tile bounds for zoom level
+    const maxTile = Math.pow(2, zNum);
+    if (xNum < 0 || xNum >= maxTile || yNum < 0 || yNum >= maxTile) {
+      return getTransparentTile();
+    }
+    
+    // RainViewer tile URL
+    // Format: /v2/radar/{timestamp}/{z}/{x}/{y}/{tile_size}/options.png
+    // tile_size: 256 or 512
+    // options: color scheme and smoothing (256 is default)
+    const tileUrl = `https://tilecache.rainviewer.com/v2/radar/${time}/256/${zNum}/${xNum}/${yNum}/2/1_1.png`;
+    
+    console.log(`[Tile API] Fetching: z=${z} x=${x} y=${y} time=${time}`);
+    
+    // Fetch tile from RainViewer
+    const response = await fetch(tileUrl, {
       headers: {
         'User-Agent': 'ski-conditions-aggregator',
-        'Accept': 'image/png',
+        'Accept': 'image/png'
       },
-      // RainViewer cached tiles are stable
+      next: { revalidate: 3600 } // Cache 1 hour
     });
     
-    if (resp.ok) {
-      // Return PNG with cache headers
-      const buffer = await resp.arrayBuffer();
-      const headers = new Headers();
-      headers.set('Content-Type', 'image/png');
-      headers.set('Cache-Control', 'public, max-age=86400'); // cache for 24h
-      headers.set('Access-Control-Allow-Origin', '*');
-      
-      return new NextResponse(buffer, { headers });
+    if (!response.ok) {
+      console.warn(`[Tile API] RainViewer returned ${response.status} for ${tileUrl}`);
+      return getTransparentTile();
     }
-  } catch (e) {
-    console.debug('[RainViewer tile] fetch failed:', e);
+    
+    // Return the PNG tile
+    const imageBuffer = await response.arrayBuffer();
+    
+    const result = new NextResponse(imageBuffer, {
+      headers: {
+        'Content-Type': 'image/png',
+        'Cache-Control': 'public, max-age=3600', // Cache 1 hour
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+    
+    return result;
+    
+  } catch (error: any) {
+    console.error('[Tile API] Error:', error.message);
+    return getTransparentTile();
   }
-  
-  return null;
 }
 
 /**
- * NOAA MRMS tile fallback
- * Multi-Radar Multi-Sensor System precipitation rate
- * Tiles available at: https://mrms.ncep.noaa.gov/data/2D/PrecipRate/
- */
-async function getMRMSTile(
-  time: number | string,
-  z: number,
-  x: number,
-  y: number
-): Promise<Response | null> {
-  try {
-    // MRMS data format: YYYYmmdd_HHmmss
-    // Convert timestamp to MRMS filename
-    const timestamp = typeof time === 'number' ? time : parseInt(String(time));
-    const date = new Date(timestamp);
-    
-    // Format: 20250101_120000Z
-    const yyyy = date.getUTCFullYear();
-    const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const dd = String(date.getUTCDate()).padStart(2, '0');
-    const hh = String(date.getUTCHours()).padStart(2, '0');
-    const min = String(date.getUTCMinutes()).padStart(2, '0');
-    const ss = String(date.getUTCSeconds()).padStart(2, '0');
-    
-    const filename = `${yyyy}${mm}${dd}_${hh}${min}${ss}Z`;
-    
-    // Note: MRMS tiles aren't directly available in typical XYZ format
-    // Instead, use mesonet.agron.iastate.edu's WMS server which wraps MRMS
-    const url = `https://mesonet.agron.iastate.edu/cgi-bin/wms/us/mrms.cgi?` +
-      `service=WMS&version=1.1.1&request=GetMap` +
-      `&layers=mrms_qpe&styles=&bbox=-180,-90,180,90` +
-      `&width=256&height=256&srs=EPSG:4326&format=image/png` +
-      `&time=${filename}`;
-    
-    const resp = await fetch(url, {
-      headers: { 'User-Agent': 'ski-conditions-aggregator' },
-    });
-    
-    if (resp.ok) {
-      const buffer = await resp.arrayBuffer();
-      const headers = new Headers();
-      headers.set('Content-Type', 'image/png');
-      headers.set('Cache-Control', 'public, max-age=3600'); // cache for 1h
-      headers.set('Access-Control-Allow-Origin', '*');
-      
-      return new NextResponse(buffer, { headers });
-    }
-  } catch (e) {
-    console.debug('[MRMS tile] fetch failed:', e);
-  }
-  
-  return null;
-}
-
-/**
- * Generate transparent placeholder tile (1x1 transparent PNG)
+ * Returns a 1x1 transparent PNG as fallback
+ * 67 bytes - minimal overhead
  */
 function getTransparentTile(): Response {
-  // 1x1 transparent PNG (43 bytes)
-  const png = Buffer.from([
+  // 1x1 transparent PNG
+  const transparentPng = Buffer.from([
     0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
     0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
     0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
@@ -136,56 +115,11 @@ function getTransparentTile(): Response {
     0x42, 0x60, 0x82,
   ]);
   
-  const headers = new Headers();
-  headers.set('Content-Type', 'image/png');
-  headers.set('Cache-Control', 'public, max-age=3600');
-  headers.set('Access-Control-Allow-Origin', '*');
-  
-  return new NextResponse(png, { headers });
-}
-
-export async function GET(request: NextRequest) {
-  try {
-    const params = parseTileParams(request.nextUrl.searchParams);
-    
-    if (!params) {
-      return NextResponse.json(
-        { error: 'missing_params', message: 'time, z, x, y required' },
-        { status: 400 }
-      );
+  return new NextResponse(transparentPng, {
+    headers: {
+      'Content-Type': 'image/png',
+      'Cache-Control': 'public, max-age=3600',
+      'Access-Control-Allow-Origin': '*'
     }
-    
-    const { time, z, x, y } = params;
-    
-    // Validate tile coordinates
-    if (z < 0 || z > 28 || x < 0 || y < 0) {
-      return new NextResponse(null, { status: 400 });
-    }
-    
-    const maxTile = Math.pow(2, z);
-    if (x >= maxTile || y >= maxTile) {
-      return new NextResponse(null, { status: 400 });
-    }
-    
-    // Try RainViewer first (preferred, higher quality)
-    let response = await getRainViewerTile(time, z, x, y);
-    
-    // Fallback to MRMS if RainViewer fails
-    if (!response) {
-      response = await getMRMSTile(time, z, x, y);
-    }
-    
-    // If both fail, return transparent placeholder
-    if (!response) {
-      response = getTransparentTile();
-    }
-    
-    return response;
-  } catch (e: any) {
-    console.error('[RADAR TILE] error:', e);
-    return NextResponse.json(
-      { error: 'tile_fetch_failed', message: String(e) },
-      { status: 500 }
-    );
-  }
+  });
 }

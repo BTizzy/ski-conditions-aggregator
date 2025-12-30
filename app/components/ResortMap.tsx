@@ -11,6 +11,8 @@ interface Resort {
   lat: number;
   lon: number;
   elevationFt?: number;
+  scrapeUrl?: string;
+  conditionsUrl?: string;
 }
 
 interface ResortConditions {
@@ -49,7 +51,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
   const [frameCount, setFrameCount] = useState(0);
   const [loadingStatus, setLoadingStatus] = useState('Initializing map...');
   const [mapReady, setMapReady] = useState(false);
-  const [selectedResort, setSelectedResort] = useState<ResortConditions | null>(null);
+  const [selectedResort, setSelectedResort] = useState<{ resort: Resort; conditions: ResortConditions } | null>(null);
 
   const radarFramesRef = useRef<Array<{ url: string; time?: number }>>([]); // Support both RainViewer & Mesonet
   const radarIndexRef = useRef(0);
@@ -57,6 +59,8 @@ const ResortMap: React.FC<ResortMapProps> = ({
   const tileBitmapCache = useRef<Map<string, ImageBitmap>>(new Map());
   const frameCanvasCache = useRef<Map<string, HTMLCanvasElement>>(new Map());
   const rafRef = useRef<number | null>(null);
+  const lastRenderTimeRef = useRef(0);
+  const mapPanZoomRef = useRef({ panning: false, zooming: false });
 
   // Initialize map
   useEffect(() => {
@@ -103,6 +107,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
       canvas.style.top = '0';
       canvas.style.pointerEvents = 'none';
       canvas.style.opacity = String(radarOpacity);
+      canvas.style.willChange = 'opacity';
 
       container2.appendChild(canvas);
       radarPane.appendChild(container2);
@@ -118,11 +123,17 @@ const ResortMap: React.FC<ResortMapProps> = ({
         canvas.style.height = `${size.y}px`;
         const ctx = canvas.getContext('2d');
         if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        frameCanvasCache.current.clear();
       };
 
       resizeCanvas();
       map.on('resize', resizeCanvas);
-      map.on('zoom', () => frameCanvasCache.current.clear());
+      
+      // Track pan/zoom activity
+      map.on('movestart', () => { mapPanZoomRef.current.panning = true; });
+      map.on('moveend', () => { mapPanZoomRef.current.panning = false; frameCanvasCache.current.clear(); });
+      map.on('zoomstart', () => { mapPanZoomRef.current.zooming = true; });
+      map.on('zoomend', () => { mapPanZoomRef.current.zooming = false; frameCanvasCache.current.clear(); });
 
       setTimeout(() => map.invalidateSize(), 200);
 
@@ -231,24 +242,40 @@ const ResortMap: React.FC<ResortMapProps> = ({
         pane: 'markerPane',
       })
         .addTo(map)
-        .on('click', () => { if (cond) setSelectedResort(cond); marker.openPopup(); })
+        .on('click', () => { 
+          if (cond) {
+            setSelectedResort({ resort, conditions: cond });
+          }
+          marker.openPopup();
+        })
         .on('mouseover', function () { this.setRadius(markerRadius * 1.3); })
         .on('mouseout', function () { this.setRadius(markerRadius); });
 
-      let popupHtml = `<div style="font-size: 12px; min-width: 200px; font-family: system-ui;">`;
-      popupHtml += `<div style="font-weight: bold; font-size: 14px; margin-bottom: 8px;">${resort.name}, ${resort.state}</div>`;
-      if (isLoading) popupHtml += `<div style="color: #666;">⏳ Loading...</div>`;
-      else if (err) popupHtml += `<div style="color: #DC2626;">❌ Error: ${err}</div>`;
-      else if (cond) {
-        popupHtml += `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">`;
-        popupHtml += `<div><b>24h:</b> <span style="color:#0EA5E9">${cond.recentSnowfall}"</span></div>`;
-        popupHtml += `<div><b>Base:</b> ${cond.snowDepth}"</div>`;
-        popupHtml += `<div><b>Temp:</b> ${cond.baseTemp}°F</div>`;
+      let popupHtml = `<div style="font-size: 12px; min-width: 250px; font-family: system-ui; padding: 8px;">`;
+      popupHtml += `<div style="font-weight: bold; font-size: 14px; margin-bottom: 10px; color: #1f2937;">${resort.name}, ${resort.state}</div>`;
+      
+      if (isLoading) {
+        popupHtml += `<div style="color: #666;">⏳ Loading conditions...</div>`;
+      } else if (err) {
+        popupHtml += `<div style="color: #DC2626;">❌ Error: ${err}</div>`;
+      } else if (cond) {
+        popupHtml += `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">`;
+        popupHtml += `<div style="background: #f3f4f6; padding: 6px; border-radius: 4px;"><div style="font-size: 11px; color: #666; font-weight: 600;">24h Snow</div><div style="color: #0EA5E9; font-weight: bold; font-size: 14px;">${cond.recentSnowfall}"</div></div>`;
+        popupHtml += `<div style="background: #f3f4f6; padding: 6px; border-radius: 4px;"><div style="font-size: 11px; color: #666; font-weight: 600;">Base</div><div style="color: #374151; font-weight: bold;">${cond.snowDepth}"</div></div>`;
+        popupHtml += `<div style="background: #f3f4f6; padding: 6px; border-radius: 4px;"><div style="font-size: 11px; color: #666; font-weight: 600;">Weekly</div><div style="color: #3B82F6; font-weight: bold;">${cond.weeklySnowfall || 'N/A'}"</div></div>`;
+        popupHtml += `<div style="background: #f3f4f6; padding: 6px; border-radius: 4px;"><div style="font-size: 11px; color: #666; font-weight: 600;">Temp</div><div style="color: #EF4444; font-weight: bold;">${cond.baseTemp}°F</div></div>`;
         popupHtml += `</div>`;
+        popupHtml += `<div style="border-top: 1px solid #e5e7eb; padding-top: 8px; margin-bottom: 8px;"><div style="font-size: 11px; color: #666; margin-bottom: 4px;"><b>Wind:</b> ${cond.windSpeed} mph</div><div style="font-size: 11px; color: #666;"><b>Visibility:</b> ${cond.visibility}</div></div>`;
+        
+        // Add website link if available
+        if (resort.conditionsUrl || resort.scrapeUrl) {
+          const url = resort.conditionsUrl || resort.scrapeUrl;
+          popupHtml += `<a href="${url}" target="_blank" rel="noopener noreferrer" style="display: inline-block; background: #0EA5E9; color: white; padding: 6px 12px; border-radius: 4px; font-weight: 600; font-size: 11px; text-decoration: none; cursor: pointer; margin-top: 6px;">View Report ↗</a>`;
+        }
       }
       popupHtml += `</div>`;
       
-      marker.bindPopup(popupHtml, { maxWidth: 250 });
+      marker.bindPopup(popupHtml, { maxWidth: 300 });
       markersRef.current.set(resort.id, marker);
     });
   }, [resorts, conditions, loading, errors]);
@@ -348,10 +375,11 @@ const ResortMap: React.FC<ResortMapProps> = ({
     }
   };
 
-  // Animation loop
+  // Animation loop - optimized for performance
   useEffect(() => {
     let lastTime = performance.now();
     let progress = 0;
+    let pendingRender = false;
 
     const step = async (now: number) => {
       const c = canvasRef.current;
@@ -360,10 +388,19 @@ const ResortMap: React.FC<ResortMapProps> = ({
       const ctx = c.getContext('2d');
       if (!ctx) { rafRef.current = requestAnimationFrame(step); return; }
 
-      if (!radarPlayingRef.current || !radarFramesAvailable) { rafRef.current = requestAnimationFrame(step); return; }
+      if (!radarPlayingRef.current || !radarFramesAvailable) { 
+        rafRef.current = requestAnimationFrame(step); 
+        return; 
+      }
 
       const frames = radarFramesRef.current;
       if (frames.length === 0) { rafRef.current = requestAnimationFrame(step); return; }
+
+      // Skip rendering during pan/zoom
+      if (mapPanZoomRef.current.panning || mapPanZoomRef.current.zooming) {
+        rafRef.current = requestAnimationFrame(step);
+        return;
+      }
 
       const elapsed = now - lastTime;
       lastTime = now;
@@ -373,6 +410,13 @@ const ResortMap: React.FC<ResortMapProps> = ({
       const t = Math.min(1, progress / dur);
       const idx = radarIndexRef.current % frames.length;
       const nextIdx = (idx + 1) % frames.length;
+
+      // Throttle render to 30fps max for radar
+      const timeSinceLastRender = now - lastRenderTimeRef.current;
+      if (timeSinceLastRender < 33) {
+        rafRef.current = requestAnimationFrame(step);
+        return;
+      }
 
       try {
         const map = mapRef.current;
@@ -394,6 +438,8 @@ const ResortMap: React.FC<ResortMapProps> = ({
           ctx.drawImage(nextC, 0, 0);
           ctx.globalAlpha = 1;
         }
+
+        lastRenderTimeRef.current = now;
 
         if (progress >= dur) {
           progress = 0;
@@ -428,10 +474,45 @@ const ResortMap: React.FC<ResortMapProps> = ({
       </div>
       
       {selectedResort && (
-        <div className="absolute top-4 right-4 z-[99999] bg-white/95 rounded-lg p-4 shadow-lg max-w-xs">
-          <button onClick={() => setSelectedResort(null)} className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-lg">✕</button>
-          <div className="font-bold text-gray-800 mb-2">📊 Conditions</div>
-          <div className="text-sm space-y-1"><div><span className="font-semibold">24h Snow:</span> <span className="text-blue-600 font-bold">{selectedResort.recentSnowfall}"</span></div><div><span className="font-semibold">Depth:</span> {selectedResort.snowDepth}"</div><div><span className="font-semibold">Temp:</span> {selectedResort.baseTemp}°F</div></div>
+        <div className="absolute top-4 right-4 z-[99999] bg-white/95 rounded-lg p-5 shadow-lg max-w-sm">
+          <button onClick={() => setSelectedResort(null)} className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-lg font-bold">✕</button>
+          <div className="font-bold text-gray-800 text-base mb-3">📊 {selectedResort.resort.name}</div>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-700 font-semibold">24h Snowfall:</span>
+              <span className="text-blue-600 font-bold text-lg">{selectedResort.conditions.recentSnowfall}"</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-700 font-semibold">Weekly Total:</span>
+              <span className="text-blue-500 font-bold text-lg">{selectedResort.conditions.weeklySnowfall || 'N/A'}"</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-700 font-semibold">Base Depth:</span>
+              <span className="text-gray-700 font-semibold">{selectedResort.conditions.snowDepth}"</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-700 font-semibold">Temperature:</span>
+              <span className="text-red-600 font-semibold">{selectedResort.conditions.baseTemp}°F</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-700 font-semibold">Wind:</span>
+              <span className="text-gray-700 font-semibold">{selectedResort.conditions.windSpeed} mph</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-700 font-semibold">Visibility:</span>
+              <span className="text-gray-700 font-semibold">{selectedResort.conditions.visibility}</span>
+            </div>
+            {(selectedResort.resort.conditionsUrl || selectedResort.resort.scrapeUrl) && (
+              <a 
+                href={selectedResort.resort.conditionsUrl || selectedResort.resort.scrapeUrl} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="block mt-4 text-center bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition"
+              >
+                View Full Report ↗
+              </a>
+            )}
+          </div>
         </div>
       )}
     </div>

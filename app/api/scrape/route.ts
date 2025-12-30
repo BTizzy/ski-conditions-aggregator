@@ -26,11 +26,16 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    console.log(`[API] Starting conditions fetch for ${resort.name} (${resortId})`);
+
     // Fetch NWS weather for observation and let the local model predict snowfall/conditions
     let nws: NWSObservation | null = null;
     try {
+      console.log(`[API] Fetching NWS data for lat=${resort.lat}, lon=${resort.lon}`);
       nws = await getNWSObservation(resort.lat, resort.lon);
+      console.log(`[API] NWS data received:`, nws);
     } catch (e) {
+      console.error(`[API] NWS fetch failed:`, e);
       nws = null;
     }
 
@@ -54,7 +59,9 @@ export async function GET(request: NextRequest) {
       // ignore
     }
     try {
+      console.log(`[API] Fetching historical observations`);
       const hist = await getHistoricalObservations(resort.lat, resort.lon, 7);
+      console.log(`[API] Historical observations received:`, hist?.observations?.length || 0, 'observations');
       if (hist && Array.isArray(hist.observations) && hist.observations.length > 0) {
         const weeklyObs: any[] = [];
         let weeklyPrecipMm = 0;
@@ -74,11 +81,14 @@ export async function GET(request: NextRequest) {
         extra.stationDistanceKm = hist.stationDistanceKm;
       }
     } catch (e) {
+      console.error(`[API] Historical observations failed:`, e);
       // keep any previously collected extra fields (e.g., resortReportedWeekly/resortWeight)
       // but if historical fetch failed we simply proceed with what we have.
     }
 
-  const pred = snowModel.predictFromNWS(nws, extra);
+    console.log(`[API] Calling predictFromNWS with nws=`, nws !== null, 'extra keys=', Object.keys(extra));
+    const pred = snowModel.predictFromNWS(nws, extra);
+    console.log(`[API] Prediction result:`, pred);
 
     // Trail data is not available from our sources, so set to 0
     const trailOpen = 0;
@@ -99,11 +109,18 @@ export async function GET(request: NextRequest) {
       rawData: { nws, model: pred },
     };
 
+    console.log(`[API] Returning conditions for ${resort.name}:`, conditions);
     // TODO: Store in Supabase
 
     return NextResponse.json(conditions);
   } catch (error) {
     // If error is from scraping, return a clear error message
-    return NextResponse.json({ error: (error as Error).message, type: 'scrape-failed' }, { status: 502 });
+    const errorMsg = (error as Error)?.message || 'Unknown error';
+    const errorStack = (error as Error)?.stack || '';
+    console.error(`[API] Fatal error for ${resortId}:`, errorMsg, errorStack);
+    return NextResponse.json(
+      { error: errorMsg, type: 'scrape-failed', stack: errorStack },
+      { status: 502 }
+    );
   }
 }

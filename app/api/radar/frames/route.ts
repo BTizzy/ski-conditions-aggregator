@@ -6,51 +6,53 @@ export const revalidate = 60; // Cache for 1 minute
 /**
  * Radar Frames API - Returns timestamps for precipitation radar animation
  * 
- * Data Source: Iowa State Mesonet NEXRAD (N0Q - Base Reflectivity)
- * - Updates every 5-15 minutes
- * - 60 minutes of historical data
- * - Production-grade (used by weather.gov)
- * - Free, no API key required
+ * Data Source: Iowa State Mesonet NEXRAD N0Q (OFFICIAL DOCUMENTED API)
+ * Reference: https://mesonet.agron.iastate.edu/ogc/ [web:59]
  * 
- * Implementation: Generates 15-minute intervals from 60 minutes ago to now
+ * Layer Format:
+ * - nexrad-n0q (current)
+ * - nexrad-n0q-m05m, nexrad-n0q-m10m, ..., nexrad-n0q-m55m (past 5-min intervals)
+ * 
+ * Updates: Every 5-15 minutes
+ * History: ~60 minutes (back to m55m)
  */
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const minutesBack = Math.min(parseInt(searchParams.get('minutes') || '60'), 120);
+    const minutes = parseInt(searchParams.get('minutes') || '60');
     
-    console.log(`[Radar Frames] Generating timestamps for last ${minutesBack} minutes`);
+    console.log(`[Radar Frames] Generating timestamps for Mesonet layers`);
     
-    // Generate timestamps every 15 minutes going back
-    // Mesonet has N0Q data roughly every 5-10 minutes, we'll use 15-min intervals to ensure availability
-    const now = new Date();
-    const timestamps: number[] = [];
+    // Generate layer names for Mesonet TMS
+    // Format: nexrad-n0q-mXXm where XX is minutes ago (05, 10, 15...55)
+    const layers: Array<{ layer: string; minutes: number }> = [
+      { layer: 'nexrad-n0q', minutes: 0 } // Current/latest
+    ];
     
-    for (let i = 0; i <= minutesBack; i += 15) {
-      const timestamp = new Date(now.getTime() - i * 60 * 1000);
-      // Round to nearest minute for consistency
-      timestamp.setSeconds(0, 0);
-      timestamps.push(Math.floor(timestamp.getTime() / 1000));
+    // Add historical layers: m05m, m10m, m15m, m20m, m25m, m30m, m35m, m40m, m45m, m50m, m55m
+    for (let i = 5; i <= 55; i += 5) {
+      if (i <= minutes) {
+        layers.push({
+          layer: `nexrad-n0q-m${String(i).padStart(2, '0')}m`,
+          minutes: i
+        });
+      }
     }
     
-    // Sort chronologically (oldest first)
-    timestamps.sort((a, b) => a - b);
+    console.log(`[Radar Frames] Generated ${layers.length} layers for animation`);
     
-    console.log(`[Radar Frames] Generated ${timestamps.length} timestamps for animation`);
-    
+    // Return layers (frontend will request tiles for each)
     const result = {
       radar: {
-        past: timestamps
+        layers: layers.map(l => l.layer)
       },
       metadata: {
-        count: timestamps.length,
+        count: layers.length,
         source: 'iowa-state-mesonet-nexrad-n0q',
         updateFrequency: '5-15 minutes',
-        coverage: 'Continental US, Alaska, Hawaii, Caribbean',
-        timeRange: timestamps.length > 0 ? {
-          oldest: new Date(timestamps[0] * 1000).toISOString(),
-          newest: new Date(timestamps[timestamps.length - 1] * 1000).toISOString()
-        } : null
+        coverage: 'Continental US, Alaska, Hawaii',
+        timeRange: `Last ${layers[layers.length - 1]?.minutes || 0} minutes`,
+        reference: 'https://mesonet.agron.iastate.edu/ogc/'
       }
     };
     
@@ -63,7 +65,7 @@ export async function GET(request: Request) {
     console.error('[Radar Frames] Error:', error.message);
     return NextResponse.json(
       { 
-        radar: { past: [] },
+        radar: { layers: ['nexrad-n0q'] },
         error: error.message
       },
       { status: 500 }

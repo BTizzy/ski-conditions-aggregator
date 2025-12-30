@@ -43,17 +43,18 @@ const ResortMap: React.FC<ResortMapProps> = ({
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<Map<string, L.CircleMarker>>(new Map());
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const popupsRef = useRef<Map<string, L.Popup>>(new Map());
   
   const [radarPlaying, setRadarPlaying] = useState(true);
-  const [radarSpeedMs, setRadarSpeedMs] = useState(500);
-  const [radarOpacity, setRadarOpacity] = useState(0.75);
+  const [radarSpeedMs, setRadarSpeedMs] = useState(800);
+  const [radarOpacity, setRadarOpacity] = useState(0.6);
   const [radarFramesAvailable, setRadarFramesAvailable] = useState(false);
   const [frameCount, setFrameCount] = useState(0);
   const [loadingStatus, setLoadingStatus] = useState('Initializing map...');
   const [mapReady, setMapReady] = useState(false);
   const [selectedResort, setSelectedResort] = useState<{ resort: Resort; conditions: ResortConditions } | null>(null);
 
-  const radarFramesRef = useRef<Array<{ url: string; time?: number }>>([]); // Support both RainViewer & Mesonet
+  const radarFramesRef = useRef<Array<{ url: string; time?: number }>([]);
   const radarIndexRef = useRef(0);
   const radarPlayingRef = useRef(true);
   const tileBitmapCache = useRef<Map<string, ImageBitmap>>(new Map());
@@ -64,8 +65,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
 
   // Initialize map
   useEffect(() => {
-    if (mapRef.current) return; // Already initialized
-
+    if (mapRef.current) return;
     if (!containerRef.current) return;
     if (containerRef.current.innerHTML !== '') containerRef.current.innerHTML = '';
 
@@ -129,7 +129,6 @@ const ResortMap: React.FC<ResortMapProps> = ({
       resizeCanvas();
       map.on('resize', resizeCanvas);
       
-      // Track pan/zoom activity
       map.on('movestart', () => { mapPanZoomRef.current.panning = true; });
       map.on('moveend', () => { mapPanZoomRef.current.panning = false; frameCanvasCache.current.clear(); });
       map.on('zoomstart', () => { mapPanZoomRef.current.zooming = true; });
@@ -146,7 +145,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
     }
   }, []);
 
-  // Load radar frames (RainViewer 48-hour with Mesonet fallback)
+  // Load radar frames
   useEffect(() => {
     if (!mapReady) return;
 
@@ -160,13 +159,10 @@ const ResortMap: React.FC<ResortMapProps> = ({
         const layers = data?.radar?.layers || [];
         console.log('[Frames] Loaded', layers.length, 'layers, source:', data?.radar?.source);
 
-        // Handle both RainViewer (array of objects with url/timestamp) and Mesonet (array of strings)
         const frameObjects = layers.map((layer: any) => {
           if (typeof layer === 'string') {
-            // Mesonet format
             return { url: layer, time: 0 };
           } else {
-            // RainViewer format
             return { url: layer.url, time: layer.timestamp };
           }
         });
@@ -186,7 +182,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
     loadFrames();
   }, [mapReady]);
 
-  // Add resort markers with reconciliation
+  // Add resort markers with proper popup binding
   useEffect(() => {
     if (!mapRef.current || resorts.length === 0) return;
 
@@ -198,6 +194,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
       if (!activeIds.has(id)) {
         marker.remove();
         markersRef.current.delete(id);
+        popupsRef.current.delete(id);
       }
     });
 
@@ -226,12 +223,20 @@ const ResortMap: React.FC<ResortMapProps> = ({
         }
       }
 
+      // Update existing marker style
       if (markersRef.current.has(resort.id)) {
         const existing = markersRef.current.get(resort.id)!;
         existing.setStyle({ fillColor: markerColor, radius: markerRadius, weight: markerWeight });
+        
+        // Update popup content
+        if (popupsRef.current.has(resort.id)) {
+          const popup = popupsRef.current.get(resort.id)!;
+          popup.setContent(buildPopupContent(resort, cond, err, isLoading));
+        }
         return;
       }
 
+      // Create new marker
       const marker = L.circleMarker([resort.lat, resort.lon], {
         radius: markerRadius,
         fillColor: markerColor,
@@ -240,47 +245,73 @@ const ResortMap: React.FC<ResortMapProps> = ({
         opacity: 1,
         fillOpacity: 0.9,
         pane: 'markerPane',
-      })
-        .addTo(map)
-        .on('click', () => { 
-          if (cond) {
-            setSelectedResort({ resort, conditions: cond });
-          }
-          marker.openPopup();
-        })
-        .on('mouseover', function () { this.setRadius(markerRadius * 1.3); })
-        .on('mouseout', function () { this.setRadius(markerRadius); });
+      }).addTo(map);
 
-      let popupHtml = `<div style="font-size: 12px; min-width: 250px; font-family: system-ui; padding: 8px;">`;
-      popupHtml += `<div style="font-weight: bold; font-size: 14px; margin-bottom: 10px; color: #1f2937;">${resort.name}, ${resort.state}</div>`;
+      // Create popup content
+      const popupContent = buildPopupContent(resort, cond, err, isLoading);
+      const popup = L.popup({ maxWidth: 320, closeButton: true }).setContent(popupContent);
       
-      if (isLoading) {
-        popupHtml += `<div style="color: #666;">⏳ Loading conditions...</div>`;
-      } else if (err) {
-        popupHtml += `<div style="color: #DC2626;">❌ Error: ${err}</div>`;
-      } else if (cond) {
-        popupHtml += `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">`;
-        popupHtml += `<div style="background: #f3f4f6; padding: 6px; border-radius: 4px;"><div style="font-size: 11px; color: #666; font-weight: 600;">24h Snow</div><div style="color: #0EA5E9; font-weight: bold; font-size: 14px;">${cond.recentSnowfall}"</div></div>`;
-        popupHtml += `<div style="background: #f3f4f6; padding: 6px; border-radius: 4px;"><div style="font-size: 11px; color: #666; font-weight: 600;">Base</div><div style="color: #374151; font-weight: bold;">${cond.snowDepth}"</div></div>`;
-        popupHtml += `<div style="background: #f3f4f6; padding: 6px; border-radius: 4px;"><div style="font-size: 11px; color: #666; font-weight: 600;">Weekly</div><div style="color: #3B82F6; font-weight: bold;">${cond.weeklySnowfall || 'N/A'}"</div></div>`;
-        popupHtml += `<div style="background: #f3f4f6; padding: 6px; border-radius: 4px;"><div style="font-size: 11px; color: #666; font-weight: 600;">Temp</div><div style="color: #EF4444; font-weight: bold;">${cond.baseTemp}°F</div></div>`;
-        popupHtml += `</div>`;
-        popupHtml += `<div style="border-top: 1px solid #e5e7eb; padding-top: 8px; margin-bottom: 8px;"><div style="font-size: 11px; color: #666; margin-bottom: 4px;"><b>Wind:</b> ${cond.windSpeed} mph</div><div style="font-size: 11px; color: #666;"><b>Visibility:</b> ${cond.visibility}</div></div>`;
-        
-        // Add website link if available
-        if (resort.conditionsUrl || resort.scrapeUrl) {
-          const url = resort.conditionsUrl || resort.scrapeUrl;
-          popupHtml += `<a href="${url}" target="_blank" rel="noopener noreferrer" style="display: inline-block; background: #0EA5E9; color: white; padding: 6px 12px; border-radius: 4px; font-weight: 600; font-size: 11px; text-decoration: none; cursor: pointer; margin-top: 6px;">View Report ↗</a>`;
+      // Bind popup to marker
+      marker.bindPopup(popup);
+      popupsRef.current.set(resort.id, popup);
+
+      // Add event listeners
+      marker.on('click', (e) => {
+        if (cond) {
+          setSelectedResort({ resort, conditions: cond });
         }
-      }
-      popupHtml += `</div>`;
-      
-      marker.bindPopup(popupHtml, { maxWidth: 300 });
+        // Ensure popup opens
+        setTimeout(() => {
+          marker.openPopup();
+        }, 0);
+      });
+
+      marker.on('mouseover', function () { this.setRadius(markerRadius * 1.3); });
+      marker.on('mouseout', function () { this.setRadius(markerRadius); });
+
       markersRef.current.set(resort.id, marker);
     });
   }, [resorts, conditions, loading, errors]);
 
-  // Get tile
+  // Build popup content
+  const buildPopupContent = (
+    resort: Resort,
+    cond: ResortConditions | null | undefined,
+    err: string | null | undefined,
+    isLoading: boolean | undefined
+  ): HTMLElement => {
+    const div = document.createElement('div');
+    div.style.cssText = 'font-size: 13px; font-family: system-ui; padding: 8px; min-width: 240px;';
+    
+    let html = `<div style="font-weight: bold; font-size: 15px; margin-bottom: 12px; color: #1f2937;">${resort.name}, ${resort.state}</div>`;
+    
+    if (isLoading) {
+      html += `<div style="color: #666; padding: 8px; background: #f3f4f6; border-radius: 4px;">⏳ Loading conditions...</div>`;
+    } else if (err) {
+      html += `<div style="color: #DC2626; padding: 8px; background: #fee2e2; border-radius: 4px;">❌ Error: ${err}</div>`;
+    } else if (cond) {
+      html += `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">`;
+      html += `<div style="background: #dbeafe; padding: 8px; border-radius: 4px; border-left: 3px solid #0EA5E9;"><div style="font-size: 11px; color: #0c4a6e; font-weight: 600;">24h Snow</div><div style="color: #0EA5E9; font-weight: bold; font-size: 16px;">${cond.recentSnowfall}"</div></div>`;
+      html += `<div style="background: #f0fdf4; padding: 8px; border-radius: 4px; border-left: 3px solid #22c55e;"><div style="font-size: 11px; color: #166534; font-weight: 600;">Base</div><div style="color: #22c55e; font-weight: bold; font-size: 16px;">${cond.snowDepth}"</div></div>`;
+      html += `<div style="background: #eff6ff; padding: 8px; border-radius: 4px; border-left: 3px solid #3B82F6;"><div style="font-size: 11px; color: #1e40af; font-weight: 600;">Weekly</div><div style="color: #3B82F6; font-weight: bold; font-size: 16px;">${cond.weeklySnowfall || 'N/A'}"</div></div>`;
+      html += `<div style="background: #fef2f2; padding: 8px; border-radius: 4px; border-left: 3px solid #EF4444;"><div style="font-size: 11px; color: #7f1d1d; font-weight: 600;">Temp</div><div style="color: #EF4444; font-weight: bold; font-size: 16px;">${cond.baseTemp}°F</div></div>`;
+      html += `</div>`;
+      html += `<div style="border-top: 1px solid #e5e7eb; padding-top: 10px; margin-bottom: 10px;">`;
+      html += `<div style="font-size: 12px; color: #374151; margin-bottom: 6px;"><b>💨 Wind:</b> ${cond.windSpeed} mph</div>`;
+      html += `<div style="font-size: 12px; color: #374151;"><b>👁️ Visibility:</b> ${cond.visibility}</div>`;
+      html += `</div>`;
+      
+      if (resort.conditionsUrl || resort.scrapeUrl) {
+        const url = resort.conditionsUrl || resort.scrapeUrl;
+        html += `<a href="${url}" target="_blank" rel="noopener noreferrer" style="display: block; background: #0EA5E9; color: white; padding: 10px 12px; border-radius: 4px; font-weight: 600; font-size: 12px; text-decoration: none; text-align: center; cursor: pointer; margin-top: 8px; transition: background 0.2s;">📋 View Full Report →</a>`;
+      }
+    }
+    
+    div.innerHTML = html;
+    return div;
+  };
+
+  // Get tile with connection pooling
   const getTileBitmap = async (
     layer: string | { url: string; time?: number },
     z: number,
@@ -293,7 +324,9 @@ const ResortMap: React.FC<ResortMapProps> = ({
 
     try {
       const url = `/api/radar/tile?layer=${encodeURIComponent(layerStr)}&z=${z}&x=${x}&y=${y}`;
-      const resp = await fetch(url);
+      const resp = await fetch(url, {
+        signal: AbortSignal.timeout(5000), // 5 second timeout
+      });
       if (!resp.ok) return null;
 
       const blob = await resp.blob();
@@ -347,21 +380,33 @@ const ResortMap: React.FC<ResortMapProps> = ({
       const yMax = Math.floor((topWorldY + size.y) / 256);
       const tilesAcross = Math.pow(2, z);
 
+      // Fetch tiles in parallel with controlled concurrency
+      const tilePromises: Promise<void>[] = [];
       for (let tx = xMin; tx <= xMax; tx++) {
         for (let ty = yMin; ty <= yMax; ty++) {
           const wrapX = ((tx % tilesAcross) + tilesAcross) % tilesAcross;
           const wrapY = ty;
           if (wrapY < 0 || wrapY >= tilesAcross) continue;
 
-          const bitmap = await getTileBitmap(layer, z, wrapX, wrapY);
-          if (!bitmap) continue;
+          tilePromises.push(
+            (async () => {
+              const bitmap = await getTileBitmap(layer, z, wrapX, wrapY);
+              if (!bitmap) return;
 
-          const tileWorldX = tx * 256;
-          const tileWorldY = ty * 256;
-          const canvasX = (tileWorldX - leftWorldX) * dpr;
-          const canvasY = (tileWorldY - topWorldY) * dpr;
-          ctx.drawImage(bitmap, canvasX, canvasY, 256 * dpr, 256 * dpr);
+              const tileWorldX = tx * 256;
+              const tileWorldY = ty * 256;
+              const canvasX = (tileWorldX - leftWorldX) * dpr;
+              const canvasY = (tileWorldY - topWorldY) * dpr;
+              ctx.drawImage(bitmap, canvasX, canvasY, 256 * dpr, 256 * dpr);
+            })()
+          );
         }
+      }
+
+      // Wait for all tiles with concurrency limit
+      const limit = 6;
+      for (let i = 0; i < tilePromises.length; i += limit) {
+        await Promise.all(tilePromises.slice(i, i + limit));
       }
 
       frameCanvasCache.current.set(key, c);
@@ -375,11 +420,10 @@ const ResortMap: React.FC<ResortMapProps> = ({
     }
   };
 
-  // Animation loop - optimized for performance
+  // Animation loop - optimized
   useEffect(() => {
     let lastTime = performance.now();
     let progress = 0;
-    let pendingRender = false;
 
     const step = async (now: number) => {
       const c = canvasRef.current;
@@ -396,7 +440,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
       const frames = radarFramesRef.current;
       if (frames.length === 0) { rafRef.current = requestAnimationFrame(step); return; }
 
-      // Skip rendering during pan/zoom
+      // Skip during pan/zoom
       if (mapPanZoomRef.current.panning || mapPanZoomRef.current.zooming) {
         rafRef.current = requestAnimationFrame(step);
         return;
@@ -411,9 +455,9 @@ const ResortMap: React.FC<ResortMapProps> = ({
       const idx = radarIndexRef.current % frames.length;
       const nextIdx = (idx + 1) % frames.length;
 
-      // Throttle render to 30fps max for radar
+      // Throttle to 20fps for radar
       const timeSinceLastRender = now - lastRenderTimeRef.current;
-      if (timeSinceLastRender < 33) {
+      if (timeSinceLastRender < 50) {
         rafRef.current = requestAnimationFrame(step);
         return;
       }
@@ -488,19 +532,19 @@ const ResortMap: React.FC<ResortMapProps> = ({
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-700 font-semibold">Base Depth:</span>
-              <span className="text-gray-700 font-semibold">{selectedResort.conditions.snowDepth}"</span>
+              <span className="text-gray-700 font-bold text-lg">{selectedResort.conditions.snowDepth}"</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-700 font-semibold">Temperature:</span>
-              <span className="text-red-600 font-semibold">{selectedResort.conditions.baseTemp}°F</span>
+              <span className="text-red-600 font-bold text-lg">{selectedResort.conditions.baseTemp}°F</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-700 font-semibold">Wind:</span>
-              <span className="text-gray-700 font-semibold">{selectedResort.conditions.windSpeed} mph</span>
+              <span className="text-gray-700 font-bold">{selectedResort.conditions.windSpeed} mph</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-700 font-semibold">Visibility:</span>
-              <span className="text-gray-700 font-semibold">{selectedResort.conditions.visibility}</span>
+              <span className="text-gray-700 font-bold">{selectedResort.conditions.visibility}</span>
             </div>
             {(selectedResort.resort.conditionsUrl || selectedResort.resort.scrapeUrl) && (
               <a 
@@ -509,7 +553,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
                 rel="noopener noreferrer"
                 className="block mt-4 text-center bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition"
               >
-                View Full Report ↗
+                View Full Report →
               </a>
             )}
           </div>

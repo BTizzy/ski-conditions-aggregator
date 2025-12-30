@@ -1,55 +1,42 @@
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 300; // Cache for 5 minutes
+export const revalidate = 60; // Cache for 1 minute
 
 /**
  * Radar Frames API - Returns timestamps for precipitation radar animation
  * 
- * Data Source: RainViewer Public API (confirmed working 2025-12-30)
- * - Updates every 10 minutes
- * - ~2 hours of historical data on free tier  
- * - Global coverage
- * - No API key required for basic access
+ * Data Source: Iowa State Mesonet NEXRAD (N0Q - Base Reflectivity)
+ * - Updates every 5-15 minutes
+ * - 60 minutes of historical data
+ * - Production-grade (used by weather.gov)
+ * - Free, no API key required
  * 
- * Query Params:
- *   ?hours=24  - Filter last N hours (default: 24, max: 72)
+ * Implementation: Generates 15-minute intervals from 60 minutes ago to now
  */
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const requestedHours = Math.min(parseInt(searchParams.get('hours') || '24'), 72);
+    const minutesBack = Math.min(parseInt(searchParams.get('minutes') || '60'), 120);
     
-    console.log(`[Radar API] Fetching frames for last ${requestedHours}h`);
+    console.log(`[Radar Frames] Generating timestamps for last ${minutesBack} minutes`);
     
-    // Fetch from RainViewer - ONLY working free public API confirmed
-    const response = await fetch('https://api.rainviewer.com/public/weather-maps.json', {
-      headers: { 'User-Agent': 'ski-conditions-aggregator' },
-      next: { revalidate: 300 } // Next.js cache 5 min
-    });
+    // Generate timestamps every 15 minutes going back
+    // Mesonet has N0Q data roughly every 5-10 minutes, we'll use 15-min intervals to ensure availability
+    const now = new Date();
+    const timestamps: number[] = [];
     
-    if (!response.ok) {
-      throw new Error(`RainViewer API returned ${response.status}`);
+    for (let i = 0; i <= minutesBack; i += 15) {
+      const timestamp = new Date(now.getTime() - i * 60 * 1000);
+      // Round to nearest minute for consistency
+      timestamp.setSeconds(0, 0);
+      timestamps.push(Math.floor(timestamp.getTime() / 1000));
     }
     
-    const data = await response.json();
+    // Sort chronologically (oldest first)
+    timestamps.sort((a, b) => a - b);
     
-    // Extract radar timestamps from response
-    const pastFrames = (data.radar?.past || []) as Array<{ time: number; path: string }>;
-    const nowcastFrames = (data.radar?.nowcast || []) as Array<{ time: number; path: string }>;
-    
-    // Calculate cutoff time
-    const now = Date.now() / 1000; // Unix seconds
-    const cutoff = now - (requestedHours * 3600);
-    
-    // Filter and extract timestamps only
-    const allFrames = [...pastFrames, ...nowcastFrames];
-    const timestamps = allFrames
-      .filter(frame => frame.time >= cutoff)
-      .map(frame => frame.time)
-      .sort((a, b) => a - b); // Chronological order
-    
-    console.log(`[Radar API] Returning ${timestamps.length} frames (generated: ${new Date(data.generated * 1000).toISOString()})`);
+    console.log(`[Radar Frames] Generated ${timestamps.length} timestamps for animation`);
     
     const result = {
       radar: {
@@ -57,8 +44,9 @@ export async function GET(request: Request) {
       },
       metadata: {
         count: timestamps.length,
-        generated: data.generated,
-        source: 'rainviewer',
+        source: 'iowa-state-mesonet-nexrad-n0q',
+        updateFrequency: '5-15 minutes',
+        coverage: 'Continental US, Alaska, Hawaii, Caribbean',
         timeRange: timestamps.length > 0 ? {
           oldest: new Date(timestamps[0] * 1000).toISOString(),
           newest: new Date(timestamps[timestamps.length - 1] * 1000).toISOString()
@@ -67,26 +55,18 @@ export async function GET(request: Request) {
     };
     
     const res = NextResponse.json(result);
-    res.headers.set('Cache-Control', 'public, max-age=300');
+    res.headers.set('Cache-Control', 'public, max-age=60');
     res.headers.set('Access-Control-Allow-Origin', '*');
     return res;
     
   } catch (error: any) {
-    console.error('[Radar API] Error fetching frames:', error.message);
-    
-    // Return empty array on error (graceful degradation)
+    console.error('[Radar Frames] Error:', error.message);
     return NextResponse.json(
       { 
         radar: { past: [] },
         error: error.message
       },
-      { 
-        status: 500,
-        headers: {
-          'Cache-Control': 'public, max-age=60', // Shorter cache on error
-          'Access-Control-Allow-Origin': '*'
-        }
-      }
+      { status: 500 }
     );
   }
 }

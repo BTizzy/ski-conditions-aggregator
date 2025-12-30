@@ -25,7 +25,6 @@ const ResortMap: React.FC<ResortMapProps> = ({ resorts = [], conditions = {} }) 
   const markerLayerRef = useRef<L.LayerGroup | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const radarContainerRef = useRef<HTMLDivElement | null>(null);
-  const createdMapRef = useRef<boolean>(false);
 
   // Radar animation state
   const [radarPlaying, setRadarPlaying] = useState(true);
@@ -36,13 +35,14 @@ const ResortMap: React.FC<ResortMapProps> = ({ resorts = [], conditions = {} }) 
   const [currentRadarTime, setCurrentRadarTime] = useState<number | null>(null);
   
   // Refs for animation state
-  const radarFramesRef = useRef<number[]>([]);
-  const displayFramesRef = useRef<number[]>([]);
+  const radarFramesRef = useRef<string[]>([]); // Layer names: 'nexrad-n0q', 'nexrad-n0q-m05m', etc
+  const displayFramesRef = useRef<string[]>([]);
   const radarIndexRef = useRef<number>(0);
   const radarPlayingRef = useRef<boolean>(true);
   const tileBitmapCache = useRef<Map<string, ImageBitmap>>(new Map());
   const frameCanvasCache = useRef<Map<string, HTMLCanvasElement>>(new Map());
   const rafRef = useRef<number | null>(null);
+  const mapInitializedRef = useRef<boolean>(false);
 
   // Create custom marker icon
   const createCustomIcon = (hasSnowfall: boolean | string | null) => {
@@ -64,19 +64,22 @@ const ResortMap: React.FC<ResortMapProps> = ({ resorts = [], conditions = {} }) 
     });
   };
 
-  // Initialize map and canvas overlay
+  // Initialize map ONCE and only once
   useEffect(() => {
-    if (!mapDivRef.current) return;
-    
-    const globalAny = window as any;
-    
-    // Clean up any existing instance
-    if (globalAny.__resortMapInstance) {
-      try { globalAny.__resortMapInstance.remove(); } catch (e) {}
-      globalAny.__resortMapInstance = null;
+    // Guard: Only initialize once, even if effect runs multiple times
+    if (mapInitializedRef.current || !mapDivRef.current) return;
+    mapInitializedRef.current = true;
+
+    // Prevent double initialization: check if container has leaflet class
+    const container = mapDivRef.current;
+    if (container.classList.contains('leaflet-container')) {
+      // Map already exists, reuse it
+      mapRef.current = (container as any).__LEAFLET_MAP__;
+      return;
     }
 
-    if (!mapRef.current) {
+    try {
+      // Create map ONCE
       const map = L.map(mapDivRef.current, { 
         center: [44, -72], 
         zoom: 7,
@@ -90,86 +93,85 @@ const ResortMap: React.FC<ResortMapProps> = ({ resorts = [], conditions = {} }) 
       }).addTo(map);
       
       mapRef.current = map;
-      createdMapRef.current = true;
-      globalAny.__resortMapInstance = map;
       
       // Size map after mount
-      setTimeout(() => { try { map.invalidateSize(); } catch (e) {} }, 200);
+      setTimeout(() => { 
+        try { map.invalidateSize(); } catch (e) {} 
+      }, 200);
+
+      // Setup radar pane
+      try {
+        if (!map.getPane('radarPane')) {
+          map.createPane('radarPane');
+        }
+        const pane = map.getPane('radarPane') as HTMLElement;
+        pane.style.zIndex = '480';
+        pane.style.pointerEvents = 'none';
+
+        // Create canvas for radar animation
+        if (!canvasRef.current && !radarContainerRef.current) {
+          const container = document.createElement('div');
+          container.id = 'radar-overlay-container';
+          container.style.position = 'absolute';
+          container.style.left = '0';
+          container.style.top = '0';
+          container.style.width = '100%';
+          container.style.height = '100%';
+          container.style.pointerEvents = 'none';
+          
+          const canvas = document.createElement('canvas');
+          canvas.id = 'radar-canvas';
+          canvas.style.position = 'absolute';
+          canvas.style.left = '0';
+          canvas.style.top = '0';
+          canvas.style.width = '100%';
+          canvas.style.height = '100%';
+          canvas.style.pointerEvents = 'none';
+          canvas.style.opacity = String(radarOpacity);
+          
+          container.appendChild(canvas);
+          pane.appendChild(container);
+          
+          canvasRef.current = canvas;
+          radarContainerRef.current = container;
+          
+          // Handle map resize
+          const resizeCanvas = () => {
+            try {
+              if (!canvas || !map) return;
+              const size = map.getSize();
+              const dpr = window.devicePixelRatio || 1;
+              
+              canvas.width = size.x * dpr;
+              canvas.height = size.y * dpr;
+              canvas.style.width = `${size.x}px`;
+              canvas.style.height = `${size.y}px`;
+              
+              const ctx = canvas.getContext('2d');
+              if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            } catch (e) {
+              console.debug('[RadarMap] resize failed', e);
+            }
+          };
+          
+          map.on('resize', resizeCanvas);
+          map.on('move', () => {
+            radarIndexRef.current = Math.max(0, radarIndexRef.current);
+          });
+          map.on('zoom', () => {
+            frameCanvasCache.current.clear();
+          });
+          
+          resizeCanvas();
+        }
+      } catch (e) {
+        console.debug('[RadarMap] pane setup failed', e);
+      }
+    } catch (error) {
+      console.error('[ResortMap] Map initialization failed:', error);
     }
 
-    const map = mapRef.current as L.Map;
-
-    try {
-      // Create radar pane for overlay (z-index 480 is above tiles, below markers)
-      if (!map.getPane('radarPane')) {
-        map.createPane('radarPane');
-      }
-      const pane = map.getPane('radarPane') as HTMLElement;
-      pane.style.zIndex = '480';
-      pane.style.pointerEvents = 'none';
-
-      // Create canvas for radar animation
-      if (!canvasRef.current && !radarContainerRef.current) {
-        const container = document.createElement('div');
-        container.id = 'radar-overlay-container';
-        container.style.position = 'absolute';
-        container.style.left = '0';
-        container.style.top = '0';
-        container.style.width = '100%';
-        container.style.height = '100%';
-        container.style.pointerEvents = 'none';
-        
-        const canvas = document.createElement('canvas');
-        canvas.id = 'radar-canvas';
-        canvas.style.position = 'absolute';
-        canvas.style.left = '0';
-        canvas.style.top = '0';
-        canvas.style.width = '100%';
-        canvas.style.height = '100%';
-        canvas.style.pointerEvents = 'none';
-        canvas.style.opacity = String(radarOpacity);
-        
-        container.appendChild(canvas);
-        pane.appendChild(container);
-        
-        canvasRef.current = canvas;
-        radarContainerRef.current = container;
-        
-        // Handle map resize
-        const resizeCanvas = () => {
-          try {
-            if (!canvas || !map) return;
-            const size = map.getSize();
-            const dpr = window.devicePixelRatio || 1;
-            
-            canvas.width = size.x * dpr;
-            canvas.height = size.y * dpr;
-            canvas.style.width = `${size.x}px`;
-            canvas.style.height = `${size.y}px`;
-            
-            const ctx = canvas.getContext('2d');
-            if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-          } catch (e) {
-            console.debug('[RadarMap] resize failed', e);
-          }
-        };
-        
-        map.on('resize', resizeCanvas);
-        map.on('move', () => {
-          // Redraw on map move
-          radarIndexRef.current = Math.max(0, radarIndexRef.current);
-        });
-        map.on('zoom', () => {
-          // Clear cache on zoom to ensure tiles are redrawn
-          frameCanvasCache.current.clear();
-        });
-        
-        resizeCanvas();
-      }
-    } catch (e) {
-      console.debug('[RadarMap] setup failed', e);
-    }
-
+    // Cleanup: Remove event listeners and map on unmount
     return () => {
       try {
         if (markerLayerRef.current) {
@@ -179,15 +181,18 @@ const ResortMap: React.FC<ResortMapProps> = ({ resorts = [], conditions = {} }) 
         }
         if (radarContainerRef.current && radarContainerRef.current.parentNode) {
           radarContainerRef.current.parentNode.removeChild(radarContainerRef.current);
+          radarContainerRef.current = null;
         }
-        if (mapRef.current && createdMapRef.current) {
+        if (mapRef.current) {
           mapRef.current.remove();
+          mapRef.current = null;
         }
-      } catch (e) {}
-      mapRef.current = null;
-      canvasRef.current = null;
+      } catch (e) {
+        console.debug('[ResortMap] cleanup error', e);
+      }
+      mapInitializedRef.current = false;
     };
-  }, []);
+  }, []); // Empty dependency array = run once on mount only
 
   // Load radar frames from API
   const loadRadarFrames = async () => {
@@ -196,14 +201,14 @@ const ResortMap: React.FC<ResortMapProps> = ({ resorts = [], conditions = {} }) 
       if (!res.ok) throw new Error('Failed to fetch frames');
       const data = await res.json();
       
-      const past = (data?.radar?.past || []) as Array<{ time: number }>;
-      const times = past.map((f) => f.time).filter(Boolean);
+      // New format returns layer names, not timestamps
+      const layers = (data?.radar?.layers || []) as string[];
       
-      radarFramesRef.current = times;
-      setRadarFramesAvailable(times.length > 0);
+      radarFramesRef.current = layers;
+      setRadarFramesAvailable(layers.length > 0);
       updateDisplayFrames(selectedWindowHours);
       
-      return times;
+      return layers;
     } catch (e) {
       console.debug('[Radar] loadRadarFrames failed', e);
       radarFramesRef.current = [];
@@ -214,29 +219,28 @@ const ResortMap: React.FC<ResortMapProps> = ({ resorts = [], conditions = {} }) 
 
   // Update display frames based on selected window
   const updateDisplayFrames = (hours: number) => {
-    const now = Date.now();
-    const cutoff = now - hours * 3600 * 1000;
-    const frames = (radarFramesRef.current || [])
-      .filter((t) => t >= cutoff);
+    const frames = radarFramesRef.current || [];
     
-    const out = frames.length > 0 ? frames : radarFramesRef.current.slice(-Math.max(12, hours));
+    // For now, use all available frames
+    // In future, could filter by time window
+    const out = frames.length > 0 ? frames : [];
     displayFramesRef.current = out;
     radarIndexRef.current = Math.max(0, out.length - 1);
     setRadarFramesAvailable(out.length > 0);
     if (out.length > 0) {
-      setCurrentRadarTime(out[radarIndexRef.current]);
+      setCurrentRadarTime(Date.now()); // Just show current time for now
     }
   };
 
-  // Fetch radar tile image
-  const getTileBitmap = async (time: number, z: number, x: number, y: number) => {
-    const key = `${time}_${z}_${x}_${y}`;
+  // Fetch radar tile image (layer-based)
+  const getTileBitmap = async (layer: string, z: number, x: number, y: number) => {
+    const key = `${layer}_${z}_${x}_${y}`;
     if (tileBitmapCache.current.has(key)) {
       return tileBitmapCache.current.get(key);
     }
     
     try {
-      const url = `/api/radar/tile?time=${time}&z=${z}&x=${x}&y=${y}`;
+      const url = `/api/radar/tile?layer=${encodeURIComponent(layer)}&z=${z}&x=${x}&y=${y}`;
       const resp = await fetch(url);
       if (!resp.ok) return null;
       
@@ -260,7 +264,7 @@ const ResortMap: React.FC<ResortMapProps> = ({ resorts = [], conditions = {} }) 
 
   // Render single frame to canvas
   const renderFrameToCanvas = async (
-    time: number,
+    layer: string,
     z: number,
     widthPx: number,
     heightPx: number,
@@ -306,7 +310,7 @@ const ResortMap: React.FC<ResortMapProps> = ({ resorts = [], conditions = {} }) 
           
           if (wrapY < 0 || wrapY >= tilesAcross) continue;
           
-          const bitmap = await getTileBitmap(time, z, wrapX, wrapY);
+          const bitmap = await getTileBitmap(layer, z, wrapX, wrapY);
           if (!bitmap) continue;
           
           const tileWorldX = tx * 256;
@@ -413,7 +417,7 @@ const ResortMap: React.FC<ResortMapProps> = ({ resorts = [], conditions = {} }) 
         if (progress >= dur) {
           progress = 0;
           radarIndexRef.current = nextIdx;
-          setCurrentRadarTime(frames[radarIndexRef.current]);
+          setCurrentRadarTime(Date.now());
         }
       } catch (e) {
         console.debug('[Radar] animation frame failed', e);
@@ -500,7 +504,7 @@ const ResortMap: React.FC<ResortMapProps> = ({ resorts = [], conditions = {} }) 
       
       {/* Radar Controls */}
       <div className="absolute top-4 left-4 z-[99999] bg-white/95 rounded-lg p-4 shadow-lg max-w-sm">
-        <div className="font-bold mb-3 text-gray-800">Precipitation Radar (72h)</div>
+        <div className="font-bold mb-3 text-gray-800">Precipitation Radar (60min)</div>
         
         {/* Play/Pause */}
         <div className="flex gap-2 mb-3">
@@ -528,7 +532,7 @@ const ResortMap: React.FC<ResortMapProps> = ({ resorts = [], conditions = {} }) 
         <div className="mb-3">
           <div className="text-xs font-semibold mb-2 text-gray-700">Time Window</div>
           <div className="flex gap-2">
-            {[24, 48, 72].map((h) => (
+            {[24, 48, 60].map((h) => (
               <button
                 key={h}
                 onClick={() => setSelectedWindowHours(h)}
@@ -581,7 +585,7 @@ const ResortMap: React.FC<ResortMapProps> = ({ resorts = [], conditions = {} }) 
               <div>{displayFramesRef.current.length || radarFramesRef.current.length} frames available</div>
               {currentRadarTime && (
                 <div className="text-xs text-gray-500 mt-1">
-                  {new Date(currentRadarTime).toLocaleTimeString()}
+                  Updated: {new Date(currentRadarTime).toLocaleTimeString()}
                 </div>
               )}
             </div>

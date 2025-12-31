@@ -1,7 +1,4 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
-  "/api/radar/debug-pixel/route": "app/api/radar/debug-pixel/route.js",
-  "/api/radar/debug-screenshot/route": "app/api/radar/debug-screenshot/route.js",
   "/api/radar/frames/route": "app/api/radar/frames/route.js",
   "/api/radar/tile/route": "app/api/radar/tile/route.js",
   "/api/scrape/route": "app/api/scrape/route.js",

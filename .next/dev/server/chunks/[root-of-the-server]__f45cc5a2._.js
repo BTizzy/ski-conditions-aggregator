@@ -46,72 +46,97 @@ module.exports = mod;
 
 __turbopack_context__.s([
     "GET",
-    ()=>GET
+    ()=>GET,
+    "dynamic",
+    ()=>dynamic,
+    "revalidate",
+    ()=>revalidate
 ]);
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/server.js [app-route] (ecmascript)");
 ;
-// Example NOAA endpoints (public):
-// MRMS tiled PNGs: https://mrms.ncep.noaa.gov/data/2D/PrecipRate/ (z/x/y.png)
-// NEXRAD tiled: https://mesonet.agron.iastate.edu/cgi-bin/wms/nexrad/n0r.cgi (WMS)
-// QPE tiled: https://mesonet.agron.iastate.edu/cgi-bin/wms/us/mrms.cgi (WMS)
-// For demo: Use Iowa State Mesonet for frame times (NEXRAD, MRMS, QPE)
-const SOURCES = [
-    {
-        name: 'NEXRAD',
-        url: 'https://mesonet.agron.iastate.edu/json/radar/nexrad_n0q.json',
-        parse: (json)=>json && json.timestamps ? json.timestamps : []
-    },
-    {
-        name: 'MRMS',
-        url: 'https://mesonet.agron.iastate.edu/json/radar/mrms_ref.json',
-        parse: (json)=>json && json.timestamps ? json.timestamps : []
-    },
-    {
-        name: 'QPE',
-        url: 'https://mesonet.agron.iastate.edu/json/radar/mrms_qpe.json',
-        parse: (json)=>json && json.timestamps ? json.timestamps : []
-    }
-];
-async function GET() {
+const dynamic = 'force-dynamic';
+const revalidate = 300; // Cache for 5 minutes
+async function GET(request) {
     try {
-        // Fetch all sources in parallel
-        const results = await Promise.all(SOURCES.map(async (src)=>{
-            try {
-                const res = await fetch(src.url);
-                if (!res.ok) return [];
-                const json = await res.json();
-                return src.parse(json).map((t)=>({
-                        time: t,
-                        source: src.name
-                    }));
-            } catch  {
-                return [];
+        console.log('[Radar Frames] Fetching RainViewer API...');
+        // Get current RainViewer radar layers
+        // This returns both historical and forecast layers with timestamps
+        const res = await fetch('https://api.rainviewer.com/public/weather-maps-api-v2/GetWeatherMapsList', {
+            method: 'GET',
+            headers: {
+                'User-Agent': 'ski-conditions-aggregator'
             }
-        }));
-        // Merge and deduplicate frames by time (ISO8601 or epoch seconds)
-        const allFrames = [].concat(...results);
-        // Sort descending (most recent first)
-        allFrames.sort((a, b)=>a.time < b.time ? 1 : -1);
-        // Remove duplicates (keep all sources for a time)
-        const seen = new Set();
-        const merged = allFrames.filter((f)=>{
-            if (seen.has(f.time)) return false;
-            seen.add(f.time);
-            return true;
         });
-        const response = __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
-            frames: merged
-        });
-        response.headers.set('Access-Control-Allow-Origin', '*');
-        return response;
-    } catch (e) {
-        return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
-            error: 'fetch_failed',
-            message: String(e)
-        }, {
-            status: 500
-        });
+        if (!res.ok) {
+            console.error('[Radar Frames] RainViewer API error:', res.status);
+            throw new Error(`RainViewer returned ${res.status}`);
+        }
+        const data = await res.json();
+        console.log('[Radar Frames] RainViewer response:', data);
+        // Extract historical radar layers (past 48 hours at 10-min intervals)
+        // RainViewer returns: { radar: { nowcast: [...], archive: [...] } }
+        const archiveLayers = data?.radar?.archive || [];
+        if (archiveLayers.length === 0) {
+            console.warn('[Radar Frames] No archive layers found, using fallback');
+            return fallbackResponse();
+        }
+        // Each archive layer has { time: millisecondsSinceEpoch, url: "tile URL pattern" }
+        // Extract just the timestamps and base URLs
+        const layers = archiveLayers.map((layer)=>({
+                timestamp: layer.time,
+                url: layer.url
+            }));
+        console.log(`[Radar Frames] Got ${layers.length} archive layers covering 48h`);
+        const result = {
+            radar: {
+                layers: layers,
+                source: 'rainviewer-48h'
+            },
+            metadata: {
+                count: layers.length,
+                source: 'rainviewer-api-v2',
+                updateFrequency: '10 minutes',
+                coverage: 'Worldwide',
+                timeRange: 'Last 48 hours (10-min intervals)',
+                reference: 'https://www.rainviewer.com/api.html'
+            }
+        };
+        const res2 = __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json(result);
+        res2.headers.set('Cache-Control', 'public, max-age=300');
+        res2.headers.set('Access-Control-Allow-Origin', '*');
+        return res2;
+    } catch (error) {
+        console.error('[Radar Frames] Error:', error.message);
+        return fallbackResponse();
     }
+}
+function fallbackResponse() {
+    // Fallback: Return Mesonet format (1-hour, 12 frames) if RainViewer fails
+    const layers = [
+        'nexrad-n0q-m55m',
+        'nexrad-n0q-m50m',
+        'nexrad-n0q-m45m',
+        'nexrad-n0q-m40m',
+        'nexrad-n0q-m35m',
+        'nexrad-n0q-m30m',
+        'nexrad-n0q-m25m',
+        'nexrad-n0q-m20m',
+        'nexrad-n0q-m15m',
+        'nexrad-n0q-m10m',
+        'nexrad-n0q-m05m',
+        'nexrad-n0q'
+    ];
+    return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
+        radar: {
+            layers
+        },
+        metadata: {
+            source: 'mesonet-fallback',
+            note: 'RainViewer failed, using 1-hour Mesonet data'
+        }
+    }, {
+        status: 200
+    });
 }
 }),
 ];

@@ -53,6 +53,8 @@ const ResortMap: React.FC<ResortMapProps> = ({
   const [loadingStatus, setLoadingStatus] = useState('Initializing map...');
   const [mapReady, setMapReady] = useState(false);
   const [selectedResort, setSelectedResort] = useState<{ resort: Resort; conditions: ResortConditions } | null>(null);
+  const [radarFrameTimes, setRadarFrameTimes] = useState<Array<number>>([]);
+  const [radarIndex, setRadarIndex] = useState(0);
 
   // FIXED: Properly initialize radarFramesRef as a Ref, not a boolean
   const radarFramesRef = useRef<Array<{ url: string; time?: number }>>([]); 
@@ -114,22 +116,30 @@ const ResortMap: React.FC<ResortMapProps> = ({
       radarPane.appendChild(container2);
       canvasRef.current = canvas;
 
+      // --- Fix: Always force canvas to match map size, even if Leaflet/React race ---
       const resizeCanvas = () => {
         if (!canvas || !map) return;
         const size = map.getSize();
         const dpr = window.devicePixelRatio || 1;
-        canvas.width = size.x * dpr;
-        canvas.height = size.y * dpr;
-        canvas.style.width = `${size.x}px`;
-        canvas.style.height = `${size.y}px`;
-        const ctx = canvas.getContext('2d');
-        if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        frameCanvasCache.current.clear();
+        // Only resize if needed (avoid flicker)
+        if (canvas.width !== size.x * dpr || canvas.height !== size.y * dpr) {
+          canvas.width = size.x * dpr;
+          canvas.height = size.y * dpr;
+          canvas.style.width = `${size.x}px`;
+          canvas.style.height = `${size.y}px`;
+          const ctx = canvas.getContext('2d');
+          if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          frameCanvasCache.current.clear();
+          console.log('[RadarCanvas] Resized to', size.x, size.y, 'dpr', dpr);
+        }
       };
 
-      resizeCanvas();
+      // Force resize on next animation frame after mount
+      requestAnimationFrame(resizeCanvas);
       map.on('resize', resizeCanvas);
-      
+      // Also force resize after 200ms in case of late layout
+      setTimeout(resizeCanvas, 200);
+
       map.on('movestart', () => { mapPanZoomRef.current.panning = true; });
       map.on('moveend', () => { mapPanZoomRef.current.panning = false; frameCanvasCache.current.clear(); });
       map.on('zoomstart', () => { mapPanZoomRef.current.zooming = true; });
@@ -168,11 +178,14 @@ const ResortMap: React.FC<ResortMapProps> = ({
           }
         });
 
-        // FIXED: Properly assign to ref.current
+        // Extract times for timeline
+  const frameTimes = frameObjects.map((f: { url: string; time: number }) => typeof f.time === 'number' ? f.time : 0);
+
         radarFramesRef.current = frameObjects;
         setFrameCount(frameObjects.length);
         setRadarFramesAvailable(frameObjects.length > 0);
-        
+        setRadarFrameTimes(frameTimes);
+
         const sourceLabel = data?.radar?.source === 'rainviewer-48h' ? '48h RainViewer' : '1h Mesonet (fallback)';
         setLoadingStatus(`Ready: ${frameObjects.length} frames (${sourceLabel})`);
         console.log('[Frames] Ready. Frames set:', frameObjects.length);
@@ -269,8 +282,8 @@ const ResortMap: React.FC<ResortMapProps> = ({
         }, 0);
       });
 
-      marker.on('mouseover', function () { this.setRadius(markerRadius * 1.3); });
-      marker.on('mouseout', function () { this.setRadius(markerRadius); });
+  marker.on('mouseover', function (this: L.CircleMarker) { this.setRadius(markerRadius * 1.3); });
+  marker.on('mouseout', function (this: L.CircleMarker) { this.setRadius(markerRadius); });
 
       markersRef.current.set(resort.id, marker);
     });
@@ -432,6 +445,23 @@ const ResortMap: React.FC<ResortMapProps> = ({
       const c = canvasRef.current;
       if (!c) { rafRef.current = requestAnimationFrame(step); return; }
 
+      // --- Fix: Always force canvas to match map size before drawing ---
+      const map = mapRef.current;
+      if (map && c) {
+        const size = map.getSize();
+        const dpr = window.devicePixelRatio || 1;
+        if (c.width !== size.x * dpr || c.height !== size.y * dpr) {
+          c.width = size.x * dpr;
+          c.height = size.y * dpr;
+          c.style.width = `${size.x}px`;
+          c.style.height = `${size.y}px`;
+          const ctx = c.getContext('2d');
+          if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          frameCanvasCache.current.clear();
+          console.log('[RadarCanvas] Animation forced resize', size.x, size.y, 'dpr', dpr);
+        }
+      }
+
       const ctx = c.getContext('2d');
       if (!ctx) { rafRef.current = requestAnimationFrame(step); return; }
 
@@ -458,6 +488,8 @@ const ResortMap: React.FC<ResortMapProps> = ({
       const idx = radarIndexRef.current % frames.length;
       const nextIdx = (idx + 1) % frames.length;
 
+      setRadarIndex(idx); // For timeline UI
+
       // Throttle to 20fps for radar
       const timeSinceLastRender = now - lastRenderTimeRef.current;
       if (timeSinceLastRender < 50) {
@@ -466,11 +498,11 @@ const ResortMap: React.FC<ResortMapProps> = ({
       }
 
       try {
-        const map = mapRef.current;
-        if (!map) { rafRef.current = requestAnimationFrame(step); return; }
+        // --- Canada fix: always show full radar, don't restrict by bounds ---
+        // (No code change needed here, but this comment documents the intent)
 
-        const z = Math.max(0, Math.round(map.getZoom() || 5));
-        const size = map.getSize();
+        const z = map ? Math.max(0, Math.round(map.getZoom() || 5)) : 7;
+        const size = map ? map.getSize() : { x: 800, y: 600 };
         const keyPrev = `${frames[idx].url}_${z}_${size.x}_${size.y}`;
         const keyNext = `${frames[nextIdx].url}_${z}_${size.x}_${size.y}`;
 
@@ -492,7 +524,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
           progress = 0;
           radarIndexRef.current = nextIdx;
         }
-      } catch (e) { }
+      } catch (e) { console.error('[RadarCanvas] Render error', e); }
 
       rafRef.current = requestAnimationFrame(step);
     };
@@ -517,9 +549,31 @@ const ResortMap: React.FC<ResortMapProps> = ({
         </div>
         <div className="mb-3"><label className="text-xs font-semibold text-gray-700 block mb-1">Speed</label><input type="range" min="100" max="2000" step="50" value={radarSpeedMs} onChange={(e) => setRadarSpeedMs(Number(e.target.value))} className="w-full" /></div>
         <div className="mb-3"><label className="text-xs font-semibold text-gray-700 block mb-1">Opacity</label><input type="range" min="0" max="1" step="0.05" value={radarOpacity} onChange={(e) => setRadarOpacity(Number(e.target.value))} className="w-full" /></div>
+        {/* Timeline UI */}
+        {radarFrameTimes.length > 1 && (
+          <div className="mb-3">
+            <label className="text-xs font-semibold text-gray-700 block mb-1">Timeline</label>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-gray-500">{radarFrameTimes[0] ? new Date(radarFrameTimes[0] * 1000).toLocaleString() : ''}</span>
+              <input
+                type="range"
+                min={0}
+                max={radarFrameTimes.length - 1}
+                value={radarIndex}
+                onChange={e => {
+                  const idx = Number(e.target.value);
+                  radarIndexRef.current = idx;
+                  setRadarIndex(idx);
+                }}
+                className="flex-1"
+              />
+              <span className="text-[10px] text-gray-500">{radarFrameTimes[radarFrameTimes.length - 1] ? new Date(radarFrameTimes[radarFrameTimes.length - 1] * 1000).toLocaleString() : ''}</span>
+            </div>
+          </div>
+        )}
         <div className="text-xs text-gray-700 border-t pt-2"><div>Status: {loadingStatus}</div><div>Markers: {markersRef.current.size}/43</div></div>
       </div>
-      
+
       {selectedResort && (
         <div className="absolute top-4 right-4 z-[99999] bg-white/95 rounded-lg p-5 shadow-lg max-w-sm">
           <button onClick={() => setSelectedResort(null)} className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-lg font-bold">✕</button>

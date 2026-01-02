@@ -1,59 +1,227 @@
-[00:00:00.741] Server  LOG     ✓ Ready in 458ms
-[00:00:33.540] Server  LOG     [Tile] Real weather data: z=7 x=38 y=48 time=1767355200000
-[00:00:33.543] Server  LOG     [Historical] Fetching fresh resort area historical data...
-[00:00:33.813] Server  WARN    Failed to fetch forecast data for station loon-mountain-resort: TypeError: fetch failed
-[00:00:33.896] Server  WARN    Failed to fetch forecast data for station sunday-river-resort: TypeError: fetch failed
-[00:00:33.962] Server  WARN    Failed to fetch forecast data for station sugarloaf-resort: TypeError: fetch failed
-[00:00:34.039] Server  WARN    Failed to fetch forecast data for station stowe-resort: TypeError: fetch failed
-[00:00:34.102] Server  WARN    Failed to fetch forecast data for station killington-resort: TypeError: fetch failed
-[00:00:34.167] Server  WARN    Failed to fetch forecast data for station sugarbush-resort: TypeError: fetch failed
-[00:00:34.230] Server  WARN    Failed to fetch forecast data for station okemo-resort: TypeError: fetch failed
-[00:00:34.296] Server  WARN    Failed to fetch forecast data for station mount-snow-resort: TypeError: fetch failed
-[00:00:34.359] Server  WARN    Failed to fetch forecast data for station stratton-resort: TypeError: fetch failed
-[00:00:34.420] Server  WARN    Failed to fetch forecast data for station jay-peak-resort: TypeError: fetch failed
-[00:00:34.485] Server  WARN    Failed to fetch forecast data for station smugglers-notch-resort: TypeError: fetch failed
-[00:00:34.553] Server  WARN    Failed to fetch forecast data for station bromley-resort: TypeError: fetch failed
-[00:00:34.615] Server  WARN    Failed to fetch forecast data for station mad-river-glen-resort: TypeError: fetch failed
-[00:00:34.682] Server  WARN    Failed to fetch forecast data for station bretton-woods-resort: TypeError: fetch failed
-[00:00:34.749] Server  WARN    Failed to fetch forecast data for station cannon-mountain-resort: TypeError: fetch failed
-[00:00:34.810] Server  WARN    Failed to fetch forecast data for station waterville-valley-resort: TypeError: fetch failed
-[00:00:34.876] Server  WARN    Failed to fetch forecast data for station wildcat-resort: TypeError: fetch failed
-[00:00:34.941] Server  WARN    Failed to fetch forecast data for station attitash-resort: TypeError: fetch failed
-[00:00:35.003] Server  WARN    Failed to fetch forecast data for station cranmore-resort: TypeError: fetch failed
-[00:00:35.069] Server  WARN    Failed to fetch forecast data for station pats-peak-resort: TypeError: fetch failed
-[00:00:35.136] Server  WARN    Failed to fetch forecast data for station mount-sunapee-resort: TypeError: fetch failed
-[00:00:35.198] Server  WARN    Failed to fetch forecast data for station gunstock-resort: TypeError: fetch failed
-[00:00:35.264] Server  WARN    Failed to fetch forecast data for station crotched-mountain-resort: TypeError: fetch failed
-[00:00:35.328] Server  WARN    Failed to fetch forecast data for station mcintyre-resort: TypeError: fetch failed
-[00:00:35.389] Server  WARN    Failed to fetch forecast data for station ragged-mountain-resort: TypeError: fetch failed
-[00:00:35.455] Server  WARN    Failed to fetch forecast data for station saddleback-resort: TypeError: fetch failed
-[00:00:35.520] Server  WARN    Failed to fetch forecast data for station squaw-mountain-resort: TypeError: fetch failed
-[00:00:35.580] Server  WARN    Failed to fetch forecast data for station jiminy-peak-resort: TypeError: fetch failed
-[00:00:35.645] Server  WARN    Failed to fetch forecast data for station wachusett-resort: TypeError: fetch failed
-[00:00:35.717] Server  WARN    Failed to fetch forecast data for station whiteface-resort: TypeError: fetch failed
-[00:00:35.812] Server  WARN    Failed to fetch forecast data for station gore-mountain-resort: TypeError: fetch failed
-[00:00:35.884] Server  WARN    Failed to fetch forecast data for station hunter-mountain-resort: TypeError: fetch failed
-[00:00:35.948] Server  WARN    Failed to fetch forecast data for station windham-mountain-resort: TypeError: fetch failed
-[00:00:36.012] Server  WARN    Failed to fetch forecast data for station belleayre-resort: TypeError: fetch failed
-[00:00:36.072] Server  WARN    Failed to fetch forecast data for station jack-frost-big-boulder-resort: TypeError: fetch failed
-[00:00:36.136] Server  WARN    Failed to fetch forecast data for station elk-mountain-resort: TypeError: fetch failed
-[00:00:36.198] Server  WARN    Failed to fetch forecast data for station blue-mountain-resort: TypeError: fetch failed
-[00:00:36.258] Server  WARN    Failed to fetch forecast data for station seven-springs-resort: TypeError: fetch failed
-[00:00:36.322] Server  WARN    Failed to fetch forecast data for station mount-southington-resort: TypeError: fetch failed
-[00:00:36.386] Server  WARN    Failed to fetch forecast data for station powder-ridge-resort: TypeError: fetch failed
-[00:00:36.448] Server  WARN    Failed to fetch forecast data for station mountain-creek-resort: TypeError: fetch failed
-[00:00:36.512] Server  WARN    Failed to fetch forecast data for station campgaw-mountain-resort: TypeError: fetch failed
-[00:00:36.576] Server  WARN    Failed to fetch forecast data for station black-mountain-resort: TypeError: fetch failed
-[00:00:36.644] Server  WARN    Failed to fetch forecast data for station northeast-0: TypeError: fetch failed
-[00:00:37.654] Server  WARN    Failed to fetch forecast data for station northeast-1: TypeError: fetch failed
-[00:00:37.718] Server  WARN    Failed to fetch forecast data for station northeast-2: TypeError: fetch failed
-[00:00:37.779] Server  WARN    Failed to fetch forecast data for station northeast-3: TypeError: fetch failed
-[00:00:37.845] Server  WARN    Failed to fetch forecast data for station northeast-4: TypeError: fetch failed
-[00:00:37.907] Server  WARN    Failed to fetch forecast data for station northeast-5: TypeError: fetch failed
-[00:00:37.968] Server  WARN    Failed to fetch forecast data for station northeast-6: TypeError: fetch failed
-[00:00:38.032] Server  WARN    Failed to fetch forecast data for station northeast-7: TypeError: fetch failed
-[00:00:38.097] Server  WARN    Failed to fetch forecast data for station northeast-8: TypeError: fetch failed
-[00:00:38.097] Server  LOG     [Historical] Cached 52 resort areas with weather data
-[00:00:38.098] Server  LOG     [Tile] Generated 0 real weather data points for timestamp 2026-01-02T12:00:00.000Z
-[00:00:38.098] Server  LOG     [Tile] Real weather data z=7 x=38 y=48 t=2026-01-02T12:00: 0 data points
-[00:00:38.098] Server  LOG     [Tile] No real weather data available, returning transparent tile
+[00:00:00.733] Server  LOG     ✓ Ready in 452ms
+[00:00:33.176] Server  LOG     [Tile] Real weather data: z=7 x=38 y=48 time=1767355200000
+[00:00:33.179] Server  LOG     [Historical] Fetching fresh resort area historical data...
+[00:00:33.179] Server  LOG     [Historical] Fetching NWS data for station loon-mountain-resort at 44.0367,-71.6217
+[00:00:33.185] Server  LOG     [Historical] Fetching NWS data for station sunday-river-resort at 44.4722,-70.8567
+[00:00:33.186] Server  LOG     [Historical] Fetching NWS data for station sugarloaf-resort at 45.0311,-70.3133
+[00:00:33.188] Server  LOG     [Historical] Fetching NWS data for station stowe-resort at 44.4654,-72.6874
+[00:00:33.190] Server  LOG     [Historical] Fetching NWS data for station killington-resort at 43.6045,-72.8201
+[00:00:33.192] Server  LOG     [Historical] Fetching NWS data for station sugarbush-resort at 44.1436,-72.8944
+[00:00:33.194] Server  LOG     [Historical] Fetching NWS data for station okemo-resort at 43.4036,-72.7202
+[00:00:33.196] Server  LOG     [Historical] Fetching NWS data for station mount-snow-resort at 42.9606,-72.9205
+[00:00:33.198] Server  LOG     [Historical] Fetching NWS data for station stratton-resort at 43.1135,-72.9205
+[00:00:33.200] Server  LOG     [Historical] Fetching NWS data for station jay-peak-resort at 44.9242,-72.5316
+[00:00:33.203] Server  LOG     [Historical] Fetching NWS data for station smugglers-notch-resort at 44.5884,-72.7815
+[00:00:33.205] Server  LOG     [Historical] Fetching NWS data for station bromley-resort at 43.2137,-72.9362
+[00:00:33.207] Server  LOG     [Historical] Fetching NWS data for station mad-river-glen-resort at 44.2019,-72.9172
+[00:00:33.209] Server  LOG     [Historical] Fetching NWS data for station bretton-woods-resort at 44.2547,-71.4417
+[00:00:33.210] Server  LOG     [Historical] Fetching NWS data for station cannon-mountain-resort at 44.1786,-71.6981
+[00:00:33.212] Server  LOG     [Historical] Fetching NWS data for station waterville-valley-resort at 43.9506,-71.5072
+[00:00:33.213] Server  LOG     [Historical] Fetching NWS data for station wildcat-resort at 44.2581,-71.2256
+[00:00:33.215] Server  LOG     [Historical] Fetching NWS data for station attitash-resort at 44.0822,-71.2292
+[00:00:33.217] Server  LOG     [Historical] Fetching NWS data for station cranmore-resort at 44.0584,-71.1284
+[00:00:33.218] Server  LOG     [Historical] Fetching NWS data for station pats-peak-resort at 43.074,-71.7508
+[00:00:33.220] Server  LOG     [Historical] Fetching NWS data for station mount-sunapee-resort at 43.3337,-72.0586
+[00:00:33.221] Server  LOG     [Historical] Fetching NWS data for station gunstock-resort at 43.5792,-71.4246
+[00:00:33.223] Server  LOG     [Historical] Fetching NWS data for station crotched-mountain-resort at 42.8537,-71.6146
+[00:00:33.224] Server  LOG     [Historical] Fetching NWS data for station mcintyre-resort at 42.9955,-71.4601
+[00:00:33.226] Server  LOG     [Historical] Fetching NWS data for station ragged-mountain-resort at 43.2986,-71.8514
+[00:00:33.227] Server  LOG     [Historical] Fetching NWS data for station saddleback-resort at 44.9531,-70.5272
+[00:00:33.229] Server  LOG     [Historical] Fetching NWS data for station squaw-mountain-resort at 44.0822,-70.7567
+[00:00:33.230] Server  LOG     [Historical] Fetching NWS data for station jiminy-peak-resort at 42.5556,-73.2922
+[00:00:33.232] Server  LOG     [Historical] Fetching NWS data for station wachusett-resort at 42.5031,-71.8867
+[00:00:33.233] Server  LOG     [Historical] Fetching NWS data for station whiteface-resort at 44.3656,-73.9022
+[00:00:33.235] Server  LOG     [Historical] Fetching NWS data for station gore-mountain-resort at 43.6747,-74.0061
+[00:00:33.236] Server  LOG     [Historical] Fetching NWS data for station hunter-mountain-resort at 42.2022,-74.2331
+[00:00:33.238] Server  LOG     [Historical] Fetching NWS data for station windham-mountain-resort at 42.2917,-74.2581
+[00:00:33.239] Server  LOG     [Historical] Fetching NWS data for station belleayre-resort at 42.1356,-74.5061
+[00:00:33.242] Server  LOG     [Historical] Fetching NWS data for station jack-frost-big-boulder-resort at 41.1081,-75.6581
+[00:00:33.243] Server  LOG     [Historical] Fetching NWS data for station elk-mountain-resort at 41.7131,-75.5781
+[00:00:33.245] Server  LOG     [Historical] Fetching NWS data for station blue-mountain-resort at 40.8117,-75.5217
+[00:00:33.246] Server  LOG     [Historical] Fetching NWS data for station seven-springs-resort at 40.0231,-79.2981
+[00:00:33.247] Server  LOG     [Historical] Fetching NWS data for station mount-southington-resort at 41.5992,-72.9272
+[00:00:33.249] Server  LOG     [Historical] Fetching NWS data for station powder-ridge-resort at 41.4992,-72.8272
+[00:00:33.251] Server  LOG     [Historical] Fetching NWS data for station mountain-creek-resort at 41.1822,-74.5081
+[00:00:33.253] Server  LOG     [Historical] Fetching NWS data for station campgaw-mountain-resort at 41.0481,-74.2081
+[00:00:33.255] Server  LOG     [Historical] Fetching NWS data for station black-mountain-resort at 44.1667,-71.1667
+[00:00:33.261] Server  LOG     [Historical] NWS returned no observations for loon-mountain-resort
+[00:00:33.263] Server  LOG     [Historical] Trying OpenWeatherMap for station loon-mountain-resort
+[00:00:33.265] Server  LOG     [Historical] NWS returned no observations for sunday-river-resort
+[00:00:33.265] Server  LOG     [Historical] Trying OpenWeatherMap for station sunday-river-resort
+[00:00:33.267] Server  LOG     [Historical] NWS returned no observations for sugarloaf-resort
+[00:00:33.267] Server  LOG     [Historical] Trying OpenWeatherMap for station sugarloaf-resort
+[00:00:33.269] Server  LOG     [Historical] NWS returned no observations for stowe-resort
+[00:00:33.269] Server  LOG     [Historical] Trying OpenWeatherMap for station stowe-resort
+[00:00:33.271] Server  LOG     [Historical] NWS returned no observations for killington-resort
+[00:00:33.271] Server  LOG     [Historical] Trying OpenWeatherMap for station killington-resort
+[00:00:33.273] Server  LOG     [Historical] NWS returned no observations for sugarbush-resort
+[00:00:33.274] Server  LOG     [Historical] Trying OpenWeatherMap for station sugarbush-resort
+[00:00:33.276] Server  LOG     [Historical] NWS returned no observations for okemo-resort
+[00:00:33.276] Server  LOG     [Historical] Trying OpenWeatherMap for station okemo-resort
+[00:00:33.278] Server  LOG     [Historical] NWS returned no observations for mount-snow-resort
+[00:00:33.278] Server  LOG     [Historical] Trying OpenWeatherMap for station mount-snow-resort
+[00:00:33.280] Server  LOG     [Historical] NWS returned no observations for stratton-resort
+[00:00:33.280] Server  LOG     [Historical] Trying OpenWeatherMap for station stratton-resort
+[00:00:33.282] Server  LOG     [Historical] NWS returned no observations for jay-peak-resort
+[00:00:33.282] Server  LOG     [Historical] Trying OpenWeatherMap for station jay-peak-resort
+[00:00:33.284] Server  LOG     [Historical] NWS returned no observations for smugglers-notch-resort
+[00:00:33.285] Server  LOG     [Historical] Trying OpenWeatherMap for station smugglers-notch-resort
+[00:00:33.287] Server  LOG     [Historical] NWS returned no observations for bromley-resort
+[00:00:33.287] Server  LOG     [Historical] Trying OpenWeatherMap for station bromley-resort
+[00:00:33.289] Server  LOG     [Historical] NWS returned no observations for mad-river-glen-resort
+[00:00:33.290] Server  LOG     [Historical] Trying OpenWeatherMap for station mad-river-glen-resort
+[00:00:33.292] Server  LOG     [Historical] NWS returned no observations for bretton-woods-resort
+[00:00:33.292] Server  LOG     [Historical] Trying OpenWeatherMap for station bretton-woods-resort
+[00:00:33.294] Server  LOG     [Historical] NWS returned no observations for cannon-mountain-resort
+[00:00:33.294] Server  LOG     [Historical] Trying OpenWeatherMap for station cannon-mountain-resort
+[00:00:33.296] Server  LOG     [Historical] NWS returned no observations for waterville-valley-resort
+[00:00:33.296] Server  LOG     [Historical] Trying OpenWeatherMap for station waterville-valley-resort
+[00:00:33.297] Server  LOG     [Historical] NWS returned no observations for wildcat-resort
+[00:00:33.298] Server  LOG     [Historical] Trying OpenWeatherMap for station wildcat-resort
+[00:00:33.299] Server  LOG     [Historical] NWS returned no observations for attitash-resort
+[00:00:33.300] Server  LOG     [Historical] Trying OpenWeatherMap for station attitash-resort
+[00:00:33.301] Server  LOG     [Historical] NWS returned no observations for cranmore-resort
+[00:00:33.301] Server  LOG     [Historical] Trying OpenWeatherMap for station cranmore-resort
+[00:00:33.303] Server  LOG     [Historical] NWS returned no observations for pats-peak-resort
+[00:00:33.303] Server  LOG     [Historical] Trying OpenWeatherMap for station pats-peak-resort
+[00:00:33.305] Server  LOG     [Historical] NWS returned no observations for mount-sunapee-resort
+[00:00:33.305] Server  LOG     [Historical] Trying OpenWeatherMap for station mount-sunapee-resort
+[00:00:33.309] Server  LOG     [Historical] NWS returned no observations for gunstock-resort
+[00:00:33.309] Server  LOG     [Historical] Trying OpenWeatherMap for station gunstock-resort
+[00:00:33.311] Server  LOG     [Historical] NWS returned no observations for crotched-mountain-resort
+[00:00:33.311] Server  LOG     [Historical] Trying OpenWeatherMap for station crotched-mountain-resort
+[00:00:33.313] Server  LOG     [Historical] NWS returned no observations for mcintyre-resort
+[00:00:33.313] Server  LOG     [Historical] Trying OpenWeatherMap for station mcintyre-resort
+[00:00:33.315] Server  LOG     [Historical] NWS returned no observations for ragged-mountain-resort
+[00:00:33.315] Server  LOG     [Historical] Trying OpenWeatherMap for station ragged-mountain-resort
+[00:00:33.317] Server  LOG     [Historical] NWS returned no observations for saddleback-resort
+[00:00:33.317] Server  LOG     [Historical] Trying OpenWeatherMap for station saddleback-resort
+[00:00:33.319] Server  LOG     [Historical] NWS returned no observations for squaw-mountain-resort
+[00:00:33.319] Server  LOG     [Historical] Trying OpenWeatherMap for station squaw-mountain-resort
+[00:00:33.320] Server  LOG     [Historical] NWS returned no observations for jiminy-peak-resort
+[00:00:33.321] Server  LOG     [Historical] Trying OpenWeatherMap for station jiminy-peak-resort
+[00:00:33.322] Server  LOG     [Historical] NWS returned no observations for wachusett-resort
+[00:00:33.322] Server  LOG     [Historical] Trying OpenWeatherMap for station wachusett-resort
+[00:00:33.324] Server  LOG     [Historical] NWS returned no observations for whiteface-resort
+[00:00:33.324] Server  LOG     [Historical] Trying OpenWeatherMap for station whiteface-resort
+[00:00:33.326] Server  LOG     [Historical] NWS returned no observations for gore-mountain-resort
+[00:00:33.326] Server  LOG     [Historical] Trying OpenWeatherMap for station gore-mountain-resort
+[00:00:33.327] Server  LOG     [Historical] NWS returned no observations for hunter-mountain-resort
+[00:00:33.328] Server  LOG     [Historical] Trying OpenWeatherMap for station hunter-mountain-resort
+[00:00:33.329] Server  LOG     [Historical] NWS returned no observations for windham-mountain-resort
+[00:00:33.329] Server  LOG     [Historical] Trying OpenWeatherMap for station windham-mountain-resort
+[00:00:33.331] Server  LOG     [Historical] NWS returned no observations for belleayre-resort
+[00:00:33.331] Server  LOG     [Historical] Trying OpenWeatherMap for station belleayre-resort
+[00:00:33.333] Server  LOG     [Historical] NWS returned no observations for jack-frost-big-boulder-resort
+[00:00:33.333] Server  LOG     [Historical] Trying OpenWeatherMap for station jack-frost-big-boulder-resort
+[00:00:33.335] Server  LOG     [Historical] NWS returned no observations for elk-mountain-resort
+[00:00:33.335] Server  LOG     [Historical] Trying OpenWeatherMap for station elk-mountain-resort
+[00:00:33.337] Server  LOG     [Historical] NWS returned no observations for blue-mountain-resort
+[00:00:33.337] Server  LOG     [Historical] Trying OpenWeatherMap for station blue-mountain-resort
+[00:00:33.339] Server  LOG     [Historical] NWS returned no observations for seven-springs-resort
+[00:00:33.339] Server  LOG     [Historical] Trying OpenWeatherMap for station seven-springs-resort
+[00:00:33.341] Server  LOG     [Historical] NWS returned no observations for mount-southington-resort
+[00:00:33.341] Server  LOG     [Historical] Trying OpenWeatherMap for station mount-southington-resort
+[00:00:33.343] Server  LOG     [Historical] NWS returned no observations for powder-ridge-resort
+[00:00:33.343] Server  LOG     [Historical] Trying OpenWeatherMap for station powder-ridge-resort
+[00:00:33.345] Server  LOG     [Historical] NWS returned no observations for mountain-creek-resort
+[00:00:33.345] Server  LOG     [Historical] Trying OpenWeatherMap for station mountain-creek-resort
+[00:00:33.347] Server  LOG     [Historical] NWS returned no observations for campgaw-mountain-resort
+[00:00:33.347] Server  LOG     [Historical] Trying OpenWeatherMap for station campgaw-mountain-resort
+[00:00:33.349] Server  LOG     [Historical] NWS returned no observations for black-mountain-resort
+[00:00:33.349] Server  LOG     [Historical] Trying OpenWeatherMap for station black-mountain-resort
+[00:00:33.353] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station loon-mountain-resort: "fetch failed"
+[00:00:33.353] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station sunday-river-resort: "fetch failed"
+[00:00:33.354] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station sugarloaf-resort: "fetch failed"
+[00:00:33.354] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station stowe-resort: "fetch failed"
+[00:00:33.355] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station killington-resort: "fetch failed"
+[00:00:33.356] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station sugarbush-resort: "fetch failed"
+[00:00:33.356] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station okemo-resort: "fetch failed"
+[00:00:33.357] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station mount-snow-resort: "fetch failed"
+[00:00:33.357] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station stratton-resort: "fetch failed"
+[00:00:33.358] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station jay-peak-resort: "fetch failed"
+[00:00:33.358] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station smugglers-notch-resort: "fetch failed"
+[00:00:33.359] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station bromley-resort: "fetch failed"
+[00:00:33.359] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station mad-river-glen-resort: "fetch failed"
+[00:00:33.360] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station bretton-woods-resort: "fetch failed"
+[00:00:33.360] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station cannon-mountain-resort: "fetch failed"
+[00:00:33.361] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station waterville-valley-resort: "fetch failed"
+[00:00:33.361] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station wildcat-resort: "fetch failed"
+[00:00:33.362] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station attitash-resort: "fetch failed"
+[00:00:33.362] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station cranmore-resort: "fetch failed"
+[00:00:33.363] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station pats-peak-resort: "fetch failed"
+[00:00:33.363] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station mount-sunapee-resort: "fetch failed"
+[00:00:33.363] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station gunstock-resort: "fetch failed"
+[00:00:33.364] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station crotched-mountain-resort: "fetch failed"
+[00:00:33.364] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station mcintyre-resort: "fetch failed"
+[00:00:33.365] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station ragged-mountain-resort: "fetch failed"
+[00:00:33.365] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station saddleback-resort: "fetch failed"
+[00:00:33.366] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station squaw-mountain-resort: "fetch failed"
+[00:00:33.366] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station jiminy-peak-resort: "fetch failed"
+[00:00:33.367] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station wachusett-resort: "fetch failed"
+[00:00:33.367] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station whiteface-resort: "fetch failed"
+[00:00:33.368] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station gore-mountain-resort: "fetch failed"
+[00:00:33.368] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station hunter-mountain-resort: "fetch failed"
+[00:00:33.369] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station windham-mountain-resort: "fetch failed"
+[00:00:33.369] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station belleayre-resort: "fetch failed"
+[00:00:33.370] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station jack-frost-big-boulder-resort: "fetch failed"
+[00:00:33.370] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station elk-mountain-resort: "fetch failed"
+[00:00:33.371] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station blue-mountain-resort: "fetch failed"
+[00:00:33.371] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station seven-springs-resort: "fetch failed"
+[00:00:33.372] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station mount-southington-resort: "fetch failed"
+[00:00:33.372] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station powder-ridge-resort: "fetch failed"
+[00:00:33.373] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station mountain-creek-resort: "fetch failed"
+[00:00:33.373] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station campgaw-mountain-resort: "fetch failed"
+[00:00:33.374] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station black-mountain-resort: "fetch failed"
+[00:00:33.374] Server  LOG     [Historical] ✓ Fetched 0/43 resorts with data
+[00:00:33.374] Server  LOG     [Historical] Fetching 9 additional Northeast weather stations...
+[00:00:33.375] Server  LOG     [Historical] Fetching NWS data for station northeast-0 at 43.6615,-70.2553
+[00:00:33.378] Server  LOG     [Historical] NWS returned no observations for northeast-0
+[00:00:33.378] Server  LOG     [Historical] Trying OpenWeatherMap for station northeast-0
+[00:00:33.381] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station northeast-0: "fetch failed"
+[00:00:33.381] Server  LOG     [Historical] ⚠ Portland, ME: No data available
+[00:00:33.875] Server  LOG     [Historical] Fetching NWS data for station northeast-1 at 43.2081,-71.5376
+[00:00:33.877] Server  LOG     [Historical] Fetching NWS data for station northeast-2 at 44.2601,-72.5754
+[00:00:33.879] Server  LOG     [Historical] Fetching NWS data for station northeast-3 at 42.3601,-71.0589
+[00:00:33.880] Server  LOG     [Historical] Fetching NWS data for station northeast-4 at 41.7658,-72.6734
+[00:00:33.882] Server  LOG     [Historical] Fetching NWS data for station northeast-5 at 40.7128,-74.006
+[00:00:33.883] Server  LOG     [Historical] Fetching NWS data for station northeast-6 at 42.6526,-73.7562
+[00:00:33.885] Server  LOG     [Historical] Fetching NWS data for station northeast-7 at 39.9526,-75.1652
+[00:00:33.886] Server  LOG     [Historical] Fetching NWS data for station northeast-8 at 43,-74
+[00:00:33.890] Server  LOG     [Historical] NWS returned no observations for northeast-1
+[00:00:33.890] Server  LOG     [Historical] Trying OpenWeatherMap for station northeast-1
+[00:00:33.892] Server  LOG     [Historical] NWS returned no observations for northeast-2
+[00:00:33.892] Server  LOG     [Historical] Trying OpenWeatherMap for station northeast-2
+[00:00:33.894] Server  LOG     [Historical] NWS returned no observations for northeast-3
+[00:00:33.894] Server  LOG     [Historical] Trying OpenWeatherMap for station northeast-3
+[00:00:33.896] Server  LOG     [Historical] NWS returned no observations for northeast-4
+[00:00:33.896] Server  LOG     [Historical] Trying OpenWeatherMap for station northeast-4
+[00:00:33.898] Server  LOG     [Historical] NWS returned no observations for northeast-5
+[00:00:33.898] Server  LOG     [Historical] Trying OpenWeatherMap for station northeast-5
+[00:00:33.900] Server  LOG     [Historical] NWS returned no observations for northeast-6
+[00:00:33.900] Server  LOG     [Historical] Trying OpenWeatherMap for station northeast-6
+[00:00:33.902] Server  LOG     [Historical] NWS returned no observations for northeast-7
+[00:00:33.902] Server  LOG     [Historical] Trying OpenWeatherMap for station northeast-7
+[00:00:33.904] Server  LOG     [Historical] NWS returned no observations for northeast-8
+[00:00:33.905] Server  LOG     [Historical] Trying OpenWeatherMap for station northeast-8
+[00:00:33.906] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station northeast-1: "fetch failed"
+[00:00:33.907] Server  LOG     [Historical] ⚠ Concord, NH: No data available
+[00:00:33.907] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station northeast-2: "fetch failed"
+[00:00:33.908] Server  LOG     [Historical] ⚠ Montpelier, VT: No data available
+[00:00:33.908] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station northeast-3: "fetch failed"
+[00:00:33.908] Server  LOG     [Historical] ⚠ Boston, MA: No data available
+[00:00:33.909] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station northeast-4: "fetch failed"
+[00:00:33.909] Server  LOG     [Historical] ⚠ Hartford, CT: No data available
+[00:00:33.910] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station northeast-5: "fetch failed"
+[00:00:33.910] Server  LOG     [Historical] ⚠ New York, NY: No data available
+[00:00:33.910] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station northeast-6: "fetch failed"
+[00:00:33.911] Server  LOG     [Historical] ⚠ Albany, NY: No data available
+[00:00:33.911] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station northeast-7: "fetch failed"
+[00:00:33.911] Server  LOG     [Historical] ⚠ Philadelphia, PA: No data available
+[00:00:33.912] Server  ERROR   [Historical] Failed to fetch OpenWeatherMap data for station northeast-8: "fetch failed"
+[00:00:33.912] Server  LOG     [Historical] ⚠ Adirondacks: No data available
+[00:00:33.912] Server  LOG     [Historical] ✓ Fetched 0/9 additional weather stations with data
+[00:00:33.913] Server  LOG     [Historical] ✓ Cached 52 areas with 0 total stations in 0.7s
+[00:00:33.913] Server  LOG     [Tile] Generated 0 real weather data points for timestamp 2026-01-02T12:00:00.000Z
+[00:00:33.913] Server  LOG     [Tile] Real weather data z=7 x=38 y=48 t=2026-01-02T12:00: 0 data points
+[00:00:33.914] Server  LOG     [Tile] No real weather data available, returning transparent tile

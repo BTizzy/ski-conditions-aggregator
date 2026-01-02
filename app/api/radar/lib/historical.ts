@@ -1,8 +1,12 @@
 // Historical NWS data fetching and processing for synthetic radar
 // Fetches past 48 hours of observations from all stations within 50 miles of each resort
-// Enhanced with OpenWeatherMap for better precipitation data
+// Uses National Weather Service API (primary) and OpenWeatherMap (fallback)
 
-import { NWSObservation } from '../../../../lib/nws';
+import { 
+  NWSObservation, 
+  getHistoricalObservations as getNWSHistoricalObservations,
+  getNearestNWSStation 
+} from '../../../../lib/nws';
 import { resorts } from '../../../../lib/resorts';
 
 export interface HourlySnowfall {
@@ -93,34 +97,98 @@ async function findNearbyStations(lat: number, lon: number, radiusMiles: number 
   }
 }
 
-// Fetch historical observations from OpenWeatherMap API for past 48 hours
+// Fetch historical observations from NWS API (primary) or OpenWeatherMap (fallback)
 async function fetchHistoricalObservations(stationId: string, stationLat: number, stationLon: number): Promise<NWSObservation[]> {
+  // Try NWS API first (free, reliable government API)
+  try {
+    console.log(`[Historical] Fetching NWS data for station ${stationId} at ${stationLat},${stationLon}`);
+    
+    const { observations, stationId: nwsStationId, stationDistanceKm } = await getNWSHistoricalObservations(stationLat, stationLon, 2);
+    
+    if (observations && observations.length > 0) {
+      console.log(`[Historical] ✓ NWS returned ${observations.length} observations from station ${nwsStationId} (${stationDistanceKm?.toFixed(1)}km away)`);
+      
+      // Convert NWS observations to our format
+      const converted: NWSObservation[] = [];
+      for (const obs of observations) {
+        const props = obs.properties || {};
+        
+        // Extract precipitation data
+        const precipValue = props.precipitationLastHour?.value || props.precipitationLast3Hours?.value || props.precipitationLast6Hours?.value || 0;
+        const precipUnitCode = props.precipitationLastHour?.unitCode || props.precipitationLast3Hours?.unitCode || props.precipitationLast6Hours?.unitCode || 'wmoUnit:mm';
+        
+        // Extract temperature
+        const tempValue = props.temperature?.value;
+        const tempC = tempValue !== null && tempValue !== undefined ? tempValue : null;
+        
+        // Extract wind data
+        const windSpeedValue = props.windSpeed?.value;
+        const windDirValue = props.windDirection?.value;
+        
+        converted.push({
+          timestamp: props.timestamp || new Date().toISOString(),
+          temperature: tempC,
+          windSpeed: windSpeedValue !== null && windSpeedValue !== undefined ? windSpeedValue * 3.6 : null, // Convert m/s to km/h
+          windDirection: windDirValue !== null && windDirValue !== undefined ? windDirValue : null,
+          textDescription: props.textDescription || 'Unknown',
+          icon: props.icon || '',
+          raw: {
+            ...props,
+            precipitation: precipValue > 0 ? { value: precipValue, unitCode: precipUnitCode } : undefined,
+            temperature: tempC !== null ? { value: tempC, unitCode: 'C' } : undefined
+          }
+        });
+      }
+      
+      return converted;
+    } else {
+      if (nwsStationId) {
+        console.log(`[Historical] NWS station ${nwsStationId} found but returned no observations for ${stationId}`);
+      } else {
+        console.log(`[Historical] No NWS station found near ${stationId}`);
+      }
+    }
+  } catch (nwsError: any) {
+    console.warn(`[Historical] NWS API error for station ${stationId}:`, nwsError.message);
+  }
+  
+  // Fallback to OpenWeatherMap if NWS fails
+  return await fetchOpenWeatherMapData(stationId, stationLat, stationLon);
+}
+
+// Fetch data from OpenWeatherMap API (fallback)
+async function fetchOpenWeatherMapData(stationId: string, stationLat: number, stationLon: number): Promise<NWSObservation[]> {
   const apiKey = process.env.OPENWEATHER_API_KEY;
   if (!apiKey) {
-    console.warn('No OpenWeatherMap API key found, using synthetic data');
+    console.warn(`[Historical] No OpenWeatherMap API key found for station ${stationId}`);
     return [];
   }
 
   try {
+    console.log(`[Historical] Trying OpenWeatherMap for station ${stationId}`);
+    
     // Get 5-day forecast data (3-hour intervals) for better precipitation accuracy
     const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${stationLat}&lon=${stationLon}&appid=${apiKey}&units=metric`;
     const forecastResponse = await fetch(forecastUrl);
 
     if (!forecastResponse.ok) {
       if (forecastResponse.status === 429) {
-        console.warn(`OpenWeatherMap API error: 429 (rate limit exceeded) for station ${stationId}`);
+        console.warn(`[Historical] OpenWeatherMap rate limit exceeded for station ${stationId}`);
+      } else if (forecastResponse.status === 401) {
+        console.warn(`[Historical] OpenWeatherMap authentication failed (invalid API key) for station ${stationId}`);
       } else {
-        console.warn(`OpenWeatherMap API error: ${forecastResponse.status} for station ${stationId}`);
+        console.warn(`[Historical] OpenWeatherMap API error ${forecastResponse.status} for station ${stationId}`);
       }
       return [];
     }
 
     const forecastData = await forecastResponse.json();
+    console.log(`[Historical] ✓ OpenWeatherMap returned ${forecastData.list?.length || 0} forecast periods for station ${stationId}`);
 
     // Convert forecast data to observation format
     const observations: NWSObservation[] = [];
 
-    for (const item of forecastData.list) {
+    for (const item of forecastData.list || []) {
       // Extract precipitation data (rain and snow are separate in OpenWeatherMap)
       const rainMm = item.rain?.['3h'] || 0; // Rain in last 3 hours
       const snowMm = item.snow?.['3h'] || 0; // Snow in last 3 hours
@@ -146,7 +214,7 @@ async function fetchHistoricalObservations(stationId: string, stationLat: number
       observations.push(observation);
     }
 
-    // If we have forecast data, also get current conditions for more recent data
+    // Also try to get current conditions for more recent data
     try {
       const currentUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${stationLat}&lon=${stationLon}&appid=${apiKey}&units=metric`;
       const currentResponse = await fetch(currentUrl);
@@ -179,13 +247,13 @@ async function fetchHistoricalObservations(stationId: string, stationLat: number
         }
       }
     } catch (currentError) {
-      console.warn(`Failed to fetch current weather for station ${stationId}:`, currentError);
+      console.warn(`[Historical] Failed to fetch current weather for station ${stationId}:`, currentError);
       // Continue with forecast data only
     }
 
     return observations;
-  } catch (error) {
-    console.warn(`Failed to fetch forecast data for station ${stationId}:`, error);
+  } catch (error: any) {
+    console.error(`[Historical] Failed to fetch OpenWeatherMap data for station ${stationId}:`, error.message);
     return [];
   }
 }
@@ -377,23 +445,35 @@ export async function getAllResortAreaHistorical(): Promise<ResortAreaData[]> {
   // Check if we have valid cached data
   const now = Date.now();
   if (cachedResortData && (now - cacheTimestamp) < CACHE_DURATION) {
-    console.log(`[Historical] Using cached resort data (${Math.round((now - cacheTimestamp) / 1000)}s old)`);
+    console.log(`[Historical] ✓ Using cached resort data (${Math.round((now - cacheTimestamp) / 1000)}s old, ${cachedResortData.length} areas)`);
     return cachedResortData;
   }
 
   console.log('[Historical] Fetching fresh resort area historical data...');
+  const startTime = Date.now();
+  
   const resortPromises = resorts.map(resort => getResortAreaHistorical(resort.id));
   const resortData = await Promise.all(resortPromises);
   
+  // Count successful resort data fetches
+  const successfulResorts = resortData.filter(r => r.stations.length > 0).length;
+  console.log(`[Historical] ✓ Fetched ${successfulResorts}/${resorts.length} resorts with data`);
+  
   // Add additional weather stations across the Northeast for better radar coverage
   const northeastStations = await getNortheastWeatherStations();
+  const successfulStations = northeastStations.filter(s => s.stations.length > 0).length;
+  console.log(`[Historical] ✓ Fetched ${successfulStations}/${northeastStations.length} additional weather stations with data`);
+  
   resortData.push(...northeastStations);
   
   // Cache the results
   cachedResortData = resortData;
   cacheTimestamp = now;
   
-  console.log(`[Historical] Cached ${resortData.length} resort areas with weather data`);
+  const totalStations = resortData.reduce((sum, area) => sum + area.stations.length, 0);
+  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+  console.log(`[Historical] ✓ Cached ${resortData.length} areas with ${totalStations} total stations in ${elapsed}s`);
+  
   return resortData;
 }
 
@@ -401,7 +481,7 @@ export async function getAllResortAreaHistorical(): Promise<ResortAreaData[]> {
 async function getNortheastWeatherStations(): Promise<ResortAreaData[]> {
   // Define a grid of weather stations across the Northeast
   // Coverage: roughly Maine to Pennsylvania, west to Ohio
-  // Reduced from 27 to 9 stations to avoid rate limiting
+  // Focus on key locations to minimize API calls while maintaining coverage
   const stations = [
     // Maine
     { lat: 43.6615, lon: -70.2553, name: 'Portland, ME' },
@@ -429,11 +509,13 @@ async function getNortheastWeatherStations(): Promise<ResortAreaData[]> {
     { lat: 43.0, lon: -74.0, name: 'Adirondacks' },
   ];
   
+  console.log(`[Historical] Fetching ${stations.length} additional Northeast weather stations...`);
+  
   const stationPromises = stations.map(async (station, index) => {
     try {
-      // Add delay between API calls to avoid rate limiting (1 second between calls)
+      // Small delay between API calls to be respectful to rate limits
       if (index > 0) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
       
       const stationData = await fetchStationHistorical({
@@ -442,12 +524,18 @@ async function getNortheastWeatherStations(): Promise<ResortAreaData[]> {
         lon: station.lon
       });
       
+      if (stationData.hourlyData.length > 0) {
+        console.log(`[Historical] ✓ ${station.name}: ${stationData.hourlyData.length} hourly observations`);
+      } else {
+        console.log(`[Historical] ⚠ ${station.name}: No data available`);
+      }
+      
       return {
         resortId: `northeast-${station.name.replace(/[^a-zA-Z0-9]/g, '')}`,
         stations: stationData.hourlyData.length > 0 ? [stationData] : []
       };
-    } catch (error) {
-      console.warn(`Failed to create station for ${station.name}:`, error);
+    } catch (error: any) {
+      console.warn(`[Historical] ✗ Failed to fetch ${station.name}:`, error.message);
       return null;
     }
   });

@@ -15,6 +15,9 @@ interface ResortConditions {
   timestamp: string;
   snowDepth: number;
   recentSnowfall: number;
+  recentRainfall?: number;
+  weeklySnowfall?: number;
+  weeklyRainfall?: number;
   baseTemp: number;
   windSpeed: number;
   visibility: string;
@@ -39,6 +42,43 @@ const HomePage: React.FC = () => {
   const [data, setData] = useState<Record<string, ResortConditions | null>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<Record<string, string | null>>({});
+  const [radarDebug, setRadarDebug] = useState<any>(null);
+
+  // Debug radar API
+  useEffect(() => {
+    const debugRadar = async () => {
+      try {
+        console.log('[Debug] Testing radar APIs...');
+        const framesRes = await fetch('/api/radar/frames');
+        if (framesRes.ok) {
+          const framesData = await framesRes.json();
+          console.log('[Debug] Frames API success:', framesData);
+
+          if (framesData?.radar?.past?.length > 0) {
+            const firstFrame = framesData.radar.past[0];
+            const tileUrl = `/api/radar/tile?layer=${encodeURIComponent(firstFrame.url)}&z=7&x=37&y=45`;
+            const tileRes = await fetch(tileUrl);
+            console.log('[Debug] Tile API status:', tileRes.status);
+
+            setRadarDebug({
+              framesCount: framesData.radar.past.length,
+              firstFrame: firstFrame,
+              tileStatus: tileRes.status,
+              tileUrl: tileUrl
+            });
+          }
+        } else {
+          console.error('[Debug] Frames API failed:', framesRes.status);
+          setRadarDebug({ error: `Frames API failed: ${framesRes.status}` });
+        }
+      } catch (err) {
+        console.error('[Debug] Radar debug error:', err);
+        setRadarDebug({ error: err instanceof Error ? err.message : String(err) });
+      }
+    };
+
+    debugRadar();
+  }, []);
 
   useEffect(() => {
     // Load all resorts with proper rate limiting
@@ -79,6 +119,22 @@ const HomePage: React.FC = () => {
       <div className="relative z-10 px-4 py-2 text-center bg-white/20 backdrop-blur-sm text-blue-100 text-sm font-medium">
         <span>🗻 {resorts.length} resorts • Loading conditions with 2-second rate limiting...</span>
       </div>
+
+      {/* Radar Debug Panel */}
+      {radarDebug && (
+        <div className="relative z-10 mx-4 mb-2 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg text-xs font-mono">
+          <div className="font-bold text-gray-800 mb-2">🔍 Radar Debug:</div>
+          {radarDebug.error ? (
+            <div className="text-red-600">❌ {radarDebug.error}</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-gray-700">
+              <div>📊 Frames: {radarDebug.framesCount || 'N/A'}</div>
+              <div>🎯 Tile Status: {radarDebug.tileStatus || 'N/A'}</div>
+              <div>🔗 First Frame: {radarDebug.firstFrame?.url?.substring(0, 20) || 'N/A'}...</div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Map */}
       <div className="flex-1 relative">

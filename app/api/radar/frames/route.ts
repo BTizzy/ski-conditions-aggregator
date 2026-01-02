@@ -6,64 +6,45 @@ export const revalidate = 300; // Cache for 5 minutes
 /**
  * Radar Frames API - Returns timestamps for precipitation radar animation
  * 
- * Data Source: RainViewer.com API
- * Reference: https://www.rainviewer.com/api.html
- * 
- * Coverage: 10-minute intervals, 48-hour history (96 frames)
- * Updates: Every 10 minutes
- * Global Coverage: Worldwide precipitation radar
+ * Data Source: Synthetic radar data based on real historical weather station data
+ * Coverage: Historical snowfall patterns with hourly temporal resolution
+ * Updates: Every hour for 48-hour coverage
  */
 export async function GET(request: Request) {
   try {
-    console.log('[Radar Frames] Fetching RainViewer API...');
+    console.log('[Radar Frames] Generating synthetic frames from real weather data...');
     
-    // Get current RainViewer radar layers
-    // This returns both historical and forecast layers with timestamps
-    const res = await fetch('https://api.rainviewer.com/public/weather-maps-api-v2/GetWeatherMapsList', {
-      method: 'GET',
-      headers: {
-        'User-Agent': 'ski-conditions-aggregator'
-      }
-    });
-
-    if (!res.ok) {
-      console.error('[Radar Frames] RainViewer API error:', res.status);
-      throw new Error(`RainViewer returned ${res.status}`);
-    }
-
-    const data = await res.json();
-    console.log('[Radar Frames] RainViewer response:', data);
-
-    // Extract historical radar layers (past 48 hours at 10-min intervals)
-    // RainViewer returns: { radar: { nowcast: [...], archive: [...] } }
-    const archiveLayers = data?.radar?.archive || [];
+    // Generate synthetic frames only: every hour for last 48 hours
+    const now = Date.now();
+    const frames = [];
     
-    if (archiveLayers.length === 0) {
-      console.warn('[Radar Frames] No archive layers found, using fallback');
-      return fallbackResponse();
+    // Synthetic data: every hour for last 48 hours (48 frames total)
+    const totalHours = 48;
+    const intervalMinutes = 60; // 1 frame per hour
+    const totalFrames = totalHours; // 48 frames for 48 hours
+    
+    for (let i = 0; i < totalFrames; i++) {
+      const timestamp = now - ((totalFrames - 1 - i) * intervalMinutes * 60 * 1000); // Start from oldest (47h ago) to newest (current)
+      frames.push({
+        time: Math.floor(timestamp / 1000), // Convert to seconds for frontend
+        url: `synthetic-${timestamp}` // Synthetic layer identifier
+      });
     }
-
-    // Each archive layer has { time: millisecondsSinceEpoch, url: "tile URL pattern" }
-    // Extract just the timestamps and base URLs
-    const layers = archiveLayers.map((layer: any) => ({
-      timestamp: layer.time,
-      url: layer.url, // e.g., "https://tile.rainviewer.com/v2/radar/..."
-    }));
-
-    console.log(`[Radar Frames] Got ${layers.length} archive layers covering 48h`);
+    
+    console.log(`[Radar Frames] Generated ${frames.length} synthetic frames (1 per hour, ${totalHours}h coverage)`);
 
     const result = {
       radar: {
-        layers: layers,
-        source: 'rainviewer-48h'
+        past: frames,
+        source: 'synthetic-real-data'
       },
       metadata: {
-        count: layers.length,
-        source: 'rainviewer-api-v2',
-        updateFrequency: '10 minutes',
-        coverage: 'Worldwide',
-        timeRange: 'Last 48 hours (10-min intervals)',
-        reference: 'https://www.rainviewer.com/api.html'
+        count: frames.length,
+        source: 'synthetic',
+        updateFrequency: `${intervalMinutes} minutes`,
+        coverage: 'Northeast US (based on real weather station data)',
+        timeRange: `Last ${totalHours} hours (${intervalMinutes}min intervals)`,
+        reference: 'IDW interpolation of historical resort weather station data'
       }
     };
 
@@ -79,28 +60,34 @@ export async function GET(request: Request) {
 }
 
 function fallbackResponse() {
-  // Fallback: Return Mesonet format (1-hour, 12 frames) if RainViewer fails
-  const layers = [
-    'nexrad-n0q-m55m',
-    'nexrad-n0q-m50m',
-    'nexrad-n0q-m45m',
-    'nexrad-n0q-m40m',
-    'nexrad-n0q-m35m',
-    'nexrad-n0q-m30m',
-    'nexrad-n0q-m25m',
-    'nexrad-n0q-m20m',
-    'nexrad-n0q-m15m',
-    'nexrad-n0q-m10m',
-    'nexrad-n0q-m05m',
-    'nexrad-n0q',
-  ];
+  // Fallback: Generate synthetic frames if main logic fails
+  const now = Date.now();
+  const frames = [];
+  
+  // Generate 30-minute interval frames for last 48 hours as fallback
+  const totalHours = 48;
+  const intervalMinutes = 30;
+  const totalFrames = (totalHours * 60) / intervalMinutes;
+  
+  for (let i = 0; i < totalFrames; i++) {
+    const timestamp = now - ((totalFrames - 1 - i) * intervalMinutes * 60 * 1000); // Start from oldest to newest
+    frames.push({
+      time: Math.floor(timestamp / 1000), // Convert to seconds for frontend
+      url: `synthetic-${timestamp}`
+    });
+  }
 
   return NextResponse.json(
     {
-      radar: { layers },
+      radar: {
+        past: frames,
+        source: 'synthetic-fallback'
+      },
       metadata: {
-        source: 'mesonet-fallback',
-        note: 'RainViewer failed, using 1-hour Mesonet data'
+        source: 'synthetic-fallback',
+        note: 'Using synthetic fallback frame generation',
+        count: frames.length,
+        timeRange: `Last ${totalHours} hours (${intervalMinutes}min intervals)`
       }
     },
     { status: 200 }

@@ -1,0 +1,28 @@
+{
+  "timestamp": "2026-01-01T00:53:00.153Z",
+  "summary": {
+    "connectivity": true,
+    "framesAvailable": 70,
+    "tilesGenerated": 40,
+    "tilesFailed": 0,
+    "issuesFound": 0,
+    "overallSuccess": true
+  },
+  "quality": {
+    "patternEvolution": 1,
+    "spatialCoherence": 0.3333333333333333,
+    "temporalSmoothness": 0
+  },
+  "performance": {
+    "avgResponseTime": 107.85,
+    "maxResponseTime": 278,
+    "minResponseTime": 2,
+    "successRate": "100.0",
+    "errors": 0
+  },
+  "issues": [],
+  "recommendations": [
+    "Poor spatial coherence - adjacent tiles should have similar patterns",
+    "All tests passed - radar system performing well!"
+  ]
+}

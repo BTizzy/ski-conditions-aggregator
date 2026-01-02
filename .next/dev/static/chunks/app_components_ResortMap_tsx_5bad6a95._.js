@@ -23,7 +23,7 @@ const ResortMap = ({ resorts = [], conditions = {}, loading = {}, errors = {} })
     const canvasRef = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRef"])(null);
     const popupsRef = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRef"])(new Map());
     const [radarPlaying, setRadarPlaying] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(true);
-    const [radarSpeedMs, setRadarSpeedMs] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(800);
+    const [radarSpeedMs, setRadarSpeedMs] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(1500);
     const [radarOpacity, setRadarOpacity] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(0.6);
     const [radarFramesAvailable, setRadarFramesAvailable] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
     const [frameCount, setFrameCount] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(0);
@@ -153,12 +153,19 @@ const ResortMap = ({ resorts = [], conditions = {}, loading = {}, errors = {} })
             const loadFrames = {
                 "ResortMap.useEffect.loadFrames": async ()=>{
                     try {
-                        console.log('[Frames] Fetching from API...');
+                        console.log('[Frames] Starting frame load...');
+                        const startTime = Date.now();
                         const res = await fetch('/api/radar/frames');
                         if (!res.ok) throw new Error(`API returned ${res.status}`);
                         const data = await res.json();
-                        const layers = data?.radar?.layers || [];
-                        console.log('[Frames] Loaded', layers.length, 'layers, source:', data?.radar?.source);
+                        const layers = data?.radar?.past || [];
+                        const loadTime = Date.now() - startTime;
+                        console.log(`[Frames] Loaded ${layers.length} frames in ${loadTime}ms, source: ${data?.radar?.source}`);
+                        if (layers.length === 0) {
+                            console.warn('[Frames] No frames returned from API');
+                            setLoadingStatus('No radar frames available');
+                            return;
+                        }
                         const frameObjects = layers.map({
                             "ResortMap.useEffect.loadFrames.frameObjects": (layer)=>{
                                 if (typeof layer === 'string') {
@@ -169,7 +176,7 @@ const ResortMap = ({ resorts = [], conditions = {}, loading = {}, errors = {} })
                                 } else {
                                     return {
                                         url: layer.url,
-                                        time: layer.timestamp
+                                        time: layer.time
                                     };
                                 }
                             }
@@ -184,7 +191,26 @@ const ResortMap = ({ resorts = [], conditions = {}, loading = {}, errors = {} })
                         setRadarFrameTimes(frameTimes);
                         const sourceLabel = data?.radar?.source === 'rainviewer-48h' ? '48h RainViewer' : '1h Mesonet (fallback)';
                         setLoadingStatus(`Ready: ${frameObjects.length} frames (${sourceLabel})`);
-                        console.log('[Frames] Ready. Frames set:', frameObjects.length);
+                        console.log(`[Frames] Setup complete: ${frameObjects.length} frames, times range: ${new Date(Math.min(...frameTimes)).toLocaleTimeString()} - ${new Date(Math.max(...frameTimes)).toLocaleTimeString()}`);
+                        // Force initial radar render after frames load
+                        setTimeout({
+                            "ResortMap.useEffect.loadFrames": ()=>{
+                                if (canvasRef.current && mapRef.current) {
+                                    const canvas = canvasRef.current;
+                                    const map = mapRef.current;
+                                    const size = map.getSize();
+                                    const dpr = window.devicePixelRatio || 1;
+                                    canvas.width = size.x * dpr;
+                                    canvas.height = size.y * dpr;
+                                    canvas.style.width = `${size.x}px`;
+                                    canvas.style.height = `${size.y}px`;
+                                    const ctx = canvas.getContext('2d');
+                                    if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                                    frameCanvasCache.current.clear();
+                                    console.log('[Frames] Forced initial canvas resize after frame load');
+                                }
+                            }
+                        }["ResortMap.useEffect.loadFrames"], 100);
                     } catch (e) {
                         console.error('[Frames] Load failed:', e);
                         setLoadingStatus(`Failed to load frames: ${e}`);
@@ -328,10 +354,10 @@ const ResortMap = ({ resorts = [], conditions = {}, loading = {}, errors = {} })
             html += `<div style="color: #DC2626; padding: 8px; background: #fee2e2; border-radius: 4px;">❌ Error: ${err}</div>`;
         } else if (cond) {
             html += `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">`;
-            html += `<div style="background: #dbeafe; padding: 8px; border-radius: 4px; border-left: 3px solid #0EA5E9;"><div style="font-size: 11px; color: #0c4a6e; font-weight: 600;">24h Snow</div><div style="color: #0EA5E9; font-weight: bold; font-size: 16px;">${cond.recentSnowfall}"</div></div>`;
-            html += `<div style="background: #f0fdf4; padding: 8px; border-radius: 4px; border-left: 3px solid #22c55e;"><div style="font-size: 11px; color: #166534; font-weight: 600;">Base</div><div style="color: #22c55e; font-weight: bold; font-size: 16px;">${cond.snowDepth}"</div></div>`;
-            html += `<div style="background: #eff6ff; padding: 8px; border-radius: 4px; border-left: 3px solid #3B82F6;"><div style="font-size: 11px; color: #1e40af; font-weight: 600;">Weekly</div><div style="color: #3B82F6; font-weight: bold; font-size: 16px;">${cond.weeklySnowfall || 'N/A'}"</div></div>`;
-            html += `<div style="background: #fef2f2; padding: 8px; border-radius: 4px; border-left: 3px solid #EF4444;"><div style="font-size: 11px; color: #7f1d1d; font-weight: 600;">Temp</div><div style="color: #EF4444; font-weight: bold; font-size: 16px;">${cond.baseTemp}°F</div></div>`;
+            html += `<div style="background: #dbeafe; padding: 8px; border-radius: 4px; border-left: 3px solid #0EA5E9;"><div style="font-size: 11px; color: #0c4a6e; font-weight: 600;">1-Day Snow</div><div style="color: #0EA5E9; font-weight: bold; font-size: 16px;">${cond.recentSnowfall}"</div></div>`;
+            html += `<div style="background: #f0fdf4; padding: 8px; border-radius: 4px; border-left: 3px solid #22c55e;"><div style="font-size: 11px; color: #166534; font-weight: 600;">Base Depth</div><div style="color: #22c55e; font-weight: bold; font-size: 16px;">${cond.snowDepth}"</div></div>`;
+            html += `<div style="background: #eff6ff; padding: 8px; border-radius: 4px; border-left: 3px solid #3B82F6;"><div style="font-size: 11px; color: #1e40af; font-weight: 600;">7-Day Snow</div><div style="color: #3B82F6; font-weight: bold; font-size: 16px;">${cond.weeklySnowfall || 'N/A'}"</div></div>`;
+            html += `<div style="background: #fef3c7; padding: 8px; border-radius: 4px; border-left: 3px solid #F59E0B;"><div style="font-size: 11px; color: #92400e; font-weight: 600;">7-Day Rain</div><div style="color: #F59E0B; font-weight: bold; font-size: 16px;">${cond.weeklyRainfall ? cond.weeklyRainfall.toFixed(1) : 'N/A'}"</div></div>`;
             html += `</div>`;
             html += `<div style="border-top: 1px solid #e5e7eb; padding-top: 10px; margin-bottom: 10px;">`;
             html += `<div style="font-size: 12px; color: #374151; margin-bottom: 6px;"><b>💨 Wind:</b> ${cond.windSpeed} mph</div>`;
@@ -509,6 +535,7 @@ const ResortMap = ({ resorts = [], conditions = {}, loading = {}, errors = {} })
                         if (progress >= dur) {
                             progress = 0;
                             radarIndexRef.current = nextIdx;
+                            console.log(`[Radar] Frame ${idx} → ${nextIdx}/${frames.length}`);
                         }
                     } catch (e) {
                         console.error('[RadarCanvas] Render error', e);
@@ -548,7 +575,7 @@ const ResortMap = ({ resorts = [], conditions = {}, loading = {}, errors = {} })
                 }
             }, void 0, false, {
                 fileName: "[project]/app/components/ResortMap.tsx",
-                lineNumber: 542,
+                lineNumber: 571,
                 columnNumber: 7
             }, ("TURBOPACK compile-time value", void 0)),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -556,162 +583,196 @@ const ResortMap = ({ resorts = [], conditions = {}, loading = {}, errors = {} })
                 children: [
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                         className: "font-bold mb-2 text-gray-800 text-sm",
-                        children: "🛰 Radar 48h"
-                    }, void 0, false, {
-                        fileName: "[project]/app/components/ResortMap.tsx",
-                        lineNumber: 545,
-                        columnNumber: 9
-                    }, ("TURBOPACK compile-time value", void 0)),
-                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                        className: "flex gap-2 mb-3",
                         children: [
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-                                onClick: ()=>{
-                                    setRadarPlaying(true);
-                                    radarPlayingRef.current = true;
-                                },
-                                className: "px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 font-semibold",
-                                children: "▶ Play"
-                            }, void 0, false, {
-                                fileName: "[project]/app/components/ResortMap.tsx",
-                                lineNumber: 547,
-                                columnNumber: 11
-                            }, ("TURBOPACK compile-time value", void 0)),
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-                                onClick: ()=>{
-                                    setRadarPlaying(false);
-                                    radarPlayingRef.current = false;
-                                },
-                                className: "px-3 py-1 bg-gray-400 text-white rounded text-sm hover:bg-gray-500 font-semibold",
-                                children: "⏸ Pause"
-                            }, void 0, false, {
-                                fileName: "[project]/app/components/ResortMap.tsx",
-                                lineNumber: 548,
-                                columnNumber: 11
-                            }, ("TURBOPACK compile-time value", void 0))
+                            "🛰 ",
+                            radarFramesAvailable ? 'Radar 48h' : 'Loading Radar...'
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/components/ResortMap.tsx",
-                        lineNumber: 546,
-                        columnNumber: 9
+                        lineNumber: 574,
+                        columnNumber: 11
                     }, ("TURBOPACK compile-time value", void 0)),
-                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                        className: "mb-3",
+                    radarFramesAvailable ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Fragment"], {
                         children: [
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
-                                className: "text-xs font-semibold text-gray-700 block mb-1",
-                                children: "Speed"
-                            }, void 0, false, {
-                                fileName: "[project]/app/components/ResortMap.tsx",
-                                lineNumber: 550,
-                                columnNumber: 31
-                            }, ("TURBOPACK compile-time value", void 0)),
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
-                                type: "range",
-                                min: "100",
-                                max: "2000",
-                                step: "50",
-                                value: radarSpeedMs,
-                                onChange: (e)=>setRadarSpeedMs(Number(e.target.value)),
-                                className: "w-full"
-                            }, void 0, false, {
-                                fileName: "[project]/app/components/ResortMap.tsx",
-                                lineNumber: 550,
-                                columnNumber: 110
-                            }, ("TURBOPACK compile-time value", void 0))
-                        ]
-                    }, void 0, true, {
-                        fileName: "[project]/app/components/ResortMap.tsx",
-                        lineNumber: 550,
-                        columnNumber: 9
-                    }, ("TURBOPACK compile-time value", void 0)),
-                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                        className: "mb-3",
-                        children: [
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
-                                className: "text-xs font-semibold text-gray-700 block mb-1",
-                                children: "Opacity"
-                            }, void 0, false, {
-                                fileName: "[project]/app/components/ResortMap.tsx",
-                                lineNumber: 551,
-                                columnNumber: 31
-                            }, ("TURBOPACK compile-time value", void 0)),
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
-                                type: "range",
-                                min: "0",
-                                max: "1",
-                                step: "0.05",
-                                value: radarOpacity,
-                                onChange: (e)=>setRadarOpacity(Number(e.target.value)),
-                                className: "w-full"
-                            }, void 0, false, {
-                                fileName: "[project]/app/components/ResortMap.tsx",
-                                lineNumber: 551,
-                                columnNumber: 112
-                            }, ("TURBOPACK compile-time value", void 0))
-                        ]
-                    }, void 0, true, {
-                        fileName: "[project]/app/components/ResortMap.tsx",
-                        lineNumber: 551,
-                        columnNumber: 9
-                    }, ("TURBOPACK compile-time value", void 0)),
-                    radarFrameTimes.length > 1 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                        className: "mb-3",
-                        children: [
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
-                                className: "text-xs font-semibold text-gray-700 block mb-1",
-                                children: "Timeline"
-                            }, void 0, false, {
-                                fileName: "[project]/app/components/ResortMap.tsx",
-                                lineNumber: 555,
-                                columnNumber: 13
-                            }, ("TURBOPACK compile-time value", void 0)),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                className: "flex items-center gap-2",
+                                className: "flex gap-2 mb-3",
                                 children: [
-                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                        className: "text-[10px] text-gray-500",
-                                        children: radarFrameTimes[0] ? new Date(radarFrameTimes[0] * 1000).toLocaleString() : ''
-                                    }, void 0, false, {
-                                        fileName: "[project]/app/components/ResortMap.tsx",
-                                        lineNumber: 557,
-                                        columnNumber: 15
-                                    }, ("TURBOPACK compile-time value", void 0)),
-                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
-                                        type: "range",
-                                        min: 0,
-                                        max: radarFrameTimes.length - 1,
-                                        value: radarIndex,
-                                        onChange: (e)=>{
-                                            const idx = Number(e.target.value);
-                                            radarIndexRef.current = idx;
-                                            setRadarIndex(idx);
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                        onClick: ()=>{
+                                            setRadarPlaying(true);
+                                            radarPlayingRef.current = true;
                                         },
-                                        className: "flex-1"
+                                        className: "px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 font-semibold",
+                                        children: "▶ Play"
                                     }, void 0, false, {
                                         fileName: "[project]/app/components/ResortMap.tsx",
-                                        lineNumber: 558,
-                                        columnNumber: 15
+                                        lineNumber: 580,
+                                        columnNumber: 17
                                     }, ("TURBOPACK compile-time value", void 0)),
-                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                        className: "text-[10px] text-gray-500",
-                                        children: radarFrameTimes[radarFrameTimes.length - 1] ? new Date(radarFrameTimes[radarFrameTimes.length - 1] * 1000).toLocaleString() : ''
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                        onClick: ()=>{
+                                            setRadarPlaying(false);
+                                            radarPlayingRef.current = false;
+                                        },
+                                        className: "px-3 py-1 bg-gray-400 text-white rounded text-sm hover:bg-gray-500 font-semibold",
+                                        children: "⏸ Pause"
                                     }, void 0, false, {
                                         fileName: "[project]/app/components/ResortMap.tsx",
-                                        lineNumber: 570,
-                                        columnNumber: 15
+                                        lineNumber: 581,
+                                        columnNumber: 17
                                     }, ("TURBOPACK compile-time value", void 0))
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/components/ResortMap.tsx",
-                                lineNumber: 556,
-                                columnNumber: 13
+                                lineNumber: 579,
+                                columnNumber: 15
+                            }, ("TURBOPACK compile-time value", void 0)),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "mb-3",
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                        className: "text-xs font-semibold text-gray-700 block mb-1",
+                                        children: "Speed"
+                                    }, void 0, false, {
+                                        fileName: "[project]/app/components/ResortMap.tsx",
+                                        lineNumber: 583,
+                                        columnNumber: 37
+                                    }, ("TURBOPACK compile-time value", void 0)),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                        type: "range",
+                                        min: "500",
+                                        max: "3000",
+                                        step: "100",
+                                        value: radarSpeedMs,
+                                        onChange: (e)=>setRadarSpeedMs(Number(e.target.value)),
+                                        className: "w-full"
+                                    }, void 0, false, {
+                                        fileName: "[project]/app/components/ResortMap.tsx",
+                                        lineNumber: 583,
+                                        columnNumber: 116
+                                    }, ("TURBOPACK compile-time value", void 0))
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/app/components/ResortMap.tsx",
+                                lineNumber: 583,
+                                columnNumber: 15
+                            }, ("TURBOPACK compile-time value", void 0)),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "mb-3",
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                        className: "text-xs font-semibold text-gray-700 block mb-1",
+                                        children: "Opacity"
+                                    }, void 0, false, {
+                                        fileName: "[project]/app/components/ResortMap.tsx",
+                                        lineNumber: 584,
+                                        columnNumber: 37
+                                    }, ("TURBOPACK compile-time value", void 0)),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                        type: "range",
+                                        min: "0",
+                                        max: "1",
+                                        step: "0.05",
+                                        value: radarOpacity,
+                                        onChange: (e)=>setRadarOpacity(Number(e.target.value)),
+                                        className: "w-full"
+                                    }, void 0, false, {
+                                        fileName: "[project]/app/components/ResortMap.tsx",
+                                        lineNumber: 584,
+                                        columnNumber: 118
+                                    }, ("TURBOPACK compile-time value", void 0))
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/app/components/ResortMap.tsx",
+                                lineNumber: 584,
+                                columnNumber: 15
+                            }, ("TURBOPACK compile-time value", void 0)),
+                            radarFrameTimes.length > 1 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "mb-3",
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                        className: "text-xs font-semibold text-gray-700 block mb-1",
+                                        children: "Timeline"
+                                    }, void 0, false, {
+                                        fileName: "[project]/app/components/ResortMap.tsx",
+                                        lineNumber: 588,
+                                        columnNumber: 19
+                                    }, ("TURBOPACK compile-time value", void 0)),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        className: "flex items-center gap-2",
+                                        children: [
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                className: "text-[10px] text-gray-500",
+                                                children: radarFrameTimes[0] ? new Date(radarFrameTimes[0] * 1000).toLocaleString() : ''
+                                            }, void 0, false, {
+                                                fileName: "[project]/app/components/ResortMap.tsx",
+                                                lineNumber: 590,
+                                                columnNumber: 21
+                                            }, ("TURBOPACK compile-time value", void 0)),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
+                                                type: "range",
+                                                min: 0,
+                                                max: radarFrameTimes.length - 1,
+                                                value: radarIndex,
+                                                onChange: (e)=>{
+                                                    const idx = Number(e.target.value);
+                                                    radarIndexRef.current = idx;
+                                                    setRadarIndex(idx);
+                                                },
+                                                className: "flex-1"
+                                            }, void 0, false, {
+                                                fileName: "[project]/app/components/ResortMap.tsx",
+                                                lineNumber: 591,
+                                                columnNumber: 21
+                                            }, ("TURBOPACK compile-time value", void 0)),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                className: "text-[10px] text-gray-500",
+                                                children: radarFrameTimes[radarFrameTimes.length - 1] ? new Date(radarFrameTimes[radarFrameTimes.length - 1] * 1000).toLocaleString() : ''
+                                            }, void 0, false, {
+                                                fileName: "[project]/app/components/ResortMap.tsx",
+                                                lineNumber: 603,
+                                                columnNumber: 21
+                                            }, ("TURBOPACK compile-time value", void 0))
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/app/components/ResortMap.tsx",
+                                        lineNumber: 589,
+                                        columnNumber: 19
+                                    }, ("TURBOPACK compile-time value", void 0))
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/app/components/ResortMap.tsx",
+                                lineNumber: 587,
+                                columnNumber: 17
+                            }, ("TURBOPACK compile-time value", void 0))
+                        ]
+                    }, void 0, true) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "text-xs text-gray-600 mb-3",
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "animate-pulse",
+                                children: [
+                                    "⏳ ",
+                                    loadingStatus
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/app/components/ResortMap.tsx",
+                                lineNumber: 610,
+                                columnNumber: 15
+                            }, ("TURBOPACK compile-time value", void 0)),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "mt-2 text-[10px] text-gray-500",
+                                children: "This may take a few seconds..."
+                            }, void 0, false, {
+                                fileName: "[project]/app/components/ResortMap.tsx",
+                                lineNumber: 611,
+                                columnNumber: 15
                             }, ("TURBOPACK compile-time value", void 0))
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/components/ResortMap.tsx",
-                        lineNumber: 554,
-                        columnNumber: 11
+                        lineNumber: 609,
+                        columnNumber: 13
                     }, ("TURBOPACK compile-time value", void 0)),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                         className: "text-xs text-gray-700 border-t pt-2",
@@ -723,8 +784,8 @@ const ResortMap = ({ resorts = [], conditions = {}, loading = {}, errors = {} })
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/components/ResortMap.tsx",
-                                lineNumber: 574,
-                                columnNumber: 62
+                                lineNumber: 616,
+                                columnNumber: 64
                             }, ("TURBOPACK compile-time value", void 0)),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                 children: [
@@ -734,21 +795,22 @@ const ResortMap = ({ resorts = [], conditions = {}, loading = {}, errors = {} })
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/components/ResortMap.tsx",
-                                lineNumber: 574,
-                                columnNumber: 96
+                                lineNumber: 616,
+                                columnNumber: 98
                             }, ("TURBOPACK compile-time value", void 0))
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/components/ResortMap.tsx",
-                        lineNumber: 574,
-                        columnNumber: 9
+                        lineNumber: 616,
+                        columnNumber: 11
                     }, ("TURBOPACK compile-time value", void 0))
                 ]
             }, void 0, true, {
                 fileName: "[project]/app/components/ResortMap.tsx",
-                lineNumber: 544,
-                columnNumber: 7
+                lineNumber: 573,
+                columnNumber: 9
             }, ("TURBOPACK compile-time value", void 0)),
+            "      ",
             selectedResort && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                 className: "absolute top-4 right-4 z-[99999] bg-white/95 rounded-lg p-5 shadow-lg max-w-sm",
                 children: [
@@ -758,7 +820,7 @@ const ResortMap = ({ resorts = [], conditions = {}, loading = {}, errors = {} })
                         children: "✕"
                     }, void 0, false, {
                         fileName: "[project]/app/components/ResortMap.tsx",
-                        lineNumber: 579,
+                        lineNumber: 619,
                         columnNumber: 11
                     }, ("TURBOPACK compile-time value", void 0)),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -769,7 +831,7 @@ const ResortMap = ({ resorts = [], conditions = {}, loading = {}, errors = {} })
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/components/ResortMap.tsx",
-                        lineNumber: 580,
+                        lineNumber: 620,
                         columnNumber: 11
                     }, ("TURBOPACK compile-time value", void 0)),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -783,7 +845,7 @@ const ResortMap = ({ resorts = [], conditions = {}, loading = {}, errors = {} })
                                         children: "24h Snowfall:"
                                     }, void 0, false, {
                                         fileName: "[project]/app/components/ResortMap.tsx",
-                                        lineNumber: 583,
+                                        lineNumber: 623,
                                         columnNumber: 15
                                     }, ("TURBOPACK compile-time value", void 0)),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -794,24 +856,52 @@ const ResortMap = ({ resorts = [], conditions = {}, loading = {}, errors = {} })
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/app/components/ResortMap.tsx",
-                                        lineNumber: 584,
+                                        lineNumber: 624,
                                         columnNumber: 15
                                     }, ("TURBOPACK compile-time value", void 0))
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/components/ResortMap.tsx",
-                                lineNumber: 582,
+                                lineNumber: 622,
                                 columnNumber: 13
+                            }, ("TURBOPACK compile-time value", void 0)),
+                            selectedResort.conditions.recentRainfall && selectedResort.conditions.recentRainfall > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "flex justify-between items-center",
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                        className: "text-gray-700 font-semibold",
+                                        children: "24h Rainfall:"
+                                    }, void 0, false, {
+                                        fileName: "[project]/app/components/ResortMap.tsx",
+                                        lineNumber: 628,
+                                        columnNumber: 17
+                                    }, ("TURBOPACK compile-time value", void 0)),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                        className: "text-blue-400 font-bold text-lg",
+                                        children: [
+                                            selectedResort.conditions.recentRainfall.toFixed(2),
+                                            '"'
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/app/components/ResortMap.tsx",
+                                        lineNumber: 629,
+                                        columnNumber: 17
+                                    }, ("TURBOPACK compile-time value", void 0))
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/app/components/ResortMap.tsx",
+                                lineNumber: 627,
+                                columnNumber: 15
                             }, ("TURBOPACK compile-time value", void 0)),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                 className: "flex justify-between items-center",
                                 children: [
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                         className: "text-gray-700 font-semibold",
-                                        children: "Weekly Total:"
+                                        children: "Weekly Snow:"
                                     }, void 0, false, {
                                         fileName: "[project]/app/components/ResortMap.tsx",
-                                        lineNumber: 587,
+                                        lineNumber: 633,
                                         columnNumber: 15
                                     }, ("TURBOPACK compile-time value", void 0)),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -822,14 +912,42 @@ const ResortMap = ({ resorts = [], conditions = {}, loading = {}, errors = {} })
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/app/components/ResortMap.tsx",
-                                        lineNumber: 588,
+                                        lineNumber: 634,
                                         columnNumber: 15
                                     }, ("TURBOPACK compile-time value", void 0))
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/components/ResortMap.tsx",
-                                lineNumber: 586,
+                                lineNumber: 632,
                                 columnNumber: 13
+                            }, ("TURBOPACK compile-time value", void 0)),
+                            selectedResort.conditions.weeklyRainfall && selectedResort.conditions.weeklyRainfall > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "flex justify-between items-center",
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                        className: "text-gray-700 font-semibold",
+                                        children: "Weekly Rain:"
+                                    }, void 0, false, {
+                                        fileName: "[project]/app/components/ResortMap.tsx",
+                                        lineNumber: 638,
+                                        columnNumber: 17
+                                    }, ("TURBOPACK compile-time value", void 0)),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                        className: "text-blue-300 font-bold text-lg",
+                                        children: [
+                                            selectedResort.conditions.weeklyRainfall.toFixed(2),
+                                            '"'
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/app/components/ResortMap.tsx",
+                                        lineNumber: 639,
+                                        columnNumber: 17
+                                    }, ("TURBOPACK compile-time value", void 0))
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/app/components/ResortMap.tsx",
+                                lineNumber: 637,
+                                columnNumber: 15
                             }, ("TURBOPACK compile-time value", void 0)),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                 className: "flex justify-between items-center",
@@ -839,7 +957,7 @@ const ResortMap = ({ resorts = [], conditions = {}, loading = {}, errors = {} })
                                         children: "Base Depth:"
                                     }, void 0, false, {
                                         fileName: "[project]/app/components/ResortMap.tsx",
-                                        lineNumber: 591,
+                                        lineNumber: 643,
                                         columnNumber: 15
                                     }, ("TURBOPACK compile-time value", void 0)),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -850,13 +968,13 @@ const ResortMap = ({ resorts = [], conditions = {}, loading = {}, errors = {} })
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/app/components/ResortMap.tsx",
-                                        lineNumber: 592,
+                                        lineNumber: 644,
                                         columnNumber: 15
                                     }, ("TURBOPACK compile-time value", void 0))
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/components/ResortMap.tsx",
-                                lineNumber: 590,
+                                lineNumber: 642,
                                 columnNumber: 13
                             }, ("TURBOPACK compile-time value", void 0)),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -867,7 +985,7 @@ const ResortMap = ({ resorts = [], conditions = {}, loading = {}, errors = {} })
                                         children: "Temperature:"
                                     }, void 0, false, {
                                         fileName: "[project]/app/components/ResortMap.tsx",
-                                        lineNumber: 595,
+                                        lineNumber: 647,
                                         columnNumber: 15
                                     }, ("TURBOPACK compile-time value", void 0)),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -878,13 +996,13 @@ const ResortMap = ({ resorts = [], conditions = {}, loading = {}, errors = {} })
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/app/components/ResortMap.tsx",
-                                        lineNumber: 596,
+                                        lineNumber: 648,
                                         columnNumber: 15
                                     }, ("TURBOPACK compile-time value", void 0))
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/components/ResortMap.tsx",
-                                lineNumber: 594,
+                                lineNumber: 646,
                                 columnNumber: 13
                             }, ("TURBOPACK compile-time value", void 0)),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -895,7 +1013,7 @@ const ResortMap = ({ resorts = [], conditions = {}, loading = {}, errors = {} })
                                         children: "Wind:"
                                     }, void 0, false, {
                                         fileName: "[project]/app/components/ResortMap.tsx",
-                                        lineNumber: 599,
+                                        lineNumber: 651,
                                         columnNumber: 15
                                     }, ("TURBOPACK compile-time value", void 0)),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -906,13 +1024,13 @@ const ResortMap = ({ resorts = [], conditions = {}, loading = {}, errors = {} })
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/app/components/ResortMap.tsx",
-                                        lineNumber: 600,
+                                        lineNumber: 652,
                                         columnNumber: 15
                                     }, ("TURBOPACK compile-time value", void 0))
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/components/ResortMap.tsx",
-                                lineNumber: 598,
+                                lineNumber: 650,
                                 columnNumber: 13
                             }, ("TURBOPACK compile-time value", void 0)),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -923,7 +1041,7 @@ const ResortMap = ({ resorts = [], conditions = {}, loading = {}, errors = {} })
                                         children: "Visibility:"
                                     }, void 0, false, {
                                         fileName: "[project]/app/components/ResortMap.tsx",
-                                        lineNumber: 603,
+                                        lineNumber: 655,
                                         columnNumber: 15
                                     }, ("TURBOPACK compile-time value", void 0)),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -931,13 +1049,13 @@ const ResortMap = ({ resorts = [], conditions = {}, loading = {}, errors = {} })
                                         children: selectedResort.conditions.visibility
                                     }, void 0, false, {
                                         fileName: "[project]/app/components/ResortMap.tsx",
-                                        lineNumber: 604,
+                                        lineNumber: 656,
                                         columnNumber: 15
                                     }, ("TURBOPACK compile-time value", void 0))
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/components/ResortMap.tsx",
-                                lineNumber: 602,
+                                lineNumber: 654,
                                 columnNumber: 13
                             }, ("TURBOPACK compile-time value", void 0)),
                             (selectedResort.resort.conditionsUrl || selectedResort.resort.scrapeUrl) && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("a", {
@@ -948,29 +1066,29 @@ const ResortMap = ({ resorts = [], conditions = {}, loading = {}, errors = {} })
                                 children: "View Full Report →"
                             }, void 0, false, {
                                 fileName: "[project]/app/components/ResortMap.tsx",
-                                lineNumber: 607,
+                                lineNumber: 659,
                                 columnNumber: 15
                             }, ("TURBOPACK compile-time value", void 0))
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/components/ResortMap.tsx",
-                        lineNumber: 581,
+                        lineNumber: 621,
                         columnNumber: 11
                     }, ("TURBOPACK compile-time value", void 0))
                 ]
             }, void 0, true, {
                 fileName: "[project]/app/components/ResortMap.tsx",
-                lineNumber: 578,
+                lineNumber: 618,
                 columnNumber: 9
             }, ("TURBOPACK compile-time value", void 0))
         ]
     }, void 0, true, {
         fileName: "[project]/app/components/ResortMap.tsx",
-        lineNumber: 541,
+        lineNumber: 570,
         columnNumber: 5
     }, ("TURBOPACK compile-time value", void 0));
 };
-_s(ResortMap, "4/wxyymeI5voG4QA7unarsgsBq4=");
+_s(ResortMap, "lOMEqAdsJYqeM/+YaTORbNZPOzE=");
 _c = ResortMap;
 const __TURBOPACK__default__export__ = ResortMap;
 var _c;

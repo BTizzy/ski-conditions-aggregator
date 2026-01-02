@@ -1,6 +1,1 @@
-{
-  "/api/radar/frames/route": "app/api/radar/frames/route.js",
-  "/api/radar/tile/route": "app/api/radar/tile/route.js",
-  "/api/scrape/route": "app/api/scrape/route.js",
-  "/page": "app/page.js"
-}
+{}

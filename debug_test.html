@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Radar Debug Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .test { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        .success { background: #e8f5e8; border-color: #4caf50; }
+        .error { background: #ffe8e8; border-color: #f44336; }
+        .pending { background: #fff3cd; border-color: #ffc107; }
+    </style>
+</head>
+<body>
+    <h1>Radar API Debug Test</h1>
+    <div id="results"></div>
+
+    <script>
+        const resultsDiv = document.getElementById('results');
+
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test ${type}`;
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            resultsDiv.appendChild(div);
+            console.log(message);
+        }
+
+        async function testAPI(url, description) {
+            log(`Testing ${description}...`, 'pending');
+            try {
+                const start = Date.now();
+                const response = await fetch(url);
+                const duration = Date.now() - start;
+
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`✅ ${description}: ${response.status} (${duration}ms)`, 'success');
+                    console.log(`${description} response:`, data);
+                    return { success: true, data, status: response.status };
+                } else {
+                    const text = await response.text();
+                    log(`❌ ${description}: ${response.status} - ${text}`, 'error');
+                    return { success: false, error: text, status: response.status };
+                }
+            } catch (error) {
+                log(`❌ ${description}: ${error.message}`, 'error');
+                return { success: false, error: error.message };
+            }
+        }
+
+        async function runTests() {
+            log('Starting radar API tests...');
+
+            // Test frames API
+            const framesResult = await testAPI('/api/radar/frames', 'Radar Frames API');
+            if (framesResult.success && framesResult.data?.radar?.past?.length > 0) {
+                const firstFrame = framesResult.data.radar.past[0];
+                log(`Found ${framesResult.data.radar.past.length} frames, first: ${JSON.stringify(firstFrame)}`);
+
+                // Test tile API with first frame
+                const tileUrl = `/api/radar/tile?layer=${encodeURIComponent(firstFrame)}&z=7&x=37&y=45`;
+                await testAPI(tileUrl, 'Radar Tile API');
+            }
+
+            // Test debug APIs
+            await testAPI('/api/radar/debug-pixel', 'Debug Pixel API');
+            await testAPI('/api/radar/debug-screenshot', 'Debug Screenshot API');
+
+            // Test general API health
+            await testAPI('/api/scrape?resortId=stowe', 'General API Health');
+
+            log('Tests completed. Check console for detailed responses.');
+        }
+
+        // Run tests when page loads
+        window.addEventListener('load', runTests);
+    </script>
+</body>
+</html>

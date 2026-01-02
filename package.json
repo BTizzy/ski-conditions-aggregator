@@ -4,19 +4,26 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:debug": "NODE_OPTIONS='--inspect' next dev",
+    "dev:mcp": "NODE_OPTIONS='--inspect=9229' next dev --turbo",
+    "dev:trace": "NODE_OPTIONS='--inspect --trace-warnings --trace-uncaught' next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "start:debug": "NODE_OPTIONS='--inspect' next start",
+    "lint": "next lint",
+    "debug:test": "node --inspect test_radar.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.38.0",
     "@tailwindcss/postcss": "^4.1.18",
     "@types/leaflet": "^1.9.21",
+    "@types/pngjs": "^6.0.5",
     "autoprefixer": "^10.4.23",
     "cheerio": "^1.0.0-rc.12",
     "date-fns": "^3.0.0",
     "leaflet": "^1.9.4",
     "next": "^16.1.1",
+    "pngjs": "^7.0.0",
     "postcss": "^8.5.6",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
@@ -31,6 +38,7 @@
     "@types/react-dom": "^19.2.3",
     "eslint": "^8.0.0",
     "eslint-config-next": "14.0.0",
+    "playwright": "^1.57.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   }

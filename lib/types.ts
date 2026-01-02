@@ -3,7 +3,9 @@ export interface Conditions {
   timestamp: Date;
   snowDepth: number; // in inches
   recentSnowfall: number; // in inches (last 24h)
+  recentRainfall?: number; // in inches (last 24h)
   weeklySnowfall?: number; // in inches (last 7 days)
+  weeklyRainfall?: number; // in inches (last 7 days)
   expectedOnGround?: number; // estimated inches actually on the ground after melt/compaction
   baseTemp: number; // in Fahrenheit
   windSpeed: number; // mph

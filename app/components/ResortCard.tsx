@@ -11,7 +11,6 @@ interface ResortCardProps {
 
 const ResortCard: React.FC<ResortCardProps> = ({ conditions, resortName, logoUrl, onAlertClick }) => {
   const percentOpen = conditions.trailStatus.total > 0 ? Math.round((conditions.trailStatus.open / conditions.trailStatus.total) * 100) : 0;
-  const isDeepSnow = conditions.snowDepth > 12;
 
   return (
     <div className="bg-gray-900 text-white p-4 rounded-lg shadow-lg border border-gray-700 hover:shadow-xl transition-shadow duration-200">
@@ -20,10 +19,16 @@ const ResortCard: React.FC<ResortCardProps> = ({ conditions, resortName, logoUrl
         <h3 className="text-lg font-bold">{resortName}</h3>
       </div>
       <div className="space-y-2">
-        <div className={`text-sm ${isDeepSnow ? 'text-blue-400 font-semibold' : ''}`}>
-          Snow Depth: {conditions.snowDepth}"
-        </div>
         <div className="text-sm">24hr Snowfall: {conditions.recentSnowfall}"</div>
+        {conditions.recentRainfall !== undefined && conditions.recentRainfall > 0 && (
+          <div className="text-sm text-blue-300">24hr Rainfall: {conditions.recentRainfall.toFixed(2)}"</div>
+        )}
+        {conditions.weeklySnowfall !== undefined && (
+          <div className="text-sm">7-Day Snowfall: {conditions.weeklySnowfall}"</div>
+        )}
+        {conditions.weeklyRainfall !== undefined && conditions.weeklyRainfall > 0 && (
+          <div className="text-sm text-blue-300">7-Day Rainfall: {conditions.weeklyRainfall.toFixed(2)}"</div>
+        )}
         <div className="text-sm">Trails Open: {percentOpen}% ({conditions.trailStatus.open}/{conditions.trailStatus.total})</div>
         <div className="text-xs text-gray-400">
           Updated: {format(conditions.timestamp, 'MMM dd, HH:mm')}

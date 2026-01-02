@@ -1,0 +1,425 @@
+{
+  "timestamp": "2026-01-01T01:03:41.650Z",
+  "summary": {
+    "connectivity": true,
+    "framesAnalyzed": 70,
+    "framesWorking": 70,
+    "framesFailed": 0,
+    "framesSlow": 0,
+    "nexradFrames": 24,
+    "syntheticFrames": 46,
+    "tilesTested": 252,
+    "tilesSuccessful": 252,
+    "avgResponseTime": 173,
+    "issuesFound": 5,
+    "overallSuccess": false
+  },
+  "quality": {
+    "patternEvolution": 1,
+    "spatialCoherence": 0.19905,
+    "temporalSmoothness": 0
+  },
+  "frameDetails": [
+    {
+      "index": 0,
+      "time": 1767229263256,
+      "url": "nexrad-1767229263256",
+      "type": "nexrad",
+      "tiles": [
+        {
+          "z": 7,
+          "x": 38,
+          "y": 48,
+          "success": true,
+          "duration": 369
+        },
+        {
+          "z": 7,
+          "x": 39,
+          "y": 48,
+          "success": true,
+          "duration": 84
+        },
+        {
+          "z": 8,
+          "x": 76,
+          "y": 96,
+          "success": true,
+          "duration": 77
+        },
+        {
+          "z": 8,
+          "x": 77,
+          "y": 96,
+          "success": true,
+          "duration": 97
+        }
+      ],
+      "success": true,
+      "avgResponseTime": 156.75,
+      "errors": []
+    },
+    {
+      "index": 1,
+      "time": 1767228963256,
+      "url": "nexrad-1767228963256",
+      "type": "nexrad",
+      "tiles": [
+        {
+          "z": 7,
+          "x": 38,
+          "y": 48,
+          "success": true,
+          "duration": 90
+        },
+        {
+          "z": 7,
+          "x": 39,
+          "y": 48,
+          "success": true,
+          "duration": 75
+        },
+        {
+          "z": 8,
+          "x": 76,
+          "y": 96,
+          "success": true,
+          "duration": 78
+        },
+        {
+          "z": 8,
+          "x": 77,
+          "y": 96,
+          "success": true,
+          "duration": 81
+        }
+      ],
+      "success": true,
+      "avgResponseTime": 81,
+      "errors": []
+    },
+    {
+      "index": 2,
+      "time": 1767228663256,
+      "url": "nexrad-1767228663256",
+      "type": "nexrad",
+      "tiles": [
+        {
+          "z": 7,
+          "x": 38,
+          "y": 48,
+          "success": true,
+          "duration": 86
+        },
+        {
+          "z": 7,
+          "x": 39,
+          "y": 48,
+          "success": true,
+          "duration": 74
+        },
+        {
+          "z": 8,
+          "x": 76,
+          "y": 96,
+          "success": true,
+          "duration": 78
+        },
+        {
+          "z": 8,
+          "x": 77,
+          "y": 96,
+          "success": true,
+          "duration": 84
+        }
+      ],
+      "success": true,
+      "avgResponseTime": 80.5,
+      "errors": []
+    },
+    {
+      "index": 3,
+      "time": 1767228363256,
+      "url": "nexrad-1767228363256",
+      "type": "nexrad",
+      "tiles": [
+        {
+          "z": 7,
+          "x": 38,
+          "y": 48,
+          "success": true,
+          "duration": 95
+        },
+        {
+          "z": 7,
+          "x": 39,
+          "y": 48,
+          "success": true,
+          "duration": 72
+        },
+        {
+          "z": 8,
+          "x": 76,
+          "y": 96,
+          "success": true,
+          "duration": 83
+        },
+        {
+          "z": 8,
+          "x": 77,
+          "y": 96,
+          "success": true,
+          "duration": 90
+        }
+      ],
+      "success": true,
+      "avgResponseTime": 85,
+      "errors": []
+    },
+    {
+      "index": 4,
+      "time": 1767228063256,
+      "url": "nexrad-1767228063256",
+      "type": "nexrad",
+      "tiles": [
+        {
+          "z": 7,
+          "x": 38,
+          "y": 48,
+          "success": true,
+          "duration": 102
+        },
+        {
+          "z": 7,
+          "x": 39,
+          "y": 48,
+          "success": true,
+          "duration": 87
+        },
+        {
+          "z": 8,
+          "x": 76,
+          "y": 96,
+          "success": true,
+          "duration": 142
+        },
+        {
+          "z": 8,
+          "x": 77,
+          "y": 96,
+          "success": true,
+          "duration": 153
+        }
+      ],
+      "success": true,
+      "avgResponseTime": 121,
+      "errors": []
+    },
+    {
+      "index": 5,
+      "time": 1767227763256,
+      "url": "nexrad-1767227763256",
+      "type": "nexrad",
+      "tiles": [
+        {
+          "z": 7,
+          "x": 38,
+          "y": 48,
+          "success": true,
+          "duration": 151
+        },
+        {
+          "z": 7,
+          "x": 39,
+          "y": 48,
+          "success": true,
+          "duration": 298
+        },
+        {
+          "z": 8,
+          "x": 76,
+          "y": 96,
+          "success": true,
+          "duration": 115
+        },
+        {
+          "z": 8,
+          "x": 77,
+          "y": 96,
+          "success": true,
+          "duration": 310
+        }
+      ],
+      "success": true,
+      "avgResponseTime": 218.5,
+      "errors": []
+    },
+    {
+      "index": 6,
+      "time": 1767227463256,
+      "url": "nexrad-1767227463256",
+      "type": "nexrad",
+      "tiles": [
+        {
+          "z": 7,
+          "x": 38,
+          "y": 48,
+          "success": true,
+          "duration": 182
+        },
+        {
+          "z": 7,
+          "x": 39,
+          "y": 48,
+          "success": true,
+          "duration": 301
+        },
+        {
+          "z": 8,
+          "x": 76,
+          "y": 96,
+          "success": true,
+          "duration": 91
+        },
+        {
+          "z": 8,
+          "x": 77,
+          "y": 96,
+          "success": true,
+          "duration": 134
+        }
+      ],
+      "success": true,
+      "avgResponseTime": 177,
+      "errors": []
+    },
+    {
+      "index": 7,
+      "time": 1767227163256,
+      "url": "nexrad-1767227163256",
+      "type": "nexrad",
+      "tiles": [
+        {
+          "z": 7,
+          "x": 38,
+          "y": 48,
+          "success": true,
+          "duration": 111
+        },
+        {
+          "z": 7,
+          "x": 39,
+          "y": 48,
+          "success": true,
+          "duration": 89
+        },
+        {
+          "z": 8,
+          "x": 76,
+          "y": 96,
+          "success": true,
+          "duration": 139
+        },
+        {
+          "z": 8,
+          "x": 77,
+          "y": 96,
+          "success": true,
+          "duration": 187
+        }
+      ],
+      "success": true,
+      "avgResponseTime": 131.5,
+      "errors": []
+    },
+    {
+      "index": 8,
+      "time": 1767226863256,
+      "url": "nexrad-1767226863256",
+      "type": "nexrad",
+      "tiles": [
+        {
+          "z": 7,
+          "x": 38,
+          "y": 48,
+          "success": true,
+          "duration": 127
+        },
+        {
+          "z": 7,
+          "x": 39,
+          "y": 48,
+          "success": true,
+          "duration": 111
+        },
+        {
+          "z": 8,
+          "x": 76,
+          "y": 96,
+          "success": true,
+          "duration": 279
+        },
+        {
+          "z": 8,
+          "x": 77,
+          "y": 96,
+          "success": true,
+          "duration": 82
+        }
+      ],
+      "success": true,
+      "avgResponseTime": 149.75,
+      "errors": []
+    },
+    {
+      "index": 9,
+      "time": 1767226563256,
+      "url": "nexrad-1767226563256",
+      "type": "nexrad",
+      "tiles": [
+        {
+          "z": 7,
+          "x": 38,
+          "y": 48,
+          "success": true,
+          "duration": 114
+        },
+        {
+          "z": 7,
+          "x": 39,
+          "y": 48,
+          "success": true,
+          "duration": 285
+        },
+        {
+          "z": 8,
+          "x": 76,
+          "y": 96,
+          "success": true,
+          "duration": 80
+        },
+        {
+          "z": 8,
+          "x": 77,
+          "y": 96,
+          "success": true,
+          "duration": 150
+        }
+      ],
+      "success": true,
+      "avgResponseTime": 157.25,
+      "errors": []
+    }
+  ],
+  "tileErrors": [],
+  "issues": [
+    "Error diagnostic failed: Invalid zoom returned 200",
+    "Error diagnostic failed: Invalid zoom returned 200",
+    "Error diagnostic failed: Invalid coordinates returned 200",
+    "Error diagnostic failed: Invalid coordinates returned 200",
+    "ERROR HANDLING ISSUES: Only 50.0% of error diagnostics passed"
+  ],
+  "recommendations": [
+    "Poor spatial coherence - adjacent tiles should have more consistent patterns"
+  ]
+}

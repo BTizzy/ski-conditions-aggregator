@@ -19,7 +19,9 @@ interface ResortConditions {
   resortId: string;
   snowDepth: number;
   recentSnowfall: number;
+  recentRainfall?: number;
   weeklySnowfall?: number;
+  weeklyRainfall?: number;
   baseTemp: number;
   windSpeed: number;
   visibility: string;
@@ -46,7 +48,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
   const popupsRef = useRef<Map<string, L.Popup>>(new Map());
   
   const [radarPlaying, setRadarPlaying] = useState(true);
-  const [radarSpeedMs, setRadarSpeedMs] = useState(800);
+  const [radarSpeedMs, setRadarSpeedMs] = useState(1500);
   const [radarOpacity, setRadarOpacity] = useState(0.6);
   const [radarFramesAvailable, setRadarFramesAvailable] = useState(false);
   const [frameCount, setFrameCount] = useState(0);
@@ -162,24 +164,32 @@ const ResortMap: React.FC<ResortMapProps> = ({
 
     const loadFrames = async () => {
       try {
-        console.log('[Frames] Fetching from API...');
+        console.log('[Frames] Starting frame load...');
+        const startTime = Date.now();
         const res = await fetch('/api/radar/frames');
         if (!res.ok) throw new Error(`API returned ${res.status}`);
 
         const data = await res.json();
-        const layers = data?.radar?.layers || [];
-        console.log('[Frames] Loaded', layers.length, 'layers, source:', data?.radar?.source);
+        const layers = data?.radar?.past || [];
+        const loadTime = Date.now() - startTime;
+        console.log(`[Frames] Loaded ${layers.length} frames in ${loadTime}ms, source: ${data?.radar?.source}`);
+
+        if (layers.length === 0) {
+          console.warn('[Frames] No frames returned from API');
+          setLoadingStatus('No radar frames available');
+          return;
+        }
 
         const frameObjects = layers.map((layer: any) => {
           if (typeof layer === 'string') {
             return { url: layer, time: 0 };
           } else {
-            return { url: layer.url, time: layer.timestamp };
+            return { url: layer.url, time: layer.time };
           }
         });
 
         // Extract times for timeline
-  const frameTimes = frameObjects.map((f: { url: string; time: number }) => typeof f.time === 'number' ? f.time : 0);
+        const frameTimes = frameObjects.map((f: { url: string; time: number }) => typeof f.time === 'number' ? f.time : 0);
 
         radarFramesRef.current = frameObjects;
         setFrameCount(frameObjects.length);
@@ -188,7 +198,25 @@ const ResortMap: React.FC<ResortMapProps> = ({
 
         const sourceLabel = data?.radar?.source === 'rainviewer-48h' ? '48h RainViewer' : '1h Mesonet (fallback)';
         setLoadingStatus(`Ready: ${frameObjects.length} frames (${sourceLabel})`);
-        console.log('[Frames] Ready. Frames set:', frameObjects.length);
+        console.log(`[Frames] Setup complete: ${frameObjects.length} frames, times range: ${new Date(Math.min(...frameTimes)).toLocaleTimeString()} - ${new Date(Math.max(...frameTimes)).toLocaleTimeString()}`);
+
+        // Force initial radar render after frames load
+        setTimeout(() => {
+          if (canvasRef.current && mapRef.current) {
+            const canvas = canvasRef.current;
+            const map = mapRef.current;
+            const size = map.getSize();
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = size.x * dpr;
+            canvas.height = size.y * dpr;
+            canvas.style.width = `${size.x}px`;
+            canvas.style.height = `${size.y}px`;
+            const ctx = canvas.getContext('2d');
+            if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            frameCanvasCache.current.clear();
+            console.log('[Frames] Forced initial canvas resize after frame load');
+          }
+        }, 100);
       } catch (e) {
         console.error('[Frames] Load failed:', e);
         setLoadingStatus(`Failed to load frames: ${e}`);
@@ -307,10 +335,10 @@ const ResortMap: React.FC<ResortMapProps> = ({
       html += `<div style="color: #DC2626; padding: 8px; background: #fee2e2; border-radius: 4px;">❌ Error: ${err}</div>`;
     } else if (cond) {
       html += `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">`;
-      html += `<div style="background: #dbeafe; padding: 8px; border-radius: 4px; border-left: 3px solid #0EA5E9;"><div style="font-size: 11px; color: #0c4a6e; font-weight: 600;">24h Snow</div><div style="color: #0EA5E9; font-weight: bold; font-size: 16px;">${cond.recentSnowfall}"</div></div>`;
-      html += `<div style="background: #f0fdf4; padding: 8px; border-radius: 4px; border-left: 3px solid #22c55e;"><div style="font-size: 11px; color: #166534; font-weight: 600;">Base</div><div style="color: #22c55e; font-weight: bold; font-size: 16px;">${cond.snowDepth}"</div></div>`;
-      html += `<div style="background: #eff6ff; padding: 8px; border-radius: 4px; border-left: 3px solid #3B82F6;"><div style="font-size: 11px; color: #1e40af; font-weight: 600;">Weekly</div><div style="color: #3B82F6; font-weight: bold; font-size: 16px;">${cond.weeklySnowfall || 'N/A'}"</div></div>`;
-      html += `<div style="background: #fef2f2; padding: 8px; border-radius: 4px; border-left: 3px solid #EF4444;"><div style="font-size: 11px; color: #7f1d1d; font-weight: 600;">Temp</div><div style="color: #EF4444; font-weight: bold; font-size: 16px;">${cond.baseTemp}°F</div></div>`;
+      html += `<div style="background: #dbeafe; padding: 8px; border-radius: 4px; border-left: 3px solid #0EA5E9;"><div style="font-size: 11px; color: #0c4a6e; font-weight: 600;">1-Day Snow</div><div style="color: #0EA5E9; font-weight: bold; font-size: 16px;">${cond.recentSnowfall}"</div></div>`;
+      html += `<div style="background: #f0fdf4; padding: 8px; border-radius: 4px; border-left: 3px solid #22c55e;"><div style="font-size: 11px; color: #166534; font-weight: 600;">Base Depth</div><div style="color: #22c55e; font-weight: bold; font-size: 16px;">${cond.snowDepth}"</div></div>`;
+      html += `<div style="background: #eff6ff; padding: 8px; border-radius: 4px; border-left: 3px solid #3B82F6;"><div style="font-size: 11px; color: #1e40af; font-weight: 600;">7-Day Snow</div><div style="color: #3B82F6; font-weight: bold; font-size: 16px;">${cond.weeklySnowfall || 'N/A'}"</div></div>`;
+      html += `<div style="background: #fef3c7; padding: 8px; border-radius: 4px; border-left: 3px solid #F59E0B;"><div style="font-size: 11px; color: #92400e; font-weight: 600;">7-Day Rain</div><div style="color: #F59E0B; font-weight: bold; font-size: 16px;">${cond.weeklyRainfall ? cond.weeklyRainfall.toFixed(1) : 'N/A'}"</div></div>`;
       html += `</div>`;
       html += `<div style="border-top: 1px solid #e5e7eb; padding-top: 10px; margin-bottom: 10px;">`;
       html += `<div style="font-size: 12px; color: #374151; margin-bottom: 6px;"><b>💨 Wind:</b> ${cond.windSpeed} mph</div>`;
@@ -523,6 +551,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
         if (progress >= dur) {
           progress = 0;
           radarIndexRef.current = nextIdx;
+          console.log(`[Radar] Frame ${idx} → ${nextIdx}/${frames.length}`);
         }
       } catch (e) { console.error('[RadarCanvas] Render error', e); }
 
@@ -541,40 +570,51 @@ const ResortMap: React.FC<ResortMapProps> = ({
     <div className="relative w-full h-screen bg-gray-100 flex flex-col">
       <div ref={containerRef} className="flex-1 w-full" style={{ position: 'relative', width: '100%', height: '100%', minHeight: '400px' }} />
 
-      <div className="absolute top-4 left-4 z-[99999] bg-white/95 rounded-lg p-4 shadow-lg max-w-xs">
-        <div className="font-bold mb-2 text-gray-800 text-sm">🛰 Radar 48h</div>
-        <div className="flex gap-2 mb-3">
-          <button onClick={() => { setRadarPlaying(true); radarPlayingRef.current = true; }} className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 font-semibold">▶ Play</button>
-          <button onClick={() => { setRadarPlaying(false); radarPlayingRef.current = false; }} className="px-3 py-1 bg-gray-400 text-white rounded text-sm hover:bg-gray-500 font-semibold">⏸ Pause</button>
-        </div>
-        <div className="mb-3"><label className="text-xs font-semibold text-gray-700 block mb-1">Speed</label><input type="range" min="100" max="2000" step="50" value={radarSpeedMs} onChange={(e) => setRadarSpeedMs(Number(e.target.value))} className="w-full" /></div>
-        <div className="mb-3"><label className="text-xs font-semibold text-gray-700 block mb-1">Opacity</label><input type="range" min="0" max="1" step="0.05" value={radarOpacity} onChange={(e) => setRadarOpacity(Number(e.target.value))} className="w-full" /></div>
-        {/* Timeline UI */}
-        {radarFrameTimes.length > 1 && (
-          <div className="mb-3">
-            <label className="text-xs font-semibold text-gray-700 block mb-1">Timeline</label>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-gray-500">{radarFrameTimes[0] ? new Date(radarFrameTimes[0] * 1000).toLocaleString() : ''}</span>
-              <input
-                type="range"
-                min={0}
-                max={radarFrameTimes.length - 1}
-                value={radarIndex}
-                onChange={e => {
-                  const idx = Number(e.target.value);
-                  radarIndexRef.current = idx;
-                  setRadarIndex(idx);
-                }}
-                className="flex-1"
-              />
-              <span className="text-[10px] text-gray-500">{radarFrameTimes[radarFrameTimes.length - 1] ? new Date(radarFrameTimes[radarFrameTimes.length - 1] * 1000).toLocaleString() : ''}</span>
-            </div>
+        <div className="absolute top-4 left-4 z-[99999] bg-white/95 rounded-lg p-4 shadow-lg max-w-xs">
+          <div className="font-bold mb-2 text-gray-800 text-sm">
+            🛰 {radarFramesAvailable ? 'Radar 48h' : 'Loading Radar...'}
           </div>
-        )}
-        <div className="text-xs text-gray-700 border-t pt-2"><div>Status: {loadingStatus}</div><div>Markers: {markersRef.current.size}/43</div></div>
-      </div>
-
-      {selectedResort && (
+          {radarFramesAvailable ? (
+            <>
+              <div className="flex gap-2 mb-3">
+                <button onClick={() => { setRadarPlaying(true); radarPlayingRef.current = true; }} className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 font-semibold">▶ Play</button>
+                <button onClick={() => { setRadarPlaying(false); radarPlayingRef.current = false; }} className="px-3 py-1 bg-gray-400 text-white rounded text-sm hover:bg-gray-500 font-semibold">⏸ Pause</button>
+              </div>
+              <div className="mb-3"><label className="text-xs font-semibold text-gray-700 block mb-1">Speed</label><input type="range" min="500" max="3000" step="100" value={radarSpeedMs} onChange={(e) => setRadarSpeedMs(Number(e.target.value))} className="w-full" /></div>
+              <div className="mb-3"><label className="text-xs font-semibold text-gray-700 block mb-1">Opacity</label><input type="range" min="0" max="1" step="0.05" value={radarOpacity} onChange={(e) => setRadarOpacity(Number(e.target.value))} className="w-full" /></div>
+              {/* Timeline UI */}
+              {radarFrameTimes.length > 1 && (
+                <div className="mb-3">
+                  <label className="text-xs font-semibold text-gray-700 block mb-1">Timeline</label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-gray-500">{radarFrameTimes[0] ? new Date(radarFrameTimes[0] * 1000).toLocaleString() : ''}</span>
+                    <input
+                      type="range"
+                      min={0}
+                      max={radarFrameTimes.length - 1}
+                      value={radarIndex}
+                      onChange={e => {
+                        const idx = Number(e.target.value);
+                        radarIndexRef.current = idx;
+                        setRadarIndex(idx);
+                      }}
+                      className="flex-1"
+                    />
+                    <span className="text-[10px] text-gray-500">{radarFrameTimes[radarFrameTimes.length - 1] ? new Date(radarFrameTimes[radarFrameTimes.length - 1] * 1000).toLocaleString() : ''}</span>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="text-xs text-gray-600 mb-3">
+              <div className="animate-pulse">⏳ {loadingStatus}</div>
+              <div className="mt-2 text-[10px] text-gray-500">
+                This may take a few seconds...
+              </div>
+            </div>
+          )}
+          <div className="text-xs text-gray-700 border-t pt-2"><div>Status: {loadingStatus}</div><div>Markers: {markersRef.current.size}/43</div></div>
+        </div>      {selectedResort && (
         <div className="absolute top-4 right-4 z-[99999] bg-white/95 rounded-lg p-5 shadow-lg max-w-sm">
           <button onClick={() => setSelectedResort(null)} className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-lg font-bold">✕</button>
           <div className="font-bold text-gray-800 text-base mb-3">📊 {selectedResort.resort.name}</div>
@@ -583,10 +623,22 @@ const ResortMap: React.FC<ResortMapProps> = ({
               <span className="text-gray-700 font-semibold">24h Snowfall:</span>
               <span className="text-blue-600 font-bold text-lg">{selectedResort.conditions.recentSnowfall}"</span>
             </div>
+            {selectedResort.conditions.recentRainfall && selectedResort.conditions.recentRainfall > 0 && (
+              <div className="flex justify-between items-center">
+                <span className="text-gray-700 font-semibold">24h Rainfall:</span>
+                <span className="text-blue-400 font-bold text-lg">{selectedResort.conditions.recentRainfall.toFixed(2)}"</span>
+              </div>
+            )}
             <div className="flex justify-between items-center">
-              <span className="text-gray-700 font-semibold">Weekly Total:</span>
+              <span className="text-gray-700 font-semibold">Weekly Snow:</span>
               <span className="text-blue-500 font-bold text-lg">{selectedResort.conditions.weeklySnowfall || 'N/A'}"</span>
             </div>
+            {selectedResort.conditions.weeklyRainfall && selectedResort.conditions.weeklyRainfall > 0 && (
+              <div className="flex justify-between items-center">
+                <span className="text-gray-700 font-semibold">Weekly Rain:</span>
+                <span className="text-blue-300 font-bold text-lg">{selectedResort.conditions.weeklyRainfall.toFixed(2)}"</span>
+              </div>
+            )}
             <div className="flex justify-between items-center">
               <span className="text-gray-700 font-semibold">Base Depth:</span>
               <span className="text-gray-700 font-bold text-lg">{selectedResort.conditions.snowDepth}"</span>

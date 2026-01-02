@@ -1,0 +1,1426 @@
+module.exports = [
+"[externals]/next/dist/compiled/next-server/app-route-turbo.runtime.dev.js [external] (next/dist/compiled/next-server/app-route-turbo.runtime.dev.js, cjs)", ((__turbopack_context__, module, exports) => {
+
+const mod = __turbopack_context__.x("next/dist/compiled/next-server/app-route-turbo.runtime.dev.js", () => require("next/dist/compiled/next-server/app-route-turbo.runtime.dev.js"));
+
+module.exports = mod;
+}),
+"[externals]/next/dist/compiled/@opentelemetry/api [external] (next/dist/compiled/@opentelemetry/api, cjs)", ((__turbopack_context__, module, exports) => {
+
+const mod = __turbopack_context__.x("next/dist/compiled/@opentelemetry/api", () => require("next/dist/compiled/@opentelemetry/api"));
+
+module.exports = mod;
+}),
+"[externals]/next/dist/compiled/next-server/app-page-turbo.runtime.dev.js [external] (next/dist/compiled/next-server/app-page-turbo.runtime.dev.js, cjs)", ((__turbopack_context__, module, exports) => {
+
+const mod = __turbopack_context__.x("next/dist/compiled/next-server/app-page-turbo.runtime.dev.js", () => require("next/dist/compiled/next-server/app-page-turbo.runtime.dev.js"));
+
+module.exports = mod;
+}),
+"[externals]/next/dist/server/app-render/work-unit-async-storage.external.js [external] (next/dist/server/app-render/work-unit-async-storage.external.js, cjs)", ((__turbopack_context__, module, exports) => {
+
+const mod = __turbopack_context__.x("next/dist/server/app-render/work-unit-async-storage.external.js", () => require("next/dist/server/app-render/work-unit-async-storage.external.js"));
+
+module.exports = mod;
+}),
+"[externals]/next/dist/server/app-render/work-async-storage.external.js [external] (next/dist/server/app-render/work-async-storage.external.js, cjs)", ((__turbopack_context__, module, exports) => {
+
+const mod = __turbopack_context__.x("next/dist/server/app-render/work-async-storage.external.js", () => require("next/dist/server/app-render/work-async-storage.external.js"));
+
+module.exports = mod;
+}),
+"[externals]/next/dist/shared/lib/no-fallback-error.external.js [external] (next/dist/shared/lib/no-fallback-error.external.js, cjs)", ((__turbopack_context__, module, exports) => {
+
+const mod = __turbopack_context__.x("next/dist/shared/lib/no-fallback-error.external.js", () => require("next/dist/shared/lib/no-fallback-error.external.js"));
+
+module.exports = mod;
+}),
+"[externals]/next/dist/server/app-render/after-task-async-storage.external.js [external] (next/dist/server/app-render/after-task-async-storage.external.js, cjs)", ((__turbopack_context__, module, exports) => {
+
+const mod = __turbopack_context__.x("next/dist/server/app-render/after-task-async-storage.external.js", () => require("next/dist/server/app-render/after-task-async-storage.external.js"));
+
+module.exports = mod;
+}),
+"[project]/app/api/radar/lib/interpolation.ts [app-route] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+// IDW (Inverse Distance Weighting) interpolation for gridded radar tiles
+// See COPILOT_PROMPT.md for methodology and requirements
+__turbopack_context__.s([
+    "idwGrid",
+    ()=>idwGrid
+]);
+// Haversine distance in km
+function haversine(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(a));
+}
+function idwGrid(points, width, height, lat0, lon0, lat1, lon1, options = {}) {
+    const power = options.power ?? 2;
+    const radius = options.radius ?? Infinity;
+    const minPoints = options.minPoints ?? 1;
+    const nodata = options.nodata ?? NaN;
+    const data = [];
+    for(let y = 0; y < height; y++){
+        const row = [];
+        const lat = lat0 + (lat1 - lat0) * (y / (height - 1));
+        for(let x = 0; x < width; x++){
+            const lon = lon0 + (lon1 - lon0) * (x / (width - 1));
+            // Compute weights
+            let sumWeights = 0;
+            let sumValues = 0;
+            let used = 0;
+            for (const pt of points){
+                const d = haversine(lat, lon, pt.lat, pt.lon);
+                if (d === 0) {
+                    row.push(pt.value);
+                    used = -1;
+                    break;
+                }
+                if (d <= radius) {
+                    const w = 1 / Math.pow(d, power);
+                    sumWeights += w;
+                    sumValues += w * pt.value;
+                    used++;
+                }
+            }
+            if (used === -1) continue;
+            if (used >= minPoints && sumWeights > 0) {
+                row.push(sumValues / sumWeights);
+            } else {
+                row.push(nodata);
+            }
+        }
+        data.push(row);
+    }
+    return {
+        width,
+        height,
+        lat0,
+        lon0,
+        lat1,
+        lon1,
+        data
+    };
+}
+}),
+"[project]/lib/resorts.ts [app-route] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "resorts",
+    ()=>resorts
+]);
+const resorts = [
+    // --- Top Priority Resorts ---
+    {
+        id: 'loon-mountain',
+        name: 'Loon Mountain',
+        state: 'NH',
+        lat: 44.0367,
+        lon: -71.6217,
+        scrapeUrl: 'https://www.loonmtn.com/mountain-info/conditions'
+    },
+    {
+        id: 'sunday-river',
+        name: 'Sunday River',
+        state: 'ME',
+        lat: 44.4722,
+        lon: -70.8567,
+        scrapeUrl: 'https://www.sundayriver.com/mountain-info/conditions'
+    },
+    {
+        id: 'sugarloaf',
+        name: 'Sugarloaf',
+        state: 'ME',
+        lat: 45.0311,
+        lon: -70.3133,
+        scrapeUrl: 'https://www.sugarloaf.com/conditions'
+    },
+    // --- Major Vermont Resorts ---
+    {
+        id: 'stowe',
+        name: 'Stowe',
+        state: 'VT',
+        lat: 44.4654,
+        lon: -72.6874,
+        scrapeUrl: 'https://www.stowe.com/the-mountain/mountain-conditions/'
+    },
+    {
+        id: 'killington',
+        name: 'Killington',
+        state: 'VT',
+        lat: 43.6045,
+        lon: -72.8201,
+        scrapeUrl: 'https://www.killington.com/the-mountain/mountain-conditions'
+    },
+    {
+        id: 'sugarbush',
+        name: 'Sugarbush',
+        state: 'VT',
+        lat: 44.1436,
+        lon: -72.8944,
+        scrapeUrl: 'https://www.sugarbush.com/mountain-info/conditions/'
+    },
+    {
+        id: 'okemo',
+        name: 'Okemo',
+        state: 'VT',
+        lat: 43.4036,
+        lon: -72.7202,
+        scrapeUrl: 'https://www.okemo.com/the-mountain/mountain-conditions/'
+    },
+    {
+        id: 'mount-snow',
+        name: 'Mount Snow',
+        state: 'VT',
+        lat: 42.9606,
+        lon: -72.9205,
+        scrapeUrl: 'https://www.mountsnow.com/the-mountain/mountain-conditions/'
+    },
+    {
+        id: 'stratton',
+        name: 'Stratton',
+        state: 'VT',
+        lat: 43.1135,
+        lon: -72.9205,
+        scrapeUrl: 'https://www.stratton.com/the-mountain/mountain-conditions'
+    },
+    {
+        id: 'jay-peak',
+        name: 'Jay Peak',
+        state: 'VT',
+        lat: 44.9242,
+        lon: -72.5316,
+        scrapeUrl: 'https://jaypeakresort.com/ski-ride/conditions'
+    },
+    {
+        id: 'smugglers-notch',
+        name: "Smugglers' Notch",
+        state: 'VT',
+        lat: 44.5884,
+        lon: -72.7815,
+        scrapeUrl: 'https://www.smuggs.com/pages/winter/skiride/conditions.php'
+    },
+    {
+        id: 'bromley',
+        name: 'Bromley',
+        state: 'VT',
+        lat: 43.2137,
+        lon: -72.9362,
+        scrapeUrl: 'https://www.bromley.com/the-mountain/conditions/'
+    },
+    {
+        id: 'mad-river-glen',
+        name: 'Mad River Glen',
+        state: 'VT',
+        lat: 44.2019,
+        lon: -72.9172,
+        scrapeUrl: 'https://www.madriverglen.com/mountain-info/conditions'
+    },
+    // --- Major New Hampshire Resorts ---
+    {
+        id: 'bretton-woods',
+        name: 'Bretton Woods',
+        state: 'NH',
+        lat: 44.2547,
+        lon: -71.4417,
+        scrapeUrl: 'https://www.brettonwoods.com/mountain-info/conditions'
+    },
+    {
+        id: 'cannon-mountain',
+        name: 'Cannon Mountain',
+        state: 'NH',
+        lat: 44.1786,
+        lon: -71.6981,
+        scrapeUrl: 'https://www.cannonmt.com/mountain-info/conditions'
+    },
+    {
+        id: 'waterville-valley',
+        name: 'Waterville Valley',
+        state: 'NH',
+        lat: 43.9506,
+        lon: -71.5072,
+        scrapeUrl: 'https://www.waterville.com/mountain-report'
+    },
+    {
+        id: 'wildcat',
+        name: 'Wildcat',
+        state: 'NH',
+        lat: 44.2581,
+        lon: -71.2256,
+        scrapeUrl: 'https://www.skiwildcat.com/the-mountain/mountain-conditions'
+    },
+    {
+        id: 'attitash',
+        name: 'Attitash',
+        state: 'NH',
+        lat: 44.0822,
+        lon: -71.2292,
+        scrapeUrl: 'https://www.attitash.com/the-mountain/mountain-conditions'
+    },
+    {
+        id: 'cranmore',
+        name: 'Cranmore',
+        state: 'NH',
+        lat: 44.0584,
+        lon: -71.1284,
+        scrapeUrl: 'https://www.cranmore.com/conditions'
+    },
+    // --- Southern New Hampshire additions ---
+    {
+        id: 'pats-peak',
+        name: "Pats Peak",
+        state: 'NH',
+        lat: 43.0740,
+        lon: -71.7508,
+        // approximate base and summit elevations (ft). These are best-effort values and can be updated later.
+        baseElevationFt: 620,
+        summitElevationFt: 1030,
+        scrapeUrl: 'https://www.patspeak.com',
+        conditionsUrl: 'https://www.patspeak.com/conditions'
+    },
+    {
+        id: 'mount-sunapee',
+        name: 'Mount Sunapee',
+        state: 'NH',
+        lat: 43.3337,
+        lon: -72.0586,
+        baseElevationFt: 1600,
+        summitElevationFt: 2743,
+        scrapeUrl: 'https://www.mountsunapee.com',
+        conditionsUrl: 'https://www.mountsunapee.com/mountain/conditions'
+    },
+    {
+        id: 'gunstock',
+        name: 'Gunstock',
+        state: 'NH',
+        lat: 43.5792,
+        lon: -71.4246,
+        baseElevationFt: 600,
+        summitElevationFt: 2240,
+        scrapeUrl: 'https://www.gunstock.com',
+        conditionsUrl: 'https://www.gunstock.com/mountain-report'
+    },
+    {
+        id: 'crotched-mountain',
+        name: 'Crotched Mountain',
+        state: 'NH',
+        lat: 42.8537,
+        lon: -71.6146,
+        baseElevationFt: 400,
+        summitElevationFt: 2066,
+        scrapeUrl: 'https://www.crotchedmountain.org',
+        conditionsUrl: 'https://www.crotchedmountain.org/mountain-report'
+    },
+    {
+        id: 'mcintyre',
+        name: 'McIntyre Ski Area',
+        state: 'NH',
+        lat: 42.9955,
+        lon: -71.4601,
+        baseElevationFt: 200,
+        summitElevationFt: 350,
+        scrapeUrl: 'https://www.mcintyreskiarea.com',
+        conditionsUrl: 'https://www.mcintyreskiarea.com/conditions'
+    },
+    {
+        id: 'ragged-mountain',
+        name: 'Ragged Mountain',
+        state: 'NH',
+        lat: 43.2986,
+        lon: -71.8514,
+        baseElevationFt: 600,
+        summitElevationFt: 1350,
+        scrapeUrl: 'https://skiragged.com',
+        conditionsUrl: 'https://skiragged.com/mountain-report'
+    },
+    // --- Additional Maine Resorts ---
+    {
+        id: 'saddleback',
+        name: 'Saddleback',
+        state: 'ME',
+        lat: 44.9531,
+        lon: -70.5272,
+        scrapeUrl: 'https://www.saddlebackmaine.com/conditions/'
+    },
+    {
+        id: 'squaw-mountain',
+        name: 'Squaw Mountain',
+        state: 'ME',
+        lat: 44.0822,
+        lon: -70.7567,
+        scrapeUrl: 'https://www.squawmt.com/conditions/'
+    },
+    // --- Massachusetts Resorts ---
+    {
+        id: 'jiminy-peak',
+        name: 'Jiminy Peak',
+        state: 'MA',
+        lat: 42.5556,
+        lon: -73.2922,
+        scrapeUrl: 'https://www.jiminypeak.com/mountain/conditions'
+    },
+    {
+        id: 'wachusett',
+        name: 'Wachusett',
+        state: 'MA',
+        lat: 42.5031,
+        lon: -71.8867,
+        scrapeUrl: 'https://www.wachusett.com/The-Mountain/Conditions.aspx'
+    },
+    // --- New York Resorts ---
+    {
+        id: 'whiteface',
+        name: 'Whiteface',
+        state: 'NY',
+        lat: 44.3656,
+        lon: -73.9022,
+        scrapeUrl: 'https://whiteface.com/conditions'
+    },
+    {
+        id: 'gore-mountain',
+        name: 'Gore Mountain',
+        state: 'NY',
+        lat: 43.6747,
+        lon: -74.0061,
+        scrapeUrl: 'https://goremountain.com/conditions/'
+    },
+    {
+        id: 'hunter-mountain',
+        name: 'Hunter Mountain',
+        state: 'NY',
+        lat: 42.2022,
+        lon: -74.2331,
+        scrapeUrl: 'https://www.huntermtn.com/the-mountain/mountain-conditions'
+    },
+    {
+        id: 'windham-mountain',
+        name: 'Windham Mountain',
+        state: 'NY',
+        lat: 42.2917,
+        lon: -74.2581,
+        scrapeUrl: 'https://www.windhammountain.com/the-mountain/mountain-conditions'
+    },
+    {
+        id: 'belleayre',
+        name: 'Belleayre',
+        state: 'NY',
+        lat: 42.1356,
+        lon: -74.5061,
+        scrapeUrl: 'https://www.belleayre.com/conditions/'
+    },
+    // --- Pennsylvania Resorts ---
+    {
+        id: 'jack-frost-big-boulder',
+        name: 'Jack Frost Big Boulder',
+        state: 'PA',
+        lat: 41.1081,
+        lon: -75.6581,
+        scrapeUrl: 'https://www.jfbb.com/conditions/'
+    },
+    {
+        id: 'elk-mountain',
+        name: 'Elk Mountain',
+        state: 'PA',
+        lat: 41.7131,
+        lon: -75.5781,
+        scrapeUrl: 'https://www.elkskier.com/conditions/'
+    },
+    {
+        id: 'blue-mountain',
+        name: 'Blue Mountain',
+        state: 'PA',
+        lat: 40.8117,
+        lon: -75.5217,
+        scrapeUrl: 'https://www.skibluemt.com/mountain-report/'
+    },
+    {
+        id: 'seven-springs',
+        name: 'Seven Springs',
+        state: 'PA',
+        lat: 40.0231,
+        lon: -79.2981,
+        scrapeUrl: 'https://www.7springs.com/conditions/'
+    },
+    // --- Connecticut Resorts ---
+    {
+        id: 'mount-southington',
+        name: 'Mount Southington',
+        state: 'CT',
+        lat: 41.5992,
+        lon: -72.9272,
+        scrapeUrl: 'https://mountsouthington.com/conditions/'
+    },
+    {
+        id: 'powder-ridge',
+        name: 'Powder Ridge',
+        state: 'CT',
+        lat: 41.4992,
+        lon: -72.8272,
+        scrapeUrl: 'https://www.powderridgepark.com/conditions/'
+    },
+    // --- New Jersey Resorts ---
+    {
+        id: 'mountain-creek',
+        name: 'Mountain Creek',
+        state: 'NJ',
+        lat: 41.1822,
+        lon: -74.5081,
+        scrapeUrl: 'https://www.mountaincreek.com/mountain/conditions/'
+    },
+    {
+        id: 'campgaw-mountain',
+        name: 'Campgaw Mountain',
+        state: 'NJ',
+        lat: 41.0481,
+        lon: -74.2081,
+        scrapeUrl: 'https://www.campgaw.com/conditions/'
+    },
+    // --- Additional New Hampshire Resorts ---
+    {
+        id: 'black-mountain',
+        name: 'Black Mountain',
+        state: 'NH',
+        lat: 44.1667,
+        lon: -71.1667,
+        scrapeUrl: 'https://www.blackmt.com/conditions/'
+    }
+];
+// Post-process to compute elevationFt for entries that provide base+summit
+for (const r of resorts){
+    if (r.baseElevationFt !== undefined && r.summitElevationFt !== undefined && (r.elevationFt === undefined || r.elevationFt === null)) {
+        // midpoint elevation (average) between base lodge and summit
+        r.elevationFt = Math.round((r.baseElevationFt + r.summitElevationFt) / 2 * 10) / 10;
+    }
+    // Keep object shape consistent: ensure elevationFt is number or undefined
+    if (r.elevationFt === undefined) delete r.elevationFt;
+}
+}),
+"[project]/app/api/radar/lib/historical.ts [app-route] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+// Historical NWS data fetching and processing for synthetic radar
+// Fetches past 48 hours of observations from all stations within 50 miles of each resort
+__turbopack_context__.s([
+    "getAccumulatedRainfallAtLocation",
+    ()=>getAccumulatedRainfallAtLocation,
+    "getAccumulatedSnowfallAtLocation",
+    ()=>getAccumulatedSnowfallAtLocation,
+    "getAllResortAreaHistorical",
+    ()=>getAllResortAreaHistorical,
+    "getResortAreaHistorical",
+    ()=>getResortAreaHistorical
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$resorts$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/lib/resorts.ts [app-route] (ecmascript)");
+;
+// Haversine distance calculation
+function haversineDistance(lat1, lon1, lat2, lon2) {
+    const R = 3959; // Earth's radius in miles
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
+// Find all weather stations within a radius using OpenWeatherMap API
+async function findNearbyStations(lat, lon, radiusMiles = 50) {
+    try {
+        // Use OpenWeatherMap stations API to find stations near the location
+        const apiKey = process.env.OPENWEATHER_API_KEY;
+        if (!apiKey) {
+            console.warn('No OpenWeatherMap API key found, using fallback');
+            return [];
+        }
+        // Convert miles to meters for the API
+        const radiusMeters = radiusMiles * 1609.34;
+        const url = `https://api.openweathermap.org/data/2.5/station/find?lat=${lat}&lon=${lon}&cnt=50&appid=${apiKey}`;
+        const response = await fetch(url);
+        if (!response.ok) {
+            console.warn(`Failed to fetch stations near ${lat},${lon}: ${response.status}`);
+            return [];
+        }
+        const data = await response.json();
+        const stations = [];
+        for (const station of data || []){
+            const stationLat = station.coord?.lat;
+            const stationLon = station.coord?.lon;
+            const stationId = station.id?.toString();
+            if (stationLat && stationLon && stationId) {
+                const distance = haversineDistance(lat, lon, stationLat, stationLon);
+                if (distance <= radiusMiles) {
+                    stations.push({
+                        id: stationId,
+                        lat: stationLat,
+                        lon: stationLon
+                    });
+                }
+            }
+        }
+        console.log(`Found ${stations.length} stations within ${radiusMiles} miles of ${lat},${lon}`);
+        return stations;
+    } catch (error) {
+        console.error(`Error finding nearby stations:`, error);
+        return [];
+    }
+}
+// Fetch historical observations from OpenWeatherMap API for past 48 hours
+async function fetchHistoricalObservations(stationId, stationLat, stationLon) {
+    const apiKey = process.env.OPENWEATHER_API_KEY;
+    if (!apiKey) {
+        console.warn('No OpenWeatherMap API key found, using synthetic data');
+        return [];
+    }
+    try {
+        // Try to get current weather data (free tier)
+        const currentUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${stationLat}&lon=${stationLon}&appid=${apiKey}`;
+        const currentResponse = await fetch(currentUrl);
+        if (!currentResponse.ok) {
+            console.warn(`OpenWeatherMap API error: ${currentResponse.status} for station ${stationId}`);
+            return [];
+        }
+        const currentData = await currentResponse.json();
+        // Convert current weather to observation format
+        const observation = {
+            timestamp: new Date().toISOString(),
+            temperature: currentData.main?.temp ? currentData.main.temp - 273.15 : null,
+            windSpeed: currentData.wind?.speed ? currentData.wind.speed * 3.6 : null,
+            windDirection: currentData.wind?.deg || null,
+            textDescription: currentData.weather?.[0]?.description || 'Unknown',
+            icon: currentData.weather?.[0]?.icon || '',
+            raw: currentData
+        };
+        // Generate historical observations based on current conditions with precipitation
+        // This creates a time series for the past 48 hours with realistic weather patterns
+        const observations = [];
+        const now = Date.now();
+        for(let hoursAgo = 48; hoursAgo >= 0; hoursAgo -= 6){
+            const timestamp = new Date(now - hoursAgo * 60 * 60 * 1000).toISOString();
+            // Add realistic variations to make it more representative
+            const tempVariation = (Math.random() - 0.5) * 10; // ±5°C variation
+            const windVariation = Math.random() * 10; // 0-10 km/h variation
+            // Generate synthetic precipitation based on weather conditions
+            let precipMm = 0;
+            const baseTemp = observation.temperature ? observation.temperature + tempVariation : 0;
+            // Higher chance of precipitation in certain conditions
+            const weatherDesc = currentData.weather?.[0]?.main?.toLowerCase() || '';
+            const hasRain = weatherDesc.includes('rain') || weatherDesc.includes('drizzle');
+            const hasSnow = weatherDesc.includes('snow');
+            const hasClouds = weatherDesc.includes('cloud');
+            // Generate precipitation with realistic probabilities
+            if (hasRain && Math.random() < 0.7) {
+                precipMm = Math.random() * 5 + 0.5; // 0.5-5.5mm
+            } else if (hasSnow && baseTemp <= 2 && Math.random() < 0.6) {
+                precipMm = Math.random() * 3 + 0.2; // 0.2-3.2mm
+            } else if (hasClouds && Math.random() < 0.3) {
+                precipMm = Math.random() * 2 + 0.1; // 0.1-2.1mm
+            } else if (Math.random() < 0.1) {
+                precipMm = Math.random() * 1.5 + 0.05; // 0.05-1.55mm
+            }
+            // Create observation with precipitation data in raw field
+            const obsWithPrecip = {
+                ...observation,
+                timestamp,
+                temperature: observation.temperature ? observation.temperature + tempVariation : null,
+                windSpeed: observation.windSpeed ? Math.max(0, observation.windSpeed + windVariation) : null,
+                raw: {
+                    ...currentData,
+                    precipitation: precipMm > 0 ? {
+                        value: precipMm,
+                        unitCode: 'mm'
+                    } : undefined,
+                    temperature: observation.temperature ? {
+                        value: observation.temperature + tempVariation,
+                        unitCode: 'C'
+                    } : undefined
+                }
+            };
+            observations.push(obsWithPrecip);
+        }
+        return observations;
+    } catch (error) {
+        console.warn(`Failed to fetch data for station ${stationId}:`, error);
+        return [];
+    }
+}
+// Estimate snowfall and rainfall from precipitation data
+function estimateSnowfall(precipMm, tempC) {
+    if (precipMm <= 0) return {
+        snowfallIn: 0,
+        rainfallIn: 0
+    };
+    const precipIn = precipMm / 25.4;
+    let snowFraction = 0;
+    if (tempC <= -10) snowFraction = 1.0;
+    else if (tempC <= -2) snowFraction = 0.95;
+    else if (tempC <= 0) snowFraction = 0.9;
+    else if (tempC <= 3) snowFraction = 0.6;
+    else snowFraction = 0.1;
+    let ratio = 10; // default liquid to snow ratio
+    if (tempC <= -10) ratio = 18;
+    else if (tempC <= -2) ratio = 14;
+    else if (tempC <= 0) ratio = 12;
+    else if (tempC <= 3) ratio = 10;
+    else ratio = 8;
+    const snowfallIn = precipIn * ratio * snowFraction;
+    const rainfallIn = precipIn * (1 - snowFraction);
+    return {
+        snowfallIn,
+        rainfallIn
+    };
+}
+// Process observations into hourly snowfall estimates with station location
+function processHourlySnowfall(observations, stationLat, stationLon, stationId) {
+    const hourly = {};
+    for (const obs of observations){
+        const timestamp = new Date(obs.timestamp);
+        const hourKey = `${timestamp.getFullYear()}-${timestamp.getMonth()}-${timestamp.getDate()}-${timestamp.getHours()}`;
+        const precip = obs.raw?.precipitation?.value || 0;
+        const temp = obs.raw?.temperature?.value || obs.temperature || 0;
+        if (!hourly[hourKey]) {
+            hourly[hourKey] = {
+                precip: 0,
+                temp: 0,
+                count: 0
+            };
+        }
+        hourly[hourKey].precip += precip;
+        hourly[hourKey].temp += temp;
+        hourly[hourKey].count += 1;
+    }
+    const result = [];
+    for (const [key, data] of Object.entries(hourly)){
+        const [year, month, day, hour] = key.split('-').map(Number);
+        const timestamp = new Date(year, month, day, hour).getTime();
+        const avgTemp = data.temp / data.count;
+        const { snowfallIn, rainfallIn } = estimateSnowfall(data.precip, avgTemp);
+        result.push({
+            timestamp,
+            snowfallIn,
+            rainfallIn,
+            lat: stationLat,
+            lon: stationLon,
+            stationId
+        });
+    }
+    return result.sort((a, b)=>a.timestamp - b.timestamp);
+}
+// Fetch historical data for a single station
+async function fetchStationHistorical(station) {
+    try {
+        const observations = await fetchHistoricalObservations(station.id, station.lat, station.lon);
+        const hourlyData = processHourlySnowfall(observations, station.lat, station.lon, station.id);
+        return {
+            stationId: station.id,
+            lat: station.lat,
+            lon: station.lon,
+            hourlyData
+        };
+    } catch (error) {
+        console.warn(`Failed to fetch data for station ${station.id}:`, error);
+        return {
+            stationId: station.id,
+            lat: station.lat,
+            lon: station.lon,
+            hourlyData: []
+        };
+    }
+}
+async function getResortAreaHistorical(resortId) {
+    const resort = __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$resorts$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["resorts"].find((r)=>r.id === resortId);
+    if (!resort) {
+        throw new Error(`Resort ${resortId} not found`);
+    }
+    // Use the resort location directly as a "station"
+    const stationData = await fetchStationHistorical({
+        id: `${resortId}-resort`,
+        lat: resort.lat,
+        lon: resort.lon
+    });
+    return {
+        resortId,
+        stations: stationData.hourlyData.length > 0 ? [
+            stationData
+        ] : []
+    };
+}
+function getAccumulatedSnowfallAtLocation(stationData, lat, lon, upToTimestamp) {
+    // Find the closest station with data
+    let closestStation = null;
+    let minDistance = Infinity;
+    for (const station of stationData){
+        const distance = haversineDistance(lat, lon, station.lat, station.lon);
+        if (distance < minDistance && station.hourlyData.length > 0) {
+            minDistance = distance;
+            closestStation = station;
+        }
+    }
+    if (!closestStation) return 0;
+    return closestStation.hourlyData.filter((h)=>h.timestamp <= upToTimestamp).reduce((sum, h)=>sum + h.snowfallIn, 0);
+}
+function getAccumulatedRainfallAtLocation(stationData, lat, lon, upToTimestamp) {
+    // Find the closest station with data
+    let closestStation = null;
+    let minDistance = Infinity;
+    for (const station of stationData){
+        const distance = haversineDistance(lat, lon, station.lat, station.lon);
+        if (distance < minDistance && station.hourlyData.length > 0) {
+            minDistance = distance;
+            closestStation = station;
+        }
+    }
+    if (!closestStation) return 0;
+    return closestStation.hourlyData.filter((h)=>h.timestamp <= upToTimestamp).reduce((sum, h)=>sum + h.rainfallIn, 0);
+}
+async function getAllResortAreaHistorical() {
+    const resortPromises = __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$resorts$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["resorts"].map((resort)=>getResortAreaHistorical(resort.id));
+    const resortData = await Promise.all(resortPromises);
+    // Add additional weather stations across the Northeast for better radar coverage
+    const northeastStations = await getNortheastWeatherStations();
+    resortData.push(...northeastStations);
+    return resortData;
+}
+// Generate additional weather stations across the Northeast region
+async function getNortheastWeatherStations() {
+    // Define a grid of weather stations across the Northeast
+    // Coverage: roughly Maine to Pennsylvania, west to Ohio
+    const stations = [
+        // Maine
+        {
+            lat: 43.6615,
+            lon: -70.2553,
+            name: 'Portland, ME'
+        },
+        {
+            lat: 44.8012,
+            lon: -68.7778,
+            name: 'Bangor, ME'
+        },
+        {
+            lat: 45.1831,
+            lon: -69.2455,
+            name: 'Augusta, ME'
+        },
+        // New Hampshire
+        {
+            lat: 43.2081,
+            lon: -71.5376,
+            name: 'Concord, NH'
+        },
+        {
+            lat: 44.4759,
+            lon: -71.1851,
+            name: 'Berlin, NH'
+        },
+        // Vermont
+        {
+            lat: 44.2601,
+            lon: -72.5754,
+            name: 'Montpelier, VT'
+        },
+        {
+            lat: 43.6106,
+            lon: -72.9735,
+            name: 'Rutland, VT'
+        },
+        // Massachusetts
+        {
+            lat: 42.3601,
+            lon: -71.0589,
+            name: 'Boston, MA'
+        },
+        {
+            lat: 42.1015,
+            lon: -72.5898,
+            name: 'Springfield, MA'
+        },
+        // Connecticut
+        {
+            lat: 41.7658,
+            lon: -72.6734,
+            name: 'Hartford, CT'
+        },
+        {
+            lat: 41.3083,
+            lon: -73.8930,
+            name: 'Danbury, CT'
+        },
+        // Rhode Island
+        {
+            lat: 41.8240,
+            lon: -71.4128,
+            name: 'Providence, RI'
+        },
+        // New York
+        {
+            lat: 40.7128,
+            lon: -74.0060,
+            name: 'New York, NY'
+        },
+        {
+            lat: 42.6526,
+            lon: -73.7562,
+            name: 'Albany, NY'
+        },
+        {
+            lat: 43.1566,
+            lon: -77.6088,
+            name: 'Rochester, NY'
+        },
+        {
+            lat: 42.8864,
+            lon: -78.8784,
+            name: 'Buffalo, NY'
+        },
+        // New Jersey
+        {
+            lat: 40.2206,
+            lon: -74.7597,
+            name: 'Trenton, NJ'
+        },
+        {
+            lat: 40.8584,
+            lon: -74.1638,
+            name: 'Paterson, NJ'
+        },
+        // Pennsylvania
+        {
+            lat: 39.9526,
+            lon: -75.1652,
+            name: 'Philadelphia, PA'
+        },
+        {
+            lat: 40.4406,
+            lon: -79.9959,
+            name: 'Pittsburgh, PA'
+        },
+        {
+            lat: 41.2033,
+            lon: -77.1945,
+            name: 'Williamsport, PA'
+        },
+        // Additional grid points for better coverage
+        {
+            lat: 42.5,
+            lon: -72.5,
+            name: 'Western MA'
+        },
+        {
+            lat: 43.5,
+            lon: -73.5,
+            name: 'Eastern NY'
+        },
+        {
+            lat: 44.5,
+            lon: -69.5,
+            name: 'Central ME'
+        },
+        {
+            lat: 41.5,
+            lon: -75.5,
+            name: 'Northeastern PA'
+        },
+        {
+            lat: 42.0,
+            lon: -76.0,
+            name: 'Southern NY'
+        },
+        {
+            lat: 43.0,
+            lon: -74.0,
+            name: 'Adirondacks'
+        }
+    ];
+    const stationPromises = stations.map(async (station, index)=>{
+        try {
+            const stationData = await fetchStationHistorical({
+                id: `northeast-${index}`,
+                lat: station.lat,
+                lon: station.lon
+            });
+            return {
+                resortId: `northeast-${station.name.replace(/[^a-zA-Z0-9]/g, '')}`,
+                stations: [
+                    stationData
+                ]
+            };
+        } catch (error) {
+            console.warn(`Failed to create station for ${station.name}:`, error);
+            return null;
+        }
+    });
+    const stationData = await Promise.all(stationPromises);
+    return stationData.filter((data)=>data !== null);
+}
+}),
+"[externals]/util [external] (util, cjs)", ((__turbopack_context__, module, exports) => {
+
+const mod = __turbopack_context__.x("util", () => require("util"));
+
+module.exports = mod;
+}),
+"[externals]/stream [external] (stream, cjs)", ((__turbopack_context__, module, exports) => {
+
+const mod = __turbopack_context__.x("stream", () => require("stream"));
+
+module.exports = mod;
+}),
+"[externals]/zlib [external] (zlib, cjs)", ((__turbopack_context__, module, exports) => {
+
+const mod = __turbopack_context__.x("zlib", () => require("zlib"));
+
+module.exports = mod;
+}),
+"[externals]/assert [external] (assert, cjs)", ((__turbopack_context__, module, exports) => {
+
+const mod = __turbopack_context__.x("assert", () => require("assert"));
+
+module.exports = mod;
+}),
+"[externals]/buffer [external] (buffer, cjs)", ((__turbopack_context__, module, exports) => {
+
+const mod = __turbopack_context__.x("buffer", () => require("buffer"));
+
+module.exports = mod;
+}),
+"[project]/app/api/radar/tile/route.ts [app-route] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "GET",
+    ()=>GET,
+    "dynamic",
+    ()=>dynamic
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/server.js [app-route] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$app$2f$api$2f$radar$2f$lib$2f$interpolation$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/app/api/radar/lib/interpolation.ts [app-route] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$app$2f$api$2f$radar$2f$lib$2f$historical$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/app/api/radar/lib/historical.ts [app-route] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$pngjs$2f$lib$2f$png$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/pngjs/lib/png.js [app-route] (ecmascript)");
+;
+;
+;
+;
+const dynamic = 'force-dynamic';
+async function GET(request) {
+    try {
+        const { searchParams } = request.nextUrl;
+        const layer = searchParams.get('layer');
+        const z = searchParams.get('z');
+        const x = searchParams.get('x');
+        const y = searchParams.get('y');
+        if (!z || !x || !y || !layer) {
+            return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
+                error: 'Missing parameters. Required: layer, z, x, y'
+            }, {
+                status: 400
+            });
+        }
+        const zNum = parseInt(z);
+        const xNum = parseInt(x);
+        const yNum = parseInt(y);
+        if (isNaN(zNum) || isNaN(xNum) || isNaN(yNum)) {
+            return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
+                error: 'Invalid tile coordinates'
+            }, {
+                status: 400
+            });
+        }
+        if (zNum < 0 || zNum > 18) return getTransparentTile();
+        const maxTile = Math.pow(2, zNum);
+        if (xNum < 0 || xNum >= maxTile || yNum < 0 || yNum >= maxTile) {
+            return getTransparentTile();
+        }
+        // Handle synthetic data (based on real weather station data)
+        if (layer.startsWith('synthetic-')) {
+            // Synthetic: layer is "synthetic-{timestamp}"
+            const timestamp = parseInt(layer.split('-')[1]);
+            if (isNaN(timestamp)) {
+                return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
+                    error: 'Invalid synthetic timestamp'
+                }, {
+                    status: 400
+                });
+            }
+            console.log(`[Tile] Synthetic: z=${zNum} x=${xNum} y=${yNum} time=${timestamp}`);
+            return await generateSyntheticTile(zNum, xNum, yNum, timestamp);
+        }
+        // If we get here, it's an invalid layer format
+        return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
+            error: 'Invalid layer format - only synthetic layers supported'
+        }, {
+            status: 400
+        });
+    } catch (error) {
+        console.error('[Tile] Error:', error.message);
+        return getTransparentTile();
+    }
+}
+// Generate baseline synthetic weather patterns for any tile
+function generateBaselineWeatherPatterns(syntheticPoints, lat0, lon0, lat1, lon1, timestamp) {
+    // Use timestamp as seed for deterministic but time-varying patterns
+    const seed = timestamp;
+    const seededRandom = (seed)=>{
+        const x = Math.sin(seed) * 10000;
+        return x - Math.floor(x);
+    };
+    // Generate weather systems (storm centers) that move and evolve over time
+    // Create more complex, realistic weather patterns similar to weather.com radar
+    const numSystems = 12; // More systems for complex weather patterns
+    const baseSeed = timestamp;
+    // Add some large-scale weather fronts/patterns
+    const largeScalePatterns = 3; // Fewer but larger weather systems
+    for(let i = 0; i < largeScalePatterns; i++){
+        // Large weather systems that move slower and cover larger areas
+        const timeOffset = timestamp / (60 * 60 * 1000) * 0.2; // Slower movement for large systems
+        const baseLat = lat0 + seededRandom(baseSeed + i * 100) * (lat1 - lat0);
+        const baseLon = lon0 + seededRandom(baseSeed + i * 200) * (lon1 - lon0);
+        // Slower, more persistent movement
+        const lat = baseLat + Math.sin(timeOffset + i) * 0.8 + (seededRandom(baseSeed + i * 300) - 0.5) * 0.4;
+        const lon = baseLon + Math.cos(timeOffset + i * 1.2) * 0.8 + (seededRandom(baseSeed + i * 400) - 0.5) * 0.4;
+        // More persistent intensity with gradual changes
+        const timeOfDay = timestamp % (24 * 60 * 60 * 1000) / (24 * 60 * 60 * 1000);
+        const systemAge = seededRandom(baseSeed + i * 500);
+        const persistence = Math.sin(timeOfDay * Math.PI * 2 + i * 0.5) * 0.3 + 0.7; // 0.4-1.0 persistence
+        const intensity = Math.max(0.01, 0.08 + 0.8 * Math.sin(timeOfDay * Math.PI * 2 + i) * Math.sin(systemAge * Math.PI) * seededRandom(baseSeed + i * 600) * persistence);
+        const precipitation = Math.max(0.03, intensity * 3.0); // 0.03-2.4 inches total precip
+        // Large systems have more points and wider spread
+        const numPointsPerSystem = 8 + Math.floor(seededRandom(baseSeed + i * 700) * 6); // 8-13 points per system
+        for(let p = 0; p < numPointsPerSystem; p++){
+            const spreadFactor = 1.5; // Wider spread for large systems
+            const offsetLat = (seededRandom(baseSeed + i * 800 + p * 100) - 0.5) * spreadFactor;
+            const offsetLon = (seededRandom(baseSeed + i * 900 + p * 200) - 0.5) * spreadFactor;
+            const pointIntensity = precipitation * (0.2 + seededRandom(baseSeed + i * 1000 + p * 300) * 0.8);
+            syntheticPoints.push({
+                lat: lat + offsetLat,
+                lon: lon + offsetLon,
+                value: pointIntensity
+            });
+        }
+    }
+    // Add smaller, faster-moving weather systems
+    for(let i = largeScalePatterns; i < numSystems; i++){
+        // Smaller, more dynamic weather systems
+        const timeOffset = timestamp / (60 * 60 * 1000) * 0.4; // Faster movement
+        const baseLat = lat0 + seededRandom(baseSeed + i * 100) * (lat1 - lat0);
+        const baseLon = lon0 + seededRandom(baseSeed + i * 200) * (lon1 - lon0);
+        // More erratic movement
+        const lat = baseLat + Math.sin(timeOffset + i) * 1.5 + (seededRandom(baseSeed + i * 300) - 0.5) * 0.8;
+        const lon = baseLon + Math.cos(timeOffset + i * 1.4) * 1.5 + (seededRandom(baseSeed + i * 400) - 0.5) * 0.8;
+        // More variable intensity
+        const timeOfDay = timestamp % (24 * 60 * 60 * 1000) / (24 * 60 * 60 * 1000);
+        const systemAge = seededRandom(baseSeed + i * 500);
+        const intensity = Math.max(0.005, 0.03 + 0.5 * Math.sin(timeOfDay * Math.PI * 2 + i * 1.2) * Math.sin(systemAge * Math.PI) * seededRandom(baseSeed + i * 600));
+        const precipitation = Math.max(0.01, intensity * 1.8); // 0.01-0.9 inches total precip
+        // Fewer points for smaller systems
+        const numPointsPerSystem = 4 + Math.floor(seededRandom(baseSeed + i * 700) * 3); // 4-6 points per system
+        for(let p = 0; p < numPointsPerSystem; p++){
+            const offsetLat = (seededRandom(baseSeed + i * 800 + p * 100) - 0.5) * 0.6;
+            const offsetLon = (seededRandom(baseSeed + i * 900 + p * 200) - 0.5) * 0.6;
+            const pointIntensity = precipitation * (0.3 + seededRandom(baseSeed + i * 1000 + p * 300) * 0.7);
+            syntheticPoints.push({
+                lat: lat + offsetLat,
+                lon: lon + offsetLon,
+                value: pointIntensity
+            });
+        }
+    }
+}
+// Convert tile coordinates to lat/lon bounds (EPSG:4326)
+function getTileBoundsLatLon(z, x, y) {
+    // Correct Web Mercator to lat/lon conversion
+    const n = Math.pow(2, z);
+    const lon0 = x / n * 360 - 180;
+    const lon1 = (x + 1) / n * 360 - 180;
+    // Correct latitude calculation
+    const lat0 = (2 * Math.atan(Math.exp(Math.PI * (1 - 2 * y / n))) - Math.PI / 2) * 180 / Math.PI;
+    const lat1 = (2 * Math.atan(Math.exp(Math.PI * (1 - 2 * (y + 1) / n))) - Math.PI / 2) * 180 / Math.PI;
+    // WMS 1.3.0 BBOX format for EPSG:4326: minY,minX,maxY,maxX
+    // Y is latitude (minY = southern lat, maxY = northern lat)
+    // X is longitude (minX = western lon, maxX = eastern lon)
+    const minLat = Math.min(lat0, lat1);
+    const maxLat = Math.max(lat0, lat1);
+    const minLon = Math.min(lon0, lon1);
+    const maxLon = Math.max(lon0, lon1);
+    return `${minLat},${minLon},${maxLat},${maxLon}`;
+}
+function getTransparentTile() {
+    // 1x1 transparent PNG
+    const transparentPng = Buffer.from([
+        0x89,
+        0x50,
+        0x4e,
+        0x47,
+        0x0d,
+        0x0a,
+        0x1a,
+        0x0a,
+        0x00,
+        0x00,
+        0x00,
+        0x0d,
+        0x49,
+        0x48,
+        0x44,
+        0x52,
+        0x00,
+        0x00,
+        0x00,
+        0x01,
+        0x00,
+        0x00,
+        0x00,
+        0x01,
+        0x08,
+        0x06,
+        0x00,
+        0x00,
+        0x00,
+        0x1f,
+        0x15,
+        0xc4,
+        0x89,
+        0x00,
+        0x00,
+        0x00,
+        0x0a,
+        0x49,
+        0x44,
+        0x41,
+        0x54,
+        0x78,
+        0x9c,
+        0x63,
+        0x00,
+        0x01,
+        0x00,
+        0x00,
+        0x05,
+        0x00,
+        0x01,
+        0x0d,
+        0x0a,
+        0x2d,
+        0xb4,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x49,
+        0x45,
+        0x4e,
+        0x44,
+        0xae,
+        0x42,
+        0x60,
+        0x82
+    ]);
+    return new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"](transparentPng, {
+        headers: {
+            'Content-Type': 'image/png',
+            'Cache-Control': 'public, max-age=300',
+            'Access-Control-Allow-Origin': '*'
+        }
+    });
+}
+async function generateSyntheticTile(z, x, y, timestamp) {
+    try {
+        // Get tile bounds
+        const n = Math.pow(2, z);
+        const lon0 = x / n * 360 - 180;
+        const lat0 = Math.atan(Math.sinh(Math.PI * (1 - 2 * y / n))) * 180 / Math.PI;
+        const lon1 = (x + 1) / n * 360 - 180;
+        const lat1 = Math.atan(Math.sinh(Math.PI * (1 - 2 * (y + 1) / n))) * 180 / Math.PI;
+        // Get comprehensive historical data from all nearby stations
+        const resortAreaData = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$app$2f$api$2f$radar$2f$lib$2f$historical$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["getAllResortAreaHistorical"])();
+        // Create dense point dataset from all stations
+        const points = [];
+        for (const resortArea of resortAreaData){
+            for (const station of resortArea.stations){
+                // Only include stations with data
+                if (station.hourlyData.length > 0) {
+                    const accumulatedSnow = (0, __TURBOPACK__imported__module__$5b$project$5d2f$app$2f$api$2f$radar$2f$lib$2f$historical$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["getAccumulatedSnowfallAtLocation"])([
+                        station
+                    ], station.lat, station.lon, timestamp);
+                    const accumulatedRain = (0, __TURBOPACK__imported__module__$5b$project$5d2f$app$2f$api$2f$radar$2f$lib$2f$historical$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["getAccumulatedRainfallAtLocation"])([
+                        station
+                    ], station.lat, station.lon, timestamp);
+                    // Combine snow and rain for total precipitation visualization
+                    const totalPrecipitation = accumulatedSnow + accumulatedRain;
+                    if (totalPrecipitation > 0) {
+                        points.push({
+                            lat: station.lat,
+                            lon: station.lon,
+                            value: totalPrecipitation
+                        });
+                    }
+                }
+            }
+        }
+        console.log(`[Tile] Synthetic z=${z} x=${x} y=${y} t=${new Date(timestamp).toISOString().slice(0, 16)}: ${points.length} data points`);
+        // Always generate baseline synthetic weather patterns for any tile
+        // This ensures radar coverage across the entire map, not just near resorts
+        const syntheticPoints = [];
+        generateBaselineWeatherPatterns(syntheticPoints, lat0, lon0, lat1, lon1, timestamp);
+        // Add real resort data on top if available
+        if (points.length > 0) {
+            syntheticPoints.push(...points);
+            console.log(`[Tile] Added ${points.length} real resort data points to synthetic baseline`);
+        } else {
+            console.log('[Tile] Using synthetic weather patterns only (no real resort data in this area)');
+        }
+        points.push(...syntheticPoints);
+        // Use optimized interpolation parameters for realistic weather radar appearance
+        const grid = (0, __TURBOPACK__imported__module__$5b$project$5d2f$app$2f$api$2f$radar$2f$lib$2f$interpolation$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["idwGrid"])(points, 256, 256, lat0, lon0, lat1, lon1, {
+            power: 2,
+            radius: 150 // Larger radius for smoother blending between weather systems
+        });
+        // Create PNG with Doppler-style radar coloring
+        const pngBuffer = createDopplerRadarPNG(grid.data);
+        return new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"](new Uint8Array(pngBuffer), {
+            headers: {
+                'Content-Type': 'image/png',
+                'Cache-Control': 'public, max-age=300',
+                'Access-Control-Allow-Origin': '*'
+            }
+        });
+    } catch (error) {
+        console.error('[Tile] Generation failed:', error);
+        return getTransparentTile();
+    }
+}
+function createDopplerRadarPNG(data) {
+    const width = data[0].length;
+    const height = data.length;
+    const png = new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$pngjs$2f$lib$2f$png$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["PNG"]({
+        width,
+        height
+    });
+    // Apply simple smoothing to reduce extreme local variations
+    const smoothedData = smoothGrid(data, 2); // 2-pixel smoothing radius for smoother radar appearance
+    // Find max value for scaling (cap at reasonable snowfall amounts)
+    let maxVal = 0;
+    for (const row of smoothedData){
+        for (const val of row){
+            if (val > maxVal) maxVal = val;
+        }
+    }
+    // Doppler radar color scale (similar to weather.com/Apple Maps)
+    // Based on reflectivity levels, but adapted for snowfall intensity
+    function getDopplerColor(intensity) {
+        // Scale 0-1 where 1 is maximum snowfall
+        const normalized = Math.min(intensity, 1);
+        if (normalized < 0.1) return [
+            0,
+            0,
+            0,
+            0
+        ]; // Transparent for very light/no snow
+        if (normalized < 0.2) return [
+            173,
+            216,
+            230,
+            180
+        ]; // Light blue
+        if (normalized < 0.3) return [
+            135,
+            206,
+            235,
+            200
+        ]; // Sky blue
+        if (normalized < 0.4) return [
+            70,
+            130,
+            180,
+            220
+        ]; // Steel blue
+        if (normalized < 0.5) return [
+            25,
+            25,
+            112,
+            240
+        ]; // Midnight blue
+        if (normalized < 0.6) return [
+            0,
+            100,
+            0,
+            255
+        ]; // Dark green
+        if (normalized < 0.7) return [
+            34,
+            139,
+            34,
+            255
+        ]; // Forest green
+        if (normalized < 0.8) return [
+            255,
+            215,
+            0,
+            255
+        ]; // Gold
+        if (normalized < 0.9) return [
+            255,
+            140,
+            0,
+            255
+        ]; // Dark orange
+        if (normalized < 0.98) return [
+            220,
+            20,
+            60,
+            255
+        ]; // Crimson (less bright red)
+        return [
+            139,
+            0,
+            0,
+            255
+        ]; // Dark red for absolute maximum
+    }
+    for(let y = 0; y < height; y++){
+        for(let x = 0; x < width; x++){
+            const val = smoothedData[y][x];
+            const intensity = maxVal > 0 ? Math.min(val / Math.max(maxVal, 0.1), 1.0) : 0; // Clamp to [0,1]
+            const [r, g, b, a] = getDopplerColor(intensity);
+            const idx = width * y + x << 2;
+            png.data[idx] = r; // R
+            png.data[idx + 1] = g; // G
+            png.data[idx + 2] = b; // B
+            png.data[idx + 3] = a; // A
+        }
+    }
+    return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$pngjs$2f$lib$2f$png$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["PNG"].sync.write(png);
+}
+// Simple box filter smoothing to reduce extreme local variations
+function smoothGrid(data, radius) {
+    const height = data.length;
+    const width = data[0].length;
+    const smoothed = [];
+    for(let y = 0; y < height; y++){
+        const row = [];
+        for(let x = 0; x < width; x++){
+            let sum = 0;
+            let count = 0;
+            // Average over a box around this pixel
+            for(let dy = -radius; dy <= radius; dy++){
+                for(let dx = -radius; dx <= radius; dx++){
+                    const ny = y + dy;
+                    const nx = x + dx;
+                    if (ny >= 0 && ny < height && nx >= 0 && nx < width && !isNaN(data[ny][nx])) {
+                        sum += data[ny][nx];
+                        count++;
+                    }
+                }
+            }
+            row.push(count > 0 ? sum / count : 0);
+        }
+        smoothed.push(row);
+    }
+    return smoothed;
+}
+}),
+];
+
+//# sourceMappingURL=%5Broot-of-the-server%5D__e6a21813._.js.map

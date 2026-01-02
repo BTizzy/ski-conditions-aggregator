@@ -1,1 +1,3 @@
-{}
+{
+  "/api/radar/tile/route": "app/api/radar/tile/route.js"
+}

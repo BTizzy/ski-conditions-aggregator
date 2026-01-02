@@ -505,6 +505,7 @@ for (const r of resorts){
 
 // Historical NWS data fetching and processing for synthetic radar
 // Fetches past 48 hours of observations from all stations within 50 miles of each resort
+// Enhanced with OpenWeatherMap for better precipitation data
 __turbopack_context__.s([
     "getAccumulatedRainfallAtLocation",
     ()=>getAccumulatedRainfallAtLocation,
@@ -517,6 +518,10 @@ __turbopack_context__.s([
 ]);
 var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$resorts$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/lib/resorts.ts [app-route] (ecmascript)");
 ;
+// Cache for resort area historical data
+let cachedResortData = null;
+let cacheTimestamp = 0;
+const CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
 // Haversine distance calculation
 function haversineDistance(lat1, lon1, lat2, lon2) {
     const R = 3959; // Earth's radius in miles
@@ -575,79 +580,115 @@ async function fetchHistoricalObservations(stationId, stationLat, stationLon) {
         return [];
     }
     try {
-        // Try to get current weather data (free tier)
-        const currentUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${stationLat}&lon=${stationLon}&appid=${apiKey}`;
-        const currentResponse = await fetch(currentUrl);
-        if (!currentResponse.ok) {
-            console.warn(`OpenWeatherMap API error: ${currentResponse.status} for station ${stationId}`);
+        // Get 5-day forecast data (3-hour intervals) for better precipitation accuracy
+        const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${stationLat}&lon=${stationLon}&appid=${apiKey}&units=metric`;
+        const forecastResponse = await fetch(forecastUrl);
+        if (!forecastResponse.ok) {
+            if (forecastResponse.status === 429) {
+                console.warn(`OpenWeatherMap API error: 429 (rate limit exceeded) for station ${stationId}`);
+            } else {
+                console.warn(`OpenWeatherMap API error: ${forecastResponse.status} for station ${stationId}`);
+            }
             return [];
         }
-        const currentData = await currentResponse.json();
-        // Convert current weather to observation format
-        const observation = {
-            timestamp: new Date().toISOString(),
-            temperature: currentData.main?.temp ? currentData.main.temp - 273.15 : null,
-            windSpeed: currentData.wind?.speed ? currentData.wind.speed * 3.6 : null,
-            windDirection: currentData.wind?.deg || null,
-            textDescription: currentData.weather?.[0]?.description || 'Unknown',
-            icon: currentData.weather?.[0]?.icon || '',
-            raw: currentData
-        };
-        // Generate historical observations based on current conditions with precipitation
-        // This creates a time series for the past 48 hours with realistic weather patterns
+        const forecastData = await forecastResponse.json();
+        // Convert forecast data to observation format
         const observations = [];
-        const now = Date.now();
-        for(let hoursAgo = 48; hoursAgo >= 0; hoursAgo -= 6){
-            const timestamp = new Date(now - hoursAgo * 60 * 60 * 1000).toISOString();
-            // Add realistic variations to make it more representative
-            const tempVariation = (Math.random() - 0.5) * 10; // ±5°C variation
-            const windVariation = Math.random() * 10; // 0-10 km/h variation
-            // Generate synthetic precipitation based on weather conditions
-            let precipMm = 0;
-            const baseTemp = observation.temperature ? observation.temperature + tempVariation : 0;
-            // Higher chance of precipitation in certain conditions
-            const weatherDesc = currentData.weather?.[0]?.main?.toLowerCase() || '';
-            const hasRain = weatherDesc.includes('rain') || weatherDesc.includes('drizzle');
-            const hasSnow = weatherDesc.includes('snow');
-            const hasClouds = weatherDesc.includes('cloud');
-            // Generate precipitation with realistic probabilities
-            if (hasRain && Math.random() < 0.7) {
-                precipMm = Math.random() * 5 + 0.5; // 0.5-5.5mm
-            } else if (hasSnow && baseTemp <= 2 && Math.random() < 0.6) {
-                precipMm = Math.random() * 3 + 0.2; // 0.2-3.2mm
-            } else if (hasClouds && Math.random() < 0.3) {
-                precipMm = Math.random() * 2 + 0.1; // 0.1-2.1mm
-            } else if (Math.random() < 0.1) {
-                precipMm = Math.random() * 1.5 + 0.05; // 0.05-1.55mm
-            }
-            // Create observation with precipitation data in raw field
-            const obsWithPrecip = {
-                ...observation,
-                timestamp,
-                temperature: observation.temperature ? observation.temperature + tempVariation : null,
-                windSpeed: observation.windSpeed ? Math.max(0, observation.windSpeed + windVariation) : null,
+        for (const item of forecastData.list){
+            // Extract precipitation data (rain and snow are separate in OpenWeatherMap)
+            const rainMm = item.rain?.['3h'] || 0; // Rain in last 3 hours
+            const snowMm = item.snow?.['3h'] || 0; // Snow in last 3 hours
+            const totalPrecipMm = rainMm + snowMm;
+            const observation = {
+                timestamp: new Date(item.dt * 1000).toISOString(),
+                temperature: item.main?.temp || null,
+                windSpeed: item.wind?.speed ? item.wind.speed * 3.6 : null,
+                windDirection: item.wind?.deg || null,
+                textDescription: item.weather?.[0]?.description || 'Unknown',
+                icon: item.weather?.[0]?.icon || '',
                 raw: {
-                    ...currentData,
-                    precipitation: precipMm > 0 ? {
-                        value: precipMm,
+                    ...item,
+                    precipitation: totalPrecipMm > 0 ? {
+                        value: totalPrecipMm,
                         unitCode: 'mm'
                     } : undefined,
-                    temperature: observation.temperature ? {
-                        value: observation.temperature + tempVariation,
+                    temperature: item.main?.temp ? {
+                        value: item.main.temp,
                         unitCode: 'C'
+                    } : undefined,
+                    // Store rain/snow separately for better snow estimation
+                    rain: rainMm > 0 ? {
+                        value: rainMm,
+                        unitCode: 'mm'
+                    } : undefined,
+                    snow: snowMm > 0 ? {
+                        value: snowMm,
+                        unitCode: 'mm'
                     } : undefined
                 }
             };
-            observations.push(obsWithPrecip);
+            observations.push(observation);
+        }
+        // If we have forecast data, also get current conditions for more recent data
+        try {
+            const currentUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${stationLat}&lon=${stationLon}&appid=${apiKey}&units=metric`;
+            const currentResponse = await fetch(currentUrl);
+            if (currentResponse.ok) {
+                const currentData = await currentResponse.json();
+                // Add current observation if it's not already covered by forecast
+                const currentTime = new Date().getTime() / 1000;
+                const hasRecentData = observations.some((obs)=>{
+                    const obsTime = new Date(obs.timestamp).getTime() / 1000;
+                    return Math.abs(obsTime - currentTime) < 3600; // Within 1 hour
+                });
+                if (!hasRecentData) {
+                    const currentObservation = {
+                        timestamp: new Date().toISOString(),
+                        temperature: currentData.main?.temp || null,
+                        windSpeed: currentData.wind?.speed ? currentData.wind.speed * 3.6 : null,
+                        windDirection: currentData.wind?.deg || null,
+                        textDescription: currentData.weather?.[0]?.description || 'Unknown',
+                        icon: currentData.weather?.[0]?.icon || '',
+                        raw: {
+                            ...currentData,
+                            precipitation: undefined,
+                            temperature: currentData.main?.temp ? {
+                                value: currentData.main.temp,
+                                unitCode: 'C'
+                            } : undefined
+                        }
+                    };
+                    observations.unshift(currentObservation); // Add at beginning
+                }
+            }
+        } catch (currentError) {
+            console.warn(`Failed to fetch current weather for station ${stationId}:`, currentError);
+        // Continue with forecast data only
         }
         return observations;
     } catch (error) {
-        console.warn(`Failed to fetch data for station ${stationId}:`, error);
+        console.warn(`Failed to fetch forecast data for station ${stationId}:`, error);
         return [];
     }
 }
 // Estimate snowfall and rainfall from precipitation data
-function estimateSnowfall(precipMm, tempC) {
+function estimateSnowfall(precipMm, tempC, rainMm, snowMm) {
+    // If we have direct rain/snow data from OpenWeatherMap, use it directly
+    if (rainMm !== undefined && snowMm !== undefined) {
+        const totalPrecipMm = rainMm + snowMm;
+        if (totalPrecipMm <= 0) return {
+            snowfallIn: 0,
+            rainfallIn: 0
+        };
+        // Convert mm to inches
+        const snowfallIn = snowMm / 25.4;
+        const rainfallIn = rainMm / 25.4;
+        return {
+            snowfallIn,
+            rainfallIn
+        };
+    }
+    // Fallback to temperature-based estimation if no direct rain/snow data
     if (precipMm <= 0) return {
         snowfallIn: 0,
         rainfallIn: 0
@@ -678,16 +719,24 @@ function processHourlySnowfall(observations, stationLat, stationLon, stationId) 
     for (const obs of observations){
         const timestamp = new Date(obs.timestamp);
         const hourKey = `${timestamp.getFullYear()}-${timestamp.getMonth()}-${timestamp.getDate()}-${timestamp.getHours()}`;
-        const precip = obs.raw?.precipitation?.value || 0;
+        // Get rain and snow data separately if available, otherwise fall back to total precipitation
+        const rainMm = obs.raw?.rain?.value || 0;
+        const snowMm = obs.raw?.snow?.value || 0;
+        const totalPrecip = obs.raw?.precipitation?.value || 0;
+        // If we don't have separate rain/snow data, assume all precipitation is rain (will be converted in estimateSnowfall)
+        const effectiveRain = rainMm + snowMm > 0 ? rainMm : totalPrecip;
+        const effectiveSnow = snowMm;
         const temp = obs.raw?.temperature?.value || obs.temperature || 0;
         if (!hourly[hourKey]) {
             hourly[hourKey] = {
-                precip: 0,
+                rain: 0,
+                snow: 0,
                 temp: 0,
                 count: 0
             };
         }
-        hourly[hourKey].precip += precip;
+        hourly[hourKey].rain += effectiveRain;
+        hourly[hourKey].snow += effectiveSnow;
         hourly[hourKey].temp += temp;
         hourly[hourKey].count += 1;
     }
@@ -696,7 +745,7 @@ function processHourlySnowfall(observations, stationLat, stationLon, stationId) 
         const [year, month, day, hour] = key.split('-').map(Number);
         const timestamp = new Date(year, month, day, hour).getTime();
         const avgTemp = data.temp / data.count;
-        const { snowfallIn, rainfallIn } = estimateSnowfall(data.precip, avgTemp);
+        const { snowfallIn, rainfallIn } = estimateSnowfall(data.rain + data.snow, avgTemp, data.rain, data.snow);
         result.push({
             timestamp,
             snowfallIn,
@@ -776,17 +825,29 @@ function getAccumulatedRainfallAtLocation(stationData, lat, lon, upToTimestamp) 
     return closestStation.hourlyData.filter((h)=>h.timestamp <= upToTimestamp).reduce((sum, h)=>sum + h.rainfallIn, 0);
 }
 async function getAllResortAreaHistorical() {
+    // Check if we have valid cached data
+    const now = Date.now();
+    if (cachedResortData && now - cacheTimestamp < CACHE_DURATION) {
+        console.log(`[Historical] Using cached resort data (${Math.round((now - cacheTimestamp) / 1000)}s old)`);
+        return cachedResortData;
+    }
+    console.log('[Historical] Fetching fresh resort area historical data...');
     const resortPromises = __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$resorts$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["resorts"].map((resort)=>getResortAreaHistorical(resort.id));
     const resortData = await Promise.all(resortPromises);
     // Add additional weather stations across the Northeast for better radar coverage
     const northeastStations = await getNortheastWeatherStations();
     resortData.push(...northeastStations);
+    // Cache the results
+    cachedResortData = resortData;
+    cacheTimestamp = now;
+    console.log(`[Historical] Cached ${resortData.length} resort areas with weather data`);
     return resortData;
 }
 // Generate additional weather stations across the Northeast region
 async function getNortheastWeatherStations() {
     // Define a grid of weather stations across the Northeast
     // Coverage: roughly Maine to Pennsylvania, west to Ohio
+    // Reduced from 27 to 9 stations to avoid rate limiting
     const stations = [
         // Maine
         {
@@ -794,26 +855,11 @@ async function getNortheastWeatherStations() {
             lon: -70.2553,
             name: 'Portland, ME'
         },
-        {
-            lat: 44.8012,
-            lon: -68.7778,
-            name: 'Bangor, ME'
-        },
-        {
-            lat: 45.1831,
-            lon: -69.2455,
-            name: 'Augusta, ME'
-        },
         // New Hampshire
         {
             lat: 43.2081,
             lon: -71.5376,
             name: 'Concord, NH'
-        },
-        {
-            lat: 44.4759,
-            lon: -71.1851,
-            name: 'Berlin, NH'
         },
         // Vermont
         {
@@ -821,38 +867,17 @@ async function getNortheastWeatherStations() {
             lon: -72.5754,
             name: 'Montpelier, VT'
         },
-        {
-            lat: 43.6106,
-            lon: -72.9735,
-            name: 'Rutland, VT'
-        },
         // Massachusetts
         {
             lat: 42.3601,
             lon: -71.0589,
             name: 'Boston, MA'
         },
-        {
-            lat: 42.1015,
-            lon: -72.5898,
-            name: 'Springfield, MA'
-        },
         // Connecticut
         {
             lat: 41.7658,
             lon: -72.6734,
             name: 'Hartford, CT'
-        },
-        {
-            lat: 41.3083,
-            lon: -73.8930,
-            name: 'Danbury, CT'
-        },
-        // Rhode Island
-        {
-            lat: 41.8240,
-            lon: -71.4128,
-            name: 'Providence, RI'
         },
         // New York
         {
@@ -865,69 +890,13 @@ async function getNortheastWeatherStations() {
             lon: -73.7562,
             name: 'Albany, NY'
         },
-        {
-            lat: 43.1566,
-            lon: -77.6088,
-            name: 'Rochester, NY'
-        },
-        {
-            lat: 42.8864,
-            lon: -78.8784,
-            name: 'Buffalo, NY'
-        },
-        // New Jersey
-        {
-            lat: 40.2206,
-            lon: -74.7597,
-            name: 'Trenton, NJ'
-        },
-        {
-            lat: 40.8584,
-            lon: -74.1638,
-            name: 'Paterson, NJ'
-        },
         // Pennsylvania
         {
             lat: 39.9526,
             lon: -75.1652,
             name: 'Philadelphia, PA'
         },
-        {
-            lat: 40.4406,
-            lon: -79.9959,
-            name: 'Pittsburgh, PA'
-        },
-        {
-            lat: 41.2033,
-            lon: -77.1945,
-            name: 'Williamsport, PA'
-        },
-        // Additional grid points for better coverage
-        {
-            lat: 42.5,
-            lon: -72.5,
-            name: 'Western MA'
-        },
-        {
-            lat: 43.5,
-            lon: -73.5,
-            name: 'Eastern NY'
-        },
-        {
-            lat: 44.5,
-            lon: -69.5,
-            name: 'Central ME'
-        },
-        {
-            lat: 41.5,
-            lon: -75.5,
-            name: 'Northeastern PA'
-        },
-        {
-            lat: 42.0,
-            lon: -76.0,
-            name: 'Southern NY'
-        },
+        // Additional grid point for coverage
         {
             lat: 43.0,
             lon: -74.0,
@@ -936,6 +905,10 @@ async function getNortheastWeatherStations() {
     ];
     const stationPromises = stations.map(async (station, index)=>{
         try {
+            // Add delay between API calls to avoid rate limiting (1 second between calls)
+            if (index > 0) {
+                await new Promise((resolve)=>setTimeout(resolve, 1000));
+            }
             const stationData = await fetchStationHistorical({
                 id: `northeast-${index}`,
                 lat: station.lat,
@@ -943,9 +916,9 @@ async function getNortheastWeatherStations() {
             });
             return {
                 resortId: `northeast-${station.name.replace(/[^a-zA-Z0-9]/g, '')}`,
-                stations: [
+                stations: stationData.hourlyData.length > 0 ? [
                     stationData
-                ]
+                ] : []
             };
         } catch (error) {
             console.warn(`Failed to create station for ${station.name}:`, error);
@@ -1033,9 +1006,9 @@ async function GET(request) {
         if (xNum < 0 || xNum >= maxTile || yNum < 0 || yNum >= maxTile) {
             return getTransparentTile();
         }
-        // Handle synthetic data (based on real weather station data)
+        // Handle real weather data (based on resort observations and weather stations)
         if (layer.startsWith('synthetic-')) {
-            // Synthetic: layer is "synthetic-{timestamp}"
+            // Layer is "synthetic-{timestamp}" but now uses real weather data
             const timestamp = parseInt(layer.split('-')[1]);
             if (isNaN(timestamp)) {
                 return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
@@ -1044,12 +1017,13 @@ async function GET(request) {
                     status: 400
                 });
             }
-            console.log(`[Tile] Synthetic: z=${zNum} x=${xNum} y=${yNum} time=${timestamp}`);
-            return await generateSyntheticTile(zNum, xNum, yNum, timestamp);
+            console.log(`[Tile] Real weather data: z=${zNum} x=${xNum} y=${yNum} time=${timestamp}`);
+            // Generate tile with real weather data from resort observations and weather stations
+            return await generatePurelySyntheticTile(zNum, xNum, yNum, timestamp);
         }
         // If we get here, it's an invalid layer format
         return __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$server$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["NextResponse"].json({
-            error: 'Invalid layer format - only synthetic layers supported'
+            error: 'Invalid layer format - only real weather data layers supported'
         }, {
             status: 400
         });
@@ -1058,74 +1032,36 @@ async function GET(request) {
         return getTransparentTile();
     }
 }
-// Generate baseline synthetic weather patterns for any tile
-function generateBaselineWeatherPatterns(syntheticPoints, lat0, lon0, lat1, lon1, timestamp) {
-    // Use timestamp as seed for deterministic but time-varying patterns
-    const seed = timestamp;
-    const seededRandom = (seed)=>{
-        const x = Math.sin(seed) * 10000;
-        return x - Math.floor(x);
-    };
-    // Generate weather systems (storm centers) that move and evolve over time
-    // Create more complex, realistic weather patterns similar to weather.com radar
-    const numSystems = 12; // More systems for complex weather patterns
-    const baseSeed = timestamp;
-    // Add some large-scale weather fronts/patterns
-    const largeScalePatterns = 3; // Fewer but larger weather systems
-    for(let i = 0; i < largeScalePatterns; i++){
-        // Large weather systems that move slower and cover larger areas
-        const timeOffset = timestamp / (60 * 60 * 1000) * 0.2; // Slower movement for large systems
-        const baseLat = lat0 + seededRandom(baseSeed + i * 100) * (lat1 - lat0);
-        const baseLon = lon0 + seededRandom(baseSeed + i * 200) * (lon1 - lon0);
-        // Slower, more persistent movement
-        const lat = baseLat + Math.sin(timeOffset + i) * 0.8 + (seededRandom(baseSeed + i * 300) - 0.5) * 0.4;
-        const lon = baseLon + Math.cos(timeOffset + i * 1.2) * 0.8 + (seededRandom(baseSeed + i * 400) - 0.5) * 0.4;
-        // More persistent intensity with gradual changes
-        const timeOfDay = timestamp % (24 * 60 * 60 * 1000) / (24 * 60 * 60 * 1000);
-        const systemAge = seededRandom(baseSeed + i * 500);
-        const persistence = Math.sin(timeOfDay * Math.PI * 2 + i * 0.5) * 0.3 + 0.7; // 0.4-1.0 persistence
-        const intensity = Math.max(0.01, 0.08 + 0.8 * Math.sin(timeOfDay * Math.PI * 2 + i) * Math.sin(systemAge * Math.PI) * seededRandom(baseSeed + i * 600) * persistence);
-        const precipitation = Math.max(0.03, intensity * 3.0); // 0.03-2.4 inches total precip
-        // Large systems have more points and wider spread
-        const numPointsPerSystem = 8 + Math.floor(seededRandom(baseSeed + i * 700) * 6); // 8-13 points per system
-        for(let p = 0; p < numPointsPerSystem; p++){
-            const spreadFactor = 1.5; // Wider spread for large systems
-            const offsetLat = (seededRandom(baseSeed + i * 800 + p * 100) - 0.5) * spreadFactor;
-            const offsetLon = (seededRandom(baseSeed + i * 900 + p * 200) - 0.5) * spreadFactor;
-            const pointIntensity = precipitation * (0.2 + seededRandom(baseSeed + i * 1000 + p * 300) * 0.8);
-            syntheticPoints.push({
-                lat: lat + offsetLat,
-                lon: lon + offsetLon,
-                value: pointIntensity
-            });
+// Generate real weather data points from resort observations and weather stations
+async function generateRealWeatherDataPoints(timestamp) {
+    try {
+        // Fetch all resort area historical data including additional weather stations
+        const resortAreaData = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$app$2f$api$2f$radar$2f$lib$2f$historical$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["getAllResortAreaHistorical"])();
+        const realPoints = [];
+        // Create Point objects at station locations with accumulated precipitation
+        for (const resortArea of resortAreaData){
+            for (const station of resortArea.stations){
+                // Get accumulated snowfall and rainfall up to the given timestamp
+                const snowfall = (0, __TURBOPACK__imported__module__$5b$project$5d2f$app$2f$api$2f$radar$2f$lib$2f$historical$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["getAccumulatedSnowfallAtLocation"])(resortArea.stations, station.lat, station.lon, timestamp);
+                const rainfall = (0, __TURBOPACK__imported__module__$5b$project$5d2f$app$2f$api$2f$radar$2f$lib$2f$historical$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["getAccumulatedRainfallAtLocation"])(resortArea.stations, station.lat, station.lon, timestamp);
+                // Combine snowfall and rainfall for total precipitation value
+                // Weight snowfall more heavily as it's more visible on radar
+                const totalPrecipitation = snowfall + rainfall * 0.1;
+                // Only add points with meaningful precipitation
+                if (totalPrecipitation > 0) {
+                    realPoints.push({
+                        lat: station.lat,
+                        lon: station.lon,
+                        value: totalPrecipitation
+                    });
+                }
+            }
         }
-    }
-    // Add smaller, faster-moving weather systems
-    for(let i = largeScalePatterns; i < numSystems; i++){
-        // Smaller, more dynamic weather systems
-        const timeOffset = timestamp / (60 * 60 * 1000) * 0.4; // Faster movement
-        const baseLat = lat0 + seededRandom(baseSeed + i * 100) * (lat1 - lat0);
-        const baseLon = lon0 + seededRandom(baseSeed + i * 200) * (lon1 - lon0);
-        // More erratic movement
-        const lat = baseLat + Math.sin(timeOffset + i) * 1.5 + (seededRandom(baseSeed + i * 300) - 0.5) * 0.8;
-        const lon = baseLon + Math.cos(timeOffset + i * 1.4) * 1.5 + (seededRandom(baseSeed + i * 400) - 0.5) * 0.8;
-        // More variable intensity
-        const timeOfDay = timestamp % (24 * 60 * 60 * 1000) / (24 * 60 * 60 * 1000);
-        const systemAge = seededRandom(baseSeed + i * 500);
-        const intensity = Math.max(0.005, 0.03 + 0.5 * Math.sin(timeOfDay * Math.PI * 2 + i * 1.2) * Math.sin(systemAge * Math.PI) * seededRandom(baseSeed + i * 600));
-        const precipitation = Math.max(0.01, intensity * 1.8); // 0.01-0.9 inches total precip
-        // Fewer points for smaller systems
-        const numPointsPerSystem = 4 + Math.floor(seededRandom(baseSeed + i * 700) * 3); // 4-6 points per system
-        for(let p = 0; p < numPointsPerSystem; p++){
-            const offsetLat = (seededRandom(baseSeed + i * 800 + p * 100) - 0.5) * 0.6;
-            const offsetLon = (seededRandom(baseSeed + i * 900 + p * 200) - 0.5) * 0.6;
-            const pointIntensity = precipitation * (0.3 + seededRandom(baseSeed + i * 1000 + p * 300) * 0.7);
-            syntheticPoints.push({
-                lat: lat + offsetLat,
-                lon: lon + offsetLon,
-                value: pointIntensity
-            });
-        }
+        console.log(`[Tile] Generated ${realPoints.length} real weather data points for timestamp ${new Date(timestamp).toISOString()}`);
+        return realPoints;
+    } catch (error) {
+        console.error('[Tile] Error generating real weather data points:', error.message);
+        return [];
     }
 }
 // Convert tile coordinates to lat/lon bounds (EPSG:4326)
@@ -1225,7 +1161,7 @@ function getTransparentTile() {
         }
     });
 }
-async function generateSyntheticTile(z, x, y, timestamp) {
+async function generatePurelySyntheticTile(z, x, y, timestamp) {
     try {
         // Get tile bounds
         const n = Math.pow(2, z);
@@ -1233,47 +1169,16 @@ async function generateSyntheticTile(z, x, y, timestamp) {
         const lat0 = Math.atan(Math.sinh(Math.PI * (1 - 2 * y / n))) * 180 / Math.PI;
         const lon1 = (x + 1) / n * 360 - 180;
         const lat1 = Math.atan(Math.sinh(Math.PI * (1 - 2 * (y + 1) / n))) * 180 / Math.PI;
-        // Get comprehensive historical data from all nearby stations
-        const resortAreaData = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$app$2f$api$2f$radar$2f$lib$2f$historical$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["getAllResortAreaHistorical"])();
-        // Create dense point dataset from all stations
-        const points = [];
-        for (const resortArea of resortAreaData){
-            for (const station of resortArea.stations){
-                // Only include stations with data
-                if (station.hourlyData.length > 0) {
-                    const accumulatedSnow = (0, __TURBOPACK__imported__module__$5b$project$5d2f$app$2f$api$2f$radar$2f$lib$2f$historical$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["getAccumulatedSnowfallAtLocation"])([
-                        station
-                    ], station.lat, station.lon, timestamp);
-                    const accumulatedRain = (0, __TURBOPACK__imported__module__$5b$project$5d2f$app$2f$api$2f$radar$2f$lib$2f$historical$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["getAccumulatedRainfallAtLocation"])([
-                        station
-                    ], station.lat, station.lon, timestamp);
-                    // Combine snow and rain for total precipitation visualization
-                    const totalPrecipitation = accumulatedSnow + accumulatedRain;
-                    if (totalPrecipitation > 0) {
-                        points.push({
-                            lat: station.lat,
-                            lon: station.lon,
-                            value: totalPrecipitation
-                        });
-                    }
-                }
-            }
+        // Generate real weather data points from resort observations and weather stations
+        const realPoints = await generateRealWeatherDataPoints(timestamp);
+        console.log(`[Tile] Real weather data z=${z} x=${x} y=${y} t=${new Date(timestamp).toISOString().slice(0, 16)}: ${realPoints.length} data points`);
+        // If no real data is available, return transparent tile
+        if (realPoints.length === 0) {
+            console.log('[Tile] No real weather data available, returning transparent tile');
+            return getTransparentTile();
         }
-        console.log(`[Tile] Synthetic z=${z} x=${x} y=${y} t=${new Date(timestamp).toISOString().slice(0, 16)}: ${points.length} data points`);
-        // Always generate baseline synthetic weather patterns for any tile
-        // This ensures radar coverage across the entire map, not just near resorts
-        const syntheticPoints = [];
-        generateBaselineWeatherPatterns(syntheticPoints, lat0, lon0, lat1, lon1, timestamp);
-        // Add real resort data on top if available
-        if (points.length > 0) {
-            syntheticPoints.push(...points);
-            console.log(`[Tile] Added ${points.length} real resort data points to synthetic baseline`);
-        } else {
-            console.log('[Tile] Using synthetic weather patterns only (no real resort data in this area)');
-        }
-        points.push(...syntheticPoints);
         // Use optimized interpolation parameters for realistic weather radar appearance
-        const grid = (0, __TURBOPACK__imported__module__$5b$project$5d2f$app$2f$api$2f$radar$2f$lib$2f$interpolation$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["idwGrid"])(points, 256, 256, lat0, lon0, lat1, lon1, {
+        const grid = (0, __TURBOPACK__imported__module__$5b$project$5d2f$app$2f$api$2f$radar$2f$lib$2f$interpolation$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["idwGrid"])(realPoints, 256, 256, lat0, lon0, lat1, lon1, {
             power: 2,
             radius: 150 // Larger radius for smoother blending between weather systems
         });
@@ -1287,7 +1192,7 @@ async function generateSyntheticTile(z, x, y, timestamp) {
             }
         });
     } catch (error) {
-        console.error('[Tile] Generation failed:', error);
+        console.error('[Tile] Error generating tile with real weather data:', error.message);
         return getTransparentTile();
     }
 }

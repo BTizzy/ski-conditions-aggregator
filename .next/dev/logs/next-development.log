@@ -1,1 +1,59 @@
-[00:00:00.453] Server  LOG     ✓ Ready in 302ms
+[00:00:00.741] Server  LOG     ✓ Ready in 458ms
+[00:00:33.540] Server  LOG     [Tile] Real weather data: z=7 x=38 y=48 time=1767355200000
+[00:00:33.543] Server  LOG     [Historical] Fetching fresh resort area historical data...
+[00:00:33.813] Server  WARN    Failed to fetch forecast data for station loon-mountain-resort: TypeError: fetch failed
+[00:00:33.896] Server  WARN    Failed to fetch forecast data for station sunday-river-resort: TypeError: fetch failed
+[00:00:33.962] Server  WARN    Failed to fetch forecast data for station sugarloaf-resort: TypeError: fetch failed
+[00:00:34.039] Server  WARN    Failed to fetch forecast data for station stowe-resort: TypeError: fetch failed
+[00:00:34.102] Server  WARN    Failed to fetch forecast data for station killington-resort: TypeError: fetch failed
+[00:00:34.167] Server  WARN    Failed to fetch forecast data for station sugarbush-resort: TypeError: fetch failed
+[00:00:34.230] Server  WARN    Failed to fetch forecast data for station okemo-resort: TypeError: fetch failed
+[00:00:34.296] Server  WARN    Failed to fetch forecast data for station mount-snow-resort: TypeError: fetch failed
+[00:00:34.359] Server  WARN    Failed to fetch forecast data for station stratton-resort: TypeError: fetch failed
+[00:00:34.420] Server  WARN    Failed to fetch forecast data for station jay-peak-resort: TypeError: fetch failed
+[00:00:34.485] Server  WARN    Failed to fetch forecast data for station smugglers-notch-resort: TypeError: fetch failed
+[00:00:34.553] Server  WARN    Failed to fetch forecast data for station bromley-resort: TypeError: fetch failed
+[00:00:34.615] Server  WARN    Failed to fetch forecast data for station mad-river-glen-resort: TypeError: fetch failed
+[00:00:34.682] Server  WARN    Failed to fetch forecast data for station bretton-woods-resort: TypeError: fetch failed
+[00:00:34.749] Server  WARN    Failed to fetch forecast data for station cannon-mountain-resort: TypeError: fetch failed
+[00:00:34.810] Server  WARN    Failed to fetch forecast data for station waterville-valley-resort: TypeError: fetch failed
+[00:00:34.876] Server  WARN    Failed to fetch forecast data for station wildcat-resort: TypeError: fetch failed
+[00:00:34.941] Server  WARN    Failed to fetch forecast data for station attitash-resort: TypeError: fetch failed
+[00:00:35.003] Server  WARN    Failed to fetch forecast data for station cranmore-resort: TypeError: fetch failed
+[00:00:35.069] Server  WARN    Failed to fetch forecast data for station pats-peak-resort: TypeError: fetch failed
+[00:00:35.136] Server  WARN    Failed to fetch forecast data for station mount-sunapee-resort: TypeError: fetch failed
+[00:00:35.198] Server  WARN    Failed to fetch forecast data for station gunstock-resort: TypeError: fetch failed
+[00:00:35.264] Server  WARN    Failed to fetch forecast data for station crotched-mountain-resort: TypeError: fetch failed
+[00:00:35.328] Server  WARN    Failed to fetch forecast data for station mcintyre-resort: TypeError: fetch failed
+[00:00:35.389] Server  WARN    Failed to fetch forecast data for station ragged-mountain-resort: TypeError: fetch failed
+[00:00:35.455] Server  WARN    Failed to fetch forecast data for station saddleback-resort: TypeError: fetch failed
+[00:00:35.520] Server  WARN    Failed to fetch forecast data for station squaw-mountain-resort: TypeError: fetch failed
+[00:00:35.580] Server  WARN    Failed to fetch forecast data for station jiminy-peak-resort: TypeError: fetch failed
+[00:00:35.645] Server  WARN    Failed to fetch forecast data for station wachusett-resort: TypeError: fetch failed
+[00:00:35.717] Server  WARN    Failed to fetch forecast data for station whiteface-resort: TypeError: fetch failed
+[00:00:35.812] Server  WARN    Failed to fetch forecast data for station gore-mountain-resort: TypeError: fetch failed
+[00:00:35.884] Server  WARN    Failed to fetch forecast data for station hunter-mountain-resort: TypeError: fetch failed
+[00:00:35.948] Server  WARN    Failed to fetch forecast data for station windham-mountain-resort: TypeError: fetch failed
+[00:00:36.012] Server  WARN    Failed to fetch forecast data for station belleayre-resort: TypeError: fetch failed
+[00:00:36.072] Server  WARN    Failed to fetch forecast data for station jack-frost-big-boulder-resort: TypeError: fetch failed
+[00:00:36.136] Server  WARN    Failed to fetch forecast data for station elk-mountain-resort: TypeError: fetch failed
+[00:00:36.198] Server  WARN    Failed to fetch forecast data for station blue-mountain-resort: TypeError: fetch failed
+[00:00:36.258] Server  WARN    Failed to fetch forecast data for station seven-springs-resort: TypeError: fetch failed
+[00:00:36.322] Server  WARN    Failed to fetch forecast data for station mount-southington-resort: TypeError: fetch failed
+[00:00:36.386] Server  WARN    Failed to fetch forecast data for station powder-ridge-resort: TypeError: fetch failed
+[00:00:36.448] Server  WARN    Failed to fetch forecast data for station mountain-creek-resort: TypeError: fetch failed
+[00:00:36.512] Server  WARN    Failed to fetch forecast data for station campgaw-mountain-resort: TypeError: fetch failed
+[00:00:36.576] Server  WARN    Failed to fetch forecast data for station black-mountain-resort: TypeError: fetch failed
+[00:00:36.644] Server  WARN    Failed to fetch forecast data for station northeast-0: TypeError: fetch failed
+[00:00:37.654] Server  WARN    Failed to fetch forecast data for station northeast-1: TypeError: fetch failed
+[00:00:37.718] Server  WARN    Failed to fetch forecast data for station northeast-2: TypeError: fetch failed
+[00:00:37.779] Server  WARN    Failed to fetch forecast data for station northeast-3: TypeError: fetch failed
+[00:00:37.845] Server  WARN    Failed to fetch forecast data for station northeast-4: TypeError: fetch failed
+[00:00:37.907] Server  WARN    Failed to fetch forecast data for station northeast-5: TypeError: fetch failed
+[00:00:37.968] Server  WARN    Failed to fetch forecast data for station northeast-6: TypeError: fetch failed
+[00:00:38.032] Server  WARN    Failed to fetch forecast data for station northeast-7: TypeError: fetch failed
+[00:00:38.097] Server  WARN    Failed to fetch forecast data for station northeast-8: TypeError: fetch failed
+[00:00:38.097] Server  LOG     [Historical] Cached 52 resort areas with weather data
+[00:00:38.098] Server  LOG     [Tile] Generated 0 real weather data points for timestamp 2026-01-02T12:00:00.000Z
+[00:00:38.098] Server  LOG     [Tile] Real weather data z=7 x=38 y=48 t=2026-01-02T12:00: 0 data points
+[00:00:38.098] Server  LOG     [Tile] No real weather data available, returning transparent tile

@@ -83,6 +83,24 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../app/api/radar/synthetic-frames/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/radar/synthetic-frames">> = Specific
+  const handler = {} as typeof import("../../app/api/radar/synthetic-frames/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/api/radar/synthetic/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/radar/synthetic">> = Specific
+  const handler = {} as typeof import("../../app/api/radar/synthetic/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../app/api/radar/tile/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/radar/tile">> = Specific

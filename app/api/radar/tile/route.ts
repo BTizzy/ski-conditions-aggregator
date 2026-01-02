@@ -7,10 +7,10 @@ import { PNG } from 'pngjs';
 export const dynamic = 'force-dynamic';
 
 /**
- * Radar Tile Proxy - Returns synthetic radar tile images based on real weather data
+ * Radar Tile Proxy - Returns radar tile images based on real weather data
  * 
- * Data Source: IDW interpolation of historical weather station data
- * Coverage: Northeast US snowfall patterns
+ * Data Source: IDW interpolation of actual historical weather station data from resorts and Northeast stations
+ * Coverage: Northeast US precipitation patterns (snowfall and rainfall)
  * 
  * Query Params:
  *   layer - Must be "synthetic-{timestamp}"
@@ -47,23 +47,22 @@ export async function GET(request: NextRequest) {
       return getTransparentTile();
     }
 
-    // Handle synthetic data (based on real weather station data)
+    // Handle real weather data (based on resort observations and weather stations)
     if (layer.startsWith('synthetic-')) {
-      // Synthetic: layer is "synthetic-{timestamp}"
+      // Layer is "synthetic-{timestamp}" but now uses real weather data
       const timestamp = parseInt(layer.split('-')[1]);
       if (isNaN(timestamp)) {
         return NextResponse.json({ error: 'Invalid synthetic timestamp' }, { status: 400 });
       }
 
-      console.log(`[Tile] Synthetic: z=${zNum} x=${xNum} y=${yNum} time=${timestamp}`);
+      console.log(`[Tile] Real weather data: z=${zNum} x=${xNum} y=${yNum} time=${timestamp}`);
       
-      // For performance, use completely synthetic data without API calls for tiles
-      // This avoids rate limiting while still providing realistic radar patterns
+      // Generate tile with real weather data from resort observations and weather stations
       return await generatePurelySyntheticTile(zNum, xNum, yNum, timestamp);
     }
 
     // If we get here, it's an invalid layer format
-    return NextResponse.json({ error: 'Invalid layer format - only synthetic layers supported' }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid layer format - only real weather data layers supported' }, { status: 400 });
 
   } catch (error: any) {
     console.error('[Tile] Error:', error.message);
@@ -71,98 +70,52 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Generate baseline synthetic weather patterns for any tile
-function generateBaselineWeatherPatterns(
-  syntheticPoints: Point[], 
-  lat0: number, 
-  lon0: number, 
-  lat1: number, 
-  lon1: number, 
+// Generate real weather data points from resort observations and weather stations
+async function generateRealWeatherDataPoints(
   timestamp: number
-): void {
-  // Use timestamp as seed for deterministic but time-varying patterns
-  const seed = timestamp;
-  const seededRandom = (seed: number) => {
-    const x = Math.sin(seed) * 10000;
-    return x - Math.floor(x);
-  };
+): Promise<Point[]> {
+  try {
+    // Fetch all resort area historical data including additional weather stations
+    const resortAreaData = await getAllResortAreaHistorical();
+    const realPoints: Point[] = [];
 
-  // Generate weather systems (storm centers) that move and evolve over time
-  // Create more complex, realistic weather patterns similar to weather.com radar
-  const numSystems = 12; // More systems for complex weather patterns
-  const baseSeed = timestamp;
-  
-  // Add some large-scale weather fronts/patterns
-  const largeScalePatterns = 3; // Fewer but larger weather systems
-  for (let i = 0; i < largeScalePatterns; i++) {
-    // Large weather systems that move slower and cover larger areas
-    const timeOffset = (timestamp / (60 * 60 * 1000)) * 0.2; // Slower movement for large systems
-    const baseLat = lat0 + seededRandom(baseSeed + i * 100) * (lat1 - lat0);
-    const baseLon = lon0 + seededRandom(baseSeed + i * 200) * (lon1 - lon0);
+    // Create Point objects at station locations with accumulated precipitation
+    for (const resortArea of resortAreaData) {
+      for (const station of resortArea.stations) {
+        // Get accumulated snowfall and rainfall up to the given timestamp
+        const snowfall = getAccumulatedSnowfallAtLocation(
+          resortArea.stations,
+          station.lat,
+          station.lon,
+          timestamp
+        );
+        const rainfall = getAccumulatedRainfallAtLocation(
+          resortArea.stations,
+          station.lat,
+          station.lon,
+          timestamp
+        );
 
-    // Slower, more persistent movement
-    const lat = baseLat + Math.sin(timeOffset + i) * 0.8 + (seededRandom(baseSeed + i * 300) - 0.5) * 0.4;
-    const lon = baseLon + Math.cos(timeOffset + i * 1.2) * 0.8 + (seededRandom(baseSeed + i * 400) - 0.5) * 0.4;
+        // Combine snowfall and rainfall for total precipitation value
+        // Weight snowfall more heavily as it's more visible on radar
+        const totalPrecipitation = snowfall + (rainfall * 0.1);
 
-    // More persistent intensity with gradual changes
-    const timeOfDay = (timestamp % (24 * 60 * 60 * 1000)) / (24 * 60 * 60 * 1000);
-    const systemAge = seededRandom(baseSeed + i * 500);
-    const persistence = Math.sin(timeOfDay * Math.PI * 2 + i * 0.5) * 0.3 + 0.7; // 0.4-1.0 persistence
-    const intensity = Math.max(0.01, 
-      0.08 + 0.8 * Math.sin(timeOfDay * Math.PI * 2 + i) * 
-      Math.sin(systemAge * Math.PI) * seededRandom(baseSeed + i * 600) * persistence
-    );
-    const precipitation = Math.max(0.03, intensity * 3.0); // 0.03-2.4 inches total precip
-
-    // Large systems have more points and wider spread
-    const numPointsPerSystem = 8 + Math.floor(seededRandom(baseSeed + i * 700) * 6); // 8-13 points per system
-    for (let p = 0; p < numPointsPerSystem; p++) {
-      const spreadFactor = 1.5; // Wider spread for large systems
-      const offsetLat = (seededRandom(baseSeed + i * 800 + p * 100) - 0.5) * spreadFactor;
-      const offsetLon = (seededRandom(baseSeed + i * 900 + p * 200) - 0.5) * spreadFactor;
-      const pointIntensity = precipitation * (0.2 + seededRandom(baseSeed + i * 1000 + p * 300) * 0.8);
-
-      syntheticPoints.push({
-        lat: lat + offsetLat,
-        lon: lon + offsetLon,
-        value: pointIntensity
-      });
+        // Only add points with meaningful precipitation
+        if (totalPrecipitation > 0) {
+          realPoints.push({
+            lat: station.lat,
+            lon: station.lon,
+            value: totalPrecipitation
+          });
+        }
+      }
     }
-  }
-  
-  // Add smaller, faster-moving weather systems
-  for (let i = largeScalePatterns; i < numSystems; i++) {
-    // Smaller, more dynamic weather systems
-    const timeOffset = (timestamp / (60 * 60 * 1000)) * 0.4; // Faster movement
-    const baseLat = lat0 + seededRandom(baseSeed + i * 100) * (lat1 - lat0);
-    const baseLon = lon0 + seededRandom(baseSeed + i * 200) * (lon1 - lon0);
 
-    // More erratic movement
-    const lat = baseLat + Math.sin(timeOffset + i) * 1.5 + (seededRandom(baseSeed + i * 300) - 0.5) * 0.8;
-    const lon = baseLon + Math.cos(timeOffset + i * 1.4) * 1.5 + (seededRandom(baseSeed + i * 400) - 0.5) * 0.8;
-
-    // More variable intensity
-    const timeOfDay = (timestamp % (24 * 60 * 60 * 1000)) / (24 * 60 * 60 * 1000);
-    const systemAge = seededRandom(baseSeed + i * 500);
-    const intensity = Math.max(0.005, 
-      0.03 + 0.5 * Math.sin(timeOfDay * Math.PI * 2 + i * 1.2) * 
-      Math.sin(systemAge * Math.PI) * seededRandom(baseSeed + i * 600)
-    );
-    const precipitation = Math.max(0.01, intensity * 1.8); // 0.01-0.9 inches total precip
-
-    // Fewer points for smaller systems
-    const numPointsPerSystem = 4 + Math.floor(seededRandom(baseSeed + i * 700) * 3); // 4-6 points per system
-    for (let p = 0; p < numPointsPerSystem; p++) {
-      const offsetLat = (seededRandom(baseSeed + i * 800 + p * 100) - 0.5) * 0.6;
-      const offsetLon = (seededRandom(baseSeed + i * 900 + p * 200) - 0.5) * 0.6;
-      const pointIntensity = precipitation * (0.3 + seededRandom(baseSeed + i * 1000 + p * 300) * 0.7);
-
-      syntheticPoints.push({
-        lat: lat + offsetLat,
-        lon: lon + offsetLon,
-        value: pointIntensity
-      });
-    }
+    console.log(`[Tile] Generated ${realPoints.length} real weather data points for timestamp ${new Date(timestamp).toISOString()}`);
+    return realPoints;
+  } catch (error: any) {
+    console.error('[Tile] Error generating real weather data points:', error.message);
+    return [];
   }
 }
 
@@ -219,14 +172,19 @@ async function generatePurelySyntheticTile(z: number, x: number, y: number, time
     const lon1 = ((x + 1) / n) * 360 - 180;
     const lat1 = Math.atan(Math.sinh(Math.PI * (1 - 2 * (y + 1) / n))) * 180 / Math.PI;
 
-    // Create synthetic weather patterns without API calls
-    const syntheticPoints: Point[] = [];
-    generateBaselineWeatherPatterns(syntheticPoints, lat0, lon0, lat1, lon1, timestamp);
+    // Generate real weather data points from resort observations and weather stations
+    const realPoints = await generateRealWeatherDataPoints(timestamp);
 
-    console.log(`[Tile] Pure synthetic z=${z} x=${x} y=${y} t=${new Date(timestamp).toISOString().slice(0,16)}: ${syntheticPoints.length} synthetic points`);
+    console.log(`[Tile] Real weather data z=${z} x=${x} y=${y} t=${new Date(timestamp).toISOString().slice(0,16)}: ${realPoints.length} data points`);
+
+    // If no real data is available, return transparent tile
+    if (realPoints.length === 0) {
+      console.log('[Tile] No real weather data available, returning transparent tile');
+      return getTransparentTile();
+    }
 
     // Use optimized interpolation parameters for realistic weather radar appearance
-    const grid = idwGrid(syntheticPoints, 256, 256, lat0, lon0, lat1, lon1, {
+    const grid = idwGrid(realPoints, 256, 256, lat0, lon0, lat1, lon1, {
       power: 2,    // Moderate power for natural falloff
       radius: 150  // Larger radius for smoother blending between weather systems
     });
@@ -242,7 +200,7 @@ async function generatePurelySyntheticTile(z: number, x: number, y: number, time
       }
     });
   } catch (error: any) {
-    console.error('[Tile] Error generating purely synthetic tile:', error.message);
+    console.error('[Tile] Error generating tile with real weather data:', error.message);
     return getTransparentTile();
   }
 }

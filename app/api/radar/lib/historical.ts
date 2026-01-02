@@ -9,6 +9,10 @@ import {
 } from '../../../../lib/nws';
 import { resorts } from '../../../../lib/resorts';
 
+// Constants
+const MS_TO_KMH_CONVERSION = 3.6; // Convert meters/second to kilometers/hour
+const RATE_LIMIT_DELAY_MS = 500; // Delay between API calls to avoid rate limiting
+
 export interface HourlySnowfall {
   timestamp: number; // Unix timestamp (ms)
   snowfallIn: number; // Estimated snowfall inches for that hour
@@ -128,7 +132,7 @@ async function fetchHistoricalObservations(stationId: string, stationLat: number
         converted.push({
           timestamp: props.timestamp || new Date().toISOString(),
           temperature: tempC,
-          windSpeed: windSpeedValue !== null && windSpeedValue !== undefined ? windSpeedValue * 3.6 : null, // Convert m/s to km/h
+          windSpeed: windSpeedValue !== null && windSpeedValue !== undefined ? windSpeedValue * MS_TO_KMH_CONVERSION : null,
           windDirection: windDirValue !== null && windDirValue !== undefined ? windDirValue : null,
           textDescription: props.textDescription || 'Unknown',
           icon: props.icon || '',
@@ -197,7 +201,7 @@ async function fetchOpenWeatherMapData(stationId: string, stationLat: number, st
       const observation: NWSObservation = {
         timestamp: new Date(item.dt * 1000).toISOString(), // Convert Unix timestamp
         temperature: item.main?.temp || null,
-        windSpeed: item.wind?.speed ? item.wind.speed * 3.6 : null, // Convert m/s to km/h
+        windSpeed: item.wind?.speed ? item.wind.speed * MS_TO_KMH_CONVERSION : null,
         windDirection: item.wind?.deg || null,
         textDescription: item.weather?.[0]?.description || 'Unknown',
         icon: item.weather?.[0]?.icon || '',
@@ -233,7 +237,7 @@ async function fetchOpenWeatherMapData(stationId: string, stationLat: number, st
           const currentObservation: NWSObservation = {
             timestamp: new Date().toISOString(),
             temperature: currentData.main?.temp || null,
-            windSpeed: currentData.wind?.speed ? currentData.wind.speed * 3.6 : null,
+            windSpeed: currentData.wind?.speed ? currentData.wind.speed * MS_TO_KMH_CONVERSION : null,
             windDirection: currentData.wind?.deg || null,
             textDescription: currentData.weather?.[0]?.description || 'Unknown',
             icon: currentData.weather?.[0]?.icon || '',
@@ -515,7 +519,7 @@ async function getNortheastWeatherStations(): Promise<ResortAreaData[]> {
     try {
       // Small delay between API calls to be respectful to rate limits
       if (index > 0) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, RATE_LIMIT_DELAY_MS));
       }
       
       const stationData = await fetchStationHistorical({

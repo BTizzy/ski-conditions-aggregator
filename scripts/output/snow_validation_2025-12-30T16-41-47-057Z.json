@@ -1,0 +1,136 @@
+[
+  {
+    "resortId": "loon-mountain",
+    "name": "Loon Mountain",
+    "stationId": "KHIE",
+    "stationDistanceKm": 37.02797947070157,
+    "stationWeeklySnow": 8.5,
+    "modelWeeklySnow": 3,
+    "modelRecent": 1.5,
+    "obsCount": 500,
+    "apiRaw": {
+      "resortId": "loon-mountain",
+      "timestamp": "2025-12-30T16:41:41.278Z",
+      "snowDepth": 1.5,
+      "recentSnowfall": 1.5,
+      "weeklySnowfall": 3,
+      "expectedOnGround": 1.5,
+      "baseTemp": 6,
+      "windSpeed": 20,
+      "visibility": "Slight Chance Snow Showers",
+      "trailStatus": {
+        "open": 0,
+        "total": 0,
+        "groomed": 0
+      },
+      "rawData": {
+        "nws": {
+          "temperature": 6,
+          "windSpeed": 20,
+          "windDirection": "W",
+          "textDescription": "Slight Chance Snow Showers",
+          "icon": "https://api.weather.gov/icons/land/day/snow,20?size=medium",
+          "timestamp": "2025-12-30T09:00:00-05:00",
+          "raw": {
+            "number": 1,
+            "name": "Today",
+            "startTime": "2025-12-30T09:00:00-05:00",
+            "endTime": "2025-12-30T18:00:00-05:00",
+            "isDaytime": true,
+            "temperature": 6,
+            "temperatureUnit": "F",
+            "temperatureTrend": null,
+            "probabilityOfPrecipitation": {
+              "unitCode": "wmoUnit:percent",
+              "value": 24
+            },
+            "windSpeed": "20 mph",
+            "windDirection": "W",
+            "icon": "https://api.weather.gov/icons/land/day/snow,20?size=medium",
+            "shortForecast": "Slight Chance Snow Showers",
+            "detailedForecast": "A slight chance of snow showers. Mostly cloudy, with a high near 6. Wind chill values as low as -19. West wind around 20 mph, with gusts as high as 40 mph. Chance of precipitation is 20%. New snow accumulation of less than one inch possible."
+          }
+        },
+        "model": {
+          "recentSnowfall": 1.5,
+          "snowDepth": 1.5,
+          "baseTemp": 6,
+          "windSpeed": 20,
+          "visibility": "Slight Chance Snow Showers",
+          "powderScore": 58,
+          "factors": [],
+          "weeklySnowfall": 3,
+          "expectedOnGround": 1.5
+        }
+      }
+    }
+  },
+  {
+    "resortId": "stowe",
+    "name": "Stowe",
+    "stationId": "KMVL",
+    "stationDistanceKm": 9.658044523884529,
+    "stationWeeklySnow": 7.5,
+    "modelWeeklySnow": 4,
+    "modelRecent": 2,
+    "obsCount": 500,
+    "apiRaw": {
+      "resortId": "stowe",
+      "timestamp": "2025-12-30T16:41:44.360Z",
+      "snowDepth": 2,
+      "recentSnowfall": 2,
+      "weeklySnowfall": 4,
+      "expectedOnGround": 2,
+      "baseTemp": 12,
+      "windSpeed": 10,
+      "visibility": "Scattered Snow Showers",
+      "trailStatus": {
+        "open": 0,
+        "total": 0,
+        "groomed": 0
+      },
+      "rawData": {
+        "nws": {
+          "temperature": 12,
+          "windSpeed": 10,
+          "windDirection": "W",
+          "textDescription": "Scattered Snow Showers",
+          "icon": "https://api.weather.gov/icons/land/day/snow,40?size=medium",
+          "timestamp": "2025-12-30T09:00:00-05:00",
+          "raw": {
+            "number": 1,
+            "name": "Today",
+            "startTime": "2025-12-30T09:00:00-05:00",
+            "endTime": "2025-12-30T18:00:00-05:00",
+            "isDaytime": true,
+            "temperature": 12,
+            "temperatureUnit": "F",
+            "temperatureTrend": null,
+            "probabilityOfPrecipitation": {
+              "unitCode": "wmoUnit:percent",
+              "value": 38
+            },
+            "windSpeed": "10 to 15 mph",
+            "windDirection": "W",
+            "icon": "https://api.weather.gov/icons/land/day/snow,40?size=medium",
+            "shortForecast": "Scattered Snow Showers",
+            "detailedForecast": "Scattered snow showers. Cloudy, with a high near 12. Wind chill values as low as -10. West wind 10 to 15 mph, with gusts as high as 32 mph. Chance of precipitation is 40%. New snow accumulation of less than one inch possible."
+          }
+        },
+        "model": {
+          "recentSnowfall": 2,
+          "snowDepth": 2,
+          "baseTemp": 12,
+          "windSpeed": 10,
+          "visibility": "Scattered Snow Showers",
+          "powderScore": 60,
+          "factors": [
+            "recent-light"
+          ],
+          "weeklySnowfall": 4,
+          "expectedOnGround": 2
+        }
+      }
+    }
+  }
+]

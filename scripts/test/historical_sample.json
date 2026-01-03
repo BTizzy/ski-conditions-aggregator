@@ -1,0 +1,30 @@
+[
+  {
+    "id": "stowe-sample",
+    "name": "Stowe sample",
+    "nws": {
+      "temperature": -2,
+      "windSpeed": 15,
+      "windDirection": 180,
+      "textDescription": "Snow showers",
+      "icon": "",
+      "timestamp": "2025-12-29T08:00:00Z",
+      "raw": null
+    },
+    "extra": { "tempC": -2, "precipMm": 12 }
+  },
+  {
+    "id": "smuggs-sample",
+    "name": "Smugglers sample",
+    "nws": {
+      "temperature": 0.5,
+      "windSpeed": 5,
+      "windDirection": 90,
+      "textDescription": "Light snow",
+      "icon": "",
+      "timestamp": "2025-12-29T09:00:00Z",
+      "raw": null
+    },
+    "extra": { "tempC": 0.5, "precipMm": 8 }
+  }
+]

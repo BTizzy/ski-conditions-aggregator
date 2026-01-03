@@ -1,0 +1,18 @@
+{
+  "projectToken": "CHROMATIC_PROJECT_TOKEN",
+  "buildScriptName": "build-storybook",
+  "storybookBaseDir": ".",
+  "externals": [
+    "**/node_modules/**"
+  ],
+  "skip": [
+    "dependabot/**",
+    "renovate/**"
+  ],
+  "autoAcceptChanges": "main",
+  "exitZeroOnChanges": true,
+  "ignoreLastBuildOnBranch": [
+    "renovate/**",
+    "dependabot/**"
+  ]
+}

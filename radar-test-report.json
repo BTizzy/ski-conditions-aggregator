@@ -1,0 +1,170 @@
+{
+  "config": {
+    "configFile": "/Users/ryanbartell/ski-conditions-aggregator/playwright.config.ts",
+    "rootDir": "/Users/ryanbartell/ski-conditions-aggregator/e2e",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "test-type": "radar-visual",
+      "component": "ResortMap",
+      "feature": "radar-overlay"
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "html",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "radar-test-report.json"
+        }
+      ],
+      [
+        "line",
+        null
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/Users/ryanbartell/ski-conditions-aggregator/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "test-type": "radar-visual",
+          "component": "ResortMap",
+          "feature": "radar-overlay"
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/ryanbartell/ski-conditions-aggregator/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/ryanbartell/ski-conditions-aggregator/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "test-type": "radar-visual",
+          "component": "ResortMap",
+          "feature": "radar-overlay"
+        },
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "/Users/ryanbartell/ski-conditions-aggregator/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/ryanbartell/ski-conditions-aggregator/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "test-type": "radar-visual",
+          "component": "ResortMap",
+          "feature": "radar-overlay"
+        },
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "/Users/ryanbartell/ski-conditions-aggregator/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/ryanbartell/ski-conditions-aggregator/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "test-type": "radar-visual",
+          "component": "ResortMap",
+          "feature": "radar-overlay"
+        },
+        "id": "Mobile Chrome",
+        "name": "Mobile Chrome",
+        "testDir": "/Users/ryanbartell/ski-conditions-aggregator/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/ryanbartell/ski-conditions-aggregator/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "test-type": "radar-visual",
+          "component": "ResortMap",
+          "feature": "radar-overlay"
+        },
+        "id": "Mobile Safari",
+        "name": "Mobile Safari",
+        "testDir": "/Users/ryanbartell/ski-conditions-aggregator/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.57.0",
+    "workers": 6,
+    "webServer": {
+      "command": "npm run dev",
+      "url": "http://localhost:3000",
+      "reuseExistingServer": true,
+      "timeout": 120000
+    }
+  },
+  "suites": [],
+  "errors": [
+    {
+      "message": "SyntaxError: /Users/ryanbartell/ski-conditions-aggregator/e2e/radar-visual.spec.ts: Unexpected reserved word 'await'. (397:4)\n\n  395 |\n  396 |     // Wait for radar frames to be available\n> 397 |     await page.waitForFunction(() => {\n      |     ^\n  398 |       return document.querySelector('[data-testid=\"radar-loading\"]') === null &&\n  399 |              document.querySelector('canvas') !== null;\n  400 |     }, { timeout: 15000 });",
+      "stack": "SyntaxError: /Users/ryanbartell/ski-conditions-aggregator/e2e/radar-visual.spec.ts: Unexpected reserved word 'await'. (397:4)\n\n  395 |\n  396 |     // Wait for radar frames to be available\n> 397 |     await page.waitForFunction(() => {\n      |     ^\n  398 |       return document.querySelector('[data-testid=\"radar-loading\"]') === null &&\n  399 |              document.querySelector('canvas') !== null;\n  400 |     }, { timeout: 15000 });",
+      "location": {
+        "file": "/Users/ryanbartell/ski-conditions-aggregator/e2e/radar-visual.spec.ts",
+        "line": 397,
+        "column": 4
+      },
+      "snippet": "\u001b[90m   at \u001b[39mradar-visual.spec.ts:397\n\n\u001b[0m \u001b[90m 395 |\u001b[39m\n \u001b[90m 396 |\u001b[39m     \u001b[90m// Wait for radar frames to be available\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 397 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForFunction(() \u001b[33m=>\u001b[39m {\n \u001b[90m     |\u001b[39m    \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 398 |\u001b[39m       \u001b[36mreturn\u001b[39m document\u001b[33m.\u001b[39mquerySelector(\u001b[32m'[data-testid=\"radar-loading\"]'\u001b[39m) \u001b[33m===\u001b[39m \u001b[36mnull\u001b[39m \u001b[33m&&\u001b[39m\n \u001b[90m 399 |\u001b[39m              document\u001b[33m.\u001b[39mquerySelector(\u001b[32m'canvas'\u001b[39m) \u001b[33m!==\u001b[39m \u001b[36mnull\u001b[39m\u001b[33m;\u001b[39m\n \u001b[90m 400 |\u001b[39m     }\u001b[33m,\u001b[39m { timeout\u001b[33m:\u001b[39m \u001b[35m15000\u001b[39m })\u001b[33m;\u001b[39m\u001b[0m"
+    },
+    {
+      "message": "Error: No tests found.\nMake sure that arguments are regular expressions matching test files.\nYou may need to escape symbols like \"$\" or \"*\" and quote the arguments.",
+      "stack": "Error: No tests found.\nMake sure that arguments are regular expressions matching test files.\nYou may need to escape symbols like \"$\" or \"*\" and quote the arguments."
+    }
+  ],
+  "stats": {
+    "startTime": "2026-01-02T23:21:39.743Z",
+    "duration": 112.23000000000002,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

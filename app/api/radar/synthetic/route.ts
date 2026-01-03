@@ -20,6 +20,7 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
  *   z, x, y - Tile coordinates (standard Web Mercator)
  */
 export async function GET(request: NextRequest) {
+  console.log('🚨 SYNTHETIC ROUTE HIT - request:', request.url);
   console.log('[Synthetic Tile] Request:', request.url);
   try {
     const { searchParams } = request.nextUrl;

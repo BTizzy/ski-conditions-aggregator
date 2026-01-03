@@ -428,8 +428,31 @@ const ResortMap: React.FC<ResortMapProps> = ({
         } else {
           return null;
         }
+      } else if (layerStr.startsWith('http://') || layerStr.startsWith('https://') || layerStr.startsWith('/')) {
+        // Multi-source frames provide a fully qualified URL template like:
+        //   https://tilecache.rainviewer.com/v2/radar/{time}/{z}/{x}/{y}/256/png
+        // or already-resolved tile URLs.
+        // Render those directly by substituting {z}/{x}/{y} and best-effort time replacement.
+        const timeParam =
+          typeof layer === 'object' && typeof layer.time === 'number' && !isNaN(layer.time)
+            ? layer.time
+            : Date.now();
+
+        url = layerStr
+          .replaceAll('{z}', String(z))
+          .replaceAll('{x}', String(x))
+          .replaceAll('{y}', String(y))
+          .replaceAll('{time}', String(timeParam));
+
+        // Cache-bust for debugging (doesn't affect providers that ignore unknown params)
+        url += (url.includes('?') ? '&' : '?') + `cb=${Date.now()}`;
+
+        // Minimal but explicit logging so we can prove tiles are being requested.
+        if (tileBitmapCache.current.size < 3) {
+          console.log('[Radar Tile] Fetching provider tile:', { layer: layerStr, url, z, x, y });
+        }
       } else {
-        // Extract timestamp from layer string (format: "source-timestamp")
+        // Legacy format fallback: "source-timestamp" (kept for compatibility)
         const timestamp = layerStr.split('-').pop();
         const timeParam = timestamp && !isNaN(parseInt(timestamp)) ? parseInt(timestamp) : Date.now();
         url = `/api/radar/tile?time=${timeParam}&z=${z}&x=${x}&y=${y}&cb=${Date.now()}`;

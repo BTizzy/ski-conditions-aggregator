@@ -65,8 +65,9 @@ vi.mock('leaflet', () => ({
   },
 }))
 
-// Mock fetch globally
-global.fetch = vi.fn()
+// NOTE: Do not stub global.fetch here.
+// MSW intercepts real fetch requests for our unit tests.
+// A blanket mock breaks MSW's node fetch interceptor and causes requests to bypass handlers.
 
 // Mock canvas APIs
 HTMLCanvasElement.prototype.getContext = vi.fn(() => ({

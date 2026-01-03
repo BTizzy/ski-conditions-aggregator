@@ -10,7 +10,8 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     include: ['**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
-    exclude: ['node_modules', 'dist', '.next', 'out'],
+    // Exclude Playwright specs (they are executed via Playwright, not Vitest)
+    exclude: ['node_modules', 'dist', '.next', 'out', 'e2e/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -23,6 +24,7 @@ export default defineConfig({
         'test-results/',
         '.next/',
         'out/',
+        'e2e/',
       ],
     },
   },

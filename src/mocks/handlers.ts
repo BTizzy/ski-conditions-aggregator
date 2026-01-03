@@ -69,6 +69,27 @@ export const handlers = [
     })
   }),
 
+  // External provider tiles used by RadarManager during tests
+  http.get('https://tilecache.rainviewer.com/v2/radar/:time/:z/:x/:y/:size/png', () => {
+    const mockTile = createMockTile()
+    return new HttpResponse(mockTile, {
+      headers: {
+        'Content-Type': 'image/png',
+        'Cache-Control': 'public, max-age=300',
+      },
+    })
+  }),
+
+  http.get('https://maps.openweathermap.org/maps/2.0/radar/forecast/:z/:x/:y', () => {
+    const mockTile = createMockTile()
+    return new HttpResponse(mockTile, {
+      headers: {
+        'Content-Type': 'image/png',
+        'Cache-Control': 'public, max-age=300',
+      },
+    })
+  }),
+
   // Resort conditions API
   http.get('/api/resorts/conditions', () => {
     return HttpResponse.json({

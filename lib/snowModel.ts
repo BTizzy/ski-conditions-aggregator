@@ -49,6 +49,11 @@ export interface SnowPrediction {
       factors: [] as string[],
     };
 
+    // Parse the text description for keywords (snow vs rain) as a tie-breaker
+    const desc = (nws?.textDescription || '').toLowerCase();
+    const mentionsSnow = desc.includes('snow') || desc.includes('flurr');
+    const mentionsSleet = desc.includes('sleet') || desc.includes('mixed');
+
     if (!nws) return result;
 
     // Temperature handling: some NWS payloads have temperature in Fahrenheit (forecast periods)
@@ -77,9 +82,35 @@ export interface SnowPrediction {
       if (!Number.isNaN(windMs)) result.windSpeed = +(windMs * 2.23694).toFixed(2);
     }
 
-    result.visibility = nws?.textDescription ?? result.visibility;
+    // Extract additional weather parameters for enhanced modeling
+    let humidity = null as number | null;
+    let dewpointC = null as number | null;
+    let barometricPressure = null as number | null;
+    let seaLevelPressure = null as number | null;
+    let windDirection = null as number | null;
+    let windChill = null as number | null;
+    let cloudLayers = null as any[] | null;
 
-    // Use reported precipitation fields when available.
+    // Extract from NWS raw data
+    if (nws?.raw) {
+      humidity = nws.raw.relativeHumidity?.value ?? nws.raw.humidity ?? null;
+      dewpointC = nws.raw.dewpoint?.value ?? null;
+      barometricPressure = nws.raw.barometricPressure?.value ?? null;
+      seaLevelPressure = nws.raw.seaLevelPressure?.value ?? null;
+      windDirection = nws.raw.windDirection?.value ?? nws.windDirection ?? null;
+      windChill = nws.raw.windChill?.value ?? null;
+      cloudLayers = nws.raw.cloudLayers ?? null;
+    }
+
+    // Extract from extra data (OpenWeatherMap, etc.)
+    if (extra) {
+      if (extra.humidity != null && humidity == null) humidity = extra.humidity;
+      if (extra.dewpoint != null && dewpointC == null) dewpointC = extra.dewpoint;
+      if (extra.pressure != null && barometricPressure == null) barometricPressure = extra.pressure;
+      if (extra.windDirection != null && windDirection == null) windDirection = extra.windDirection;
+      if (extra.windChill != null && windChill == null) windChill = extra.windChill;
+      if (extra.clouds != null && cloudLayers == null) cloudLayers = extra.clouds;
+    }
     // Many NWS observation payloads include 'precipitationLastHour' or in properties with unitCode/value.
     let precipIn = null as null | number; // inches in last window
     // try a few known fields (value might be mm or in depending on the source) — prefer explicit inches
@@ -100,54 +131,160 @@ export interface SnowPrediction {
     // probabilityOfPrecipitation is often provided as a percent (0-100) inside raw fields
   const pop = (nws?.raw?.probabilityOfPrecipitation?.value ?? nws?.raw?.probabilityOfPrecipitation) ?? null;
 
-    // Parse the text description for keywords (snow vs rain) as a tie-breaker
-    const desc = (nws?.textDescription || '').toLowerCase();
-    const mentionsSnow = desc.includes('snow') || desc.includes('flurr');
-    const mentionsSleet = desc.includes('sleet') || desc.includes('mixed');
-
-    // Determine a snowfall fraction: if temps are cold (< 34F) and mention snow, assume precip -> snow
+    // Enhanced precipitation type determination using dewpoint depression method
+    // This is more accurate than simple temperature thresholds
     let snowFraction = 0.0;
+    let precipitationType = 'unknown';
+
     if (precipIn != null) {
-      // If we have a measured precipitation amount, use temperature to estimate what portion was snow
-      if (!Number.isNaN(result.baseTemp)) {
-        if (result.baseTemp <= 28) snowFraction = 1.0;
-        else if (result.baseTemp <= 32) snowFraction = 0.9;
-        else if (result.baseTemp <= 36) snowFraction = 0.6;
-        else snowFraction = 0.05; // mostly rain
+      // Use dewpoint depression (difference between temperature and dewpoint) for better accuracy
+      if (tempC != null && dewpointC != null) {
+        const dewpointDepression = tempC - dewpointC; // in Celsius
+
+        // Enhanced precipitation type logic based on dewpoint depression
+        if (dewpointDepression <= 0) {
+          // Dewpoint >= temperature: supercooled conditions, likely all snow
+          snowFraction = 1.0;
+          precipitationType = 'snow';
+        } else if (dewpointDepression <= 2) {
+          // Very small depression: sleet or wet snow
+          snowFraction = 0.9;
+          precipitationType = 'sleet';
+        } else if (dewpointDepression <= 5) {
+          // Moderate depression: snow likely
+          snowFraction = 0.8;
+          precipitationType = 'snow';
+        } else if (dewpointDepression <= 8) {
+          // Larger depression: mixed precipitation
+          snowFraction = 0.5;
+          precipitationType = 'mixed';
+        } else {
+          // Large depression: rain likely
+          snowFraction = 0.1;
+          precipitationType = 'rain';
+        }
+
+        // Adjust based on humidity for additional confidence
+        if (humidity != null) {
+          if (humidity > 90 && snowFraction < 0.8) {
+            snowFraction = Math.min(0.8, snowFraction + 0.2); // High humidity favors snow
+            precipitationType = snowFraction > 0.5 ? 'snow' : 'mixed';
+          } else if (humidity < 50 && snowFraction > 0.3) {
+            snowFraction = Math.max(0.2, snowFraction - 0.2); // Low humidity favors rain
+            precipitationType = snowFraction < 0.3 ? 'rain' : 'mixed';
+          }
+        }
+
+        console.log(`[SnowModel] Dewpoint depression: ${dewpointDepression.toFixed(1)}°C, humidity: ${humidity}%, type: ${precipitationType}, snow fraction: ${snowFraction}`);
       } else {
-        // no temp, rely on text
-        snowFraction = mentionsSnow ? 0.9 : (mentionsSleet ? 0.6 : 0.2);
+        // Fallback to temperature-based logic if dewpoint not available
+        if (!Number.isNaN(result.baseTemp)) {
+          if (result.baseTemp <= 28) {
+            snowFraction = 1.0;
+            precipitationType = 'snow';
+          } else if (result.baseTemp <= 32) {
+            snowFraction = 0.9;
+            precipitationType = 'sleet';
+          } else if (result.baseTemp <= 36) {
+            snowFraction = 0.6;
+            precipitationType = 'mixed';
+          } else {
+            snowFraction = 0.05;
+            precipitationType = 'rain';
+          }
+        } else {
+          // Use text description as final fallback
+          snowFraction = mentionsSnow ? 0.9 : (mentionsSleet ? 0.6 : 0.2);
+          precipitationType = mentionsSnow ? 'snow' : (mentionsSleet ? 'sleet' : 'rain');
+        }
       }
     } else {
-      // no measured precip — fall back to probability and text
+      // No measured precipitation - use probability and text
       const p = (typeof pop === 'number' && !Number.isNaN(pop)) ? pop / 100 : 0;
       if (p > 0) {
-        // if we only have a probability, set expected precip to a conservative value based on probability
-        // assume up to 0.5 inches liquid at very high probabilities (p~1) for short windows
+        // Estimate expected liquid precipitation
         const expectedLiquid = Math.min(0.5, 0.5 * p);
-        if (!Number.isNaN(result.baseTemp)) {
-          if (result.baseTemp <= 28) snowFraction = 1.0;
-          else if (result.baseTemp <= 32) snowFraction = 0.95;
-          else if (result.baseTemp <= 36) snowFraction = 0.6;
-          else snowFraction = 0.1;
+
+        // Use same dewpoint-based logic for type determination
+        if (tempC != null && dewpointC != null) {
+          const dewpointDepression = tempC - dewpointC;
+          if (dewpointDepression <= 2) {
+            snowFraction = 1.0;
+            precipitationType = 'snow';
+          } else if (dewpointDepression <= 5) {
+            snowFraction = 0.8;
+            precipitationType = 'snow';
+          } else if (dewpointDepression <= 8) {
+            snowFraction = 0.4;
+            precipitationType = 'mixed';
+          } else {
+            snowFraction = 0.1;
+            precipitationType = 'rain';
+          }
         } else {
-          snowFraction = mentionsSnow ? 0.9 : (mentionsSleet ? 0.6 : 0.2);
+          // Temperature-based fallback
+          if (!Number.isNaN(result.baseTemp)) {
+            if (result.baseTemp <= 28) {
+              snowFraction = 1.0;
+              precipitationType = 'snow';
+            } else if (result.baseTemp <= 32) {
+              snowFraction = 0.95;
+              precipitationType = 'sleet';
+            } else if (result.baseTemp <= 36) {
+              snowFraction = 0.6;
+              precipitationType = 'mixed';
+            } else {
+              snowFraction = 0.1;
+              precipitationType = 'rain';
+            }
+          } else {
+            snowFraction = mentionsSnow ? 0.9 : (mentionsSleet ? 0.6 : 0.2);
+            precipitationType = mentionsSnow ? 'snow' : (mentionsSleet ? 'sleet' : 'rain');
+          }
         }
-        precipIn = expectedLiquid; // inches of liquid
+
+        precipIn = expectedLiquid; // Set for downstream calculations
       } else {
         snowFraction = mentionsSnow ? 0.8 : 0.0;
+        precipitationType = mentionsSnow ? 'snow' : 'rain';
       }
     }
 
-    // Convert liquid precipitation to snow inches using rough ratio depending on temp
+    // Enhanced liquid-to-snow ratio using humidity-dependent ratios
+    // Dry snow (low humidity): 15-20:1 ratio
+    // Wet snow (high humidity): 8-10:1 ratio
     let liquidToSnowRatio = 10; // default 10:1
-    if (!Number.isNaN(result.baseTemp)) {
-      const tempCFromF = (result.baseTemp - 32) * 5 / 9;
-      if (tempCFromF <= -10) liquidToSnowRatio = 18;
-      else if (tempCFromF <= -2) liquidToSnowRatio = 14;
-      else if (tempCFromF <= 0) liquidToSnowRatio = 12;
-      else if (tempCFromF <= 3) liquidToSnowRatio = 10;
-      else liquidToSnowRatio = 8; // wetter snow
+
+    if (humidity != null) {
+      // Humidity-dependent ratios for more accurate snow accumulation
+      if (humidity <= 30) {
+        // Very dry air - light, fluffy snow
+        liquidToSnowRatio = 18;
+      } else if (humidity <= 50) {
+        // Dry air - typical powder snow
+        liquidToSnowRatio = 15;
+      } else if (humidity <= 70) {
+        // Moderate humidity - denser snow
+        liquidToSnowRatio = 12;
+      } else if (humidity <= 85) {
+        // High humidity - heavier snow
+        liquidToSnowRatio = 10;
+      } else {
+        // Very high humidity - wet, heavy snow
+        liquidToSnowRatio = 8;
+      }
+
+      console.log(`[SnowModel] Humidity: ${humidity}%, liquid-to-snow ratio: ${liquidToSnowRatio}:1`);
+    } else {
+      // Fallback to temperature-based ratios if humidity not available
+      if (!Number.isNaN(result.baseTemp)) {
+        const tempCFromF = (result.baseTemp - 32) * 5 / 9;
+        if (tempCFromF <= -10) liquidToSnowRatio = 18;
+        else if (tempCFromF <= -2) liquidToSnowRatio = 14;
+        else if (tempCFromF <= 0) liquidToSnowRatio = 12;
+        else if (tempCFromF <= 3) liquidToSnowRatio = 10;
+        else liquidToSnowRatio = 8; // wetter snow
+      }
     }
 
     // expected snow inches from measured precip
@@ -198,6 +335,27 @@ export interface SnowPrediction {
   let weekly = 0;
   let weeklySnowIn = 0; // snow inches (converted) aggregated
   let weeklyRainIn = 0; // liquid rain inches aggregated
+
+    // Enhanced pressure trend analysis for storm intensification detection
+    let pressureTrendBoost = 1.0; // multiplier for weekly estimate
+    if (barometricPressure != null && seaLevelPressure != null) {
+      // Calculate pressure change over time if we have multiple readings
+      // For now, use current vs reference pressure (could be enhanced with historical data)
+      const pressureDiff = seaLevelPressure - barometricPressure; // hPa difference
+
+      if (pressureDiff < -2) {
+        // Falling pressure - approaching storm system
+        pressureTrendBoost = 1.3; // Boost weekly estimate by 30%
+        result.factors.push('pressure-falling');
+        console.log(`[SnowModel] Falling pressure detected (${pressureDiff.toFixed(1)} hPa), boosting weekly estimate by 30%`);
+      } else if (pressureDiff > 2) {
+        // Rising pressure - clearing weather
+        pressureTrendBoost = 0.8; // Reduce weekly estimate by 20%
+        result.factors.push('pressure-rising');
+        console.log(`[SnowModel] Rising pressure detected (${pressureDiff.toFixed(1)} hPa), reducing weekly estimate by 20%`);
+      }
+    }
+
     // Prefer detailed weeklyObservations if available (array of precip+temp samples)
     if (extra && Array.isArray(extra.weeklyObservations) && extra.weeklyObservations.length > 0) {
       let sumSnow = 0;
@@ -247,6 +405,9 @@ export interface SnowPrediction {
       // assume additional smaller events across week: recent + 0.5 * recent * 2
       weekly = Math.round((result.recentSnowfall + Math.max(0, result.recentSnowfall * 1.0)) * 2) / 2;
     }
+    // Apply pressure trend boost for storm intensification
+    weekly = weekly * pressureTrendBoost;
+
     // Adjust weekly estimate for station distance (reduce confidence if station is far)
     const stationDist = (extra && typeof extra.stationDistanceKm === 'number') ? extra.stationDistanceKm : null;
     if (stationDist != null && stationDist > 50) {
@@ -286,12 +447,36 @@ export interface SnowPrediction {
     // Start from reported/estimated snowDepth
     const baseDepth = result.snowDepth || 0;
     let retention = 1.0;
-    // temp effect (use avgTemp7d if available)
-    const avgTempC = (extra && typeof extra.avgTemp7d === 'number') ? extra.avgTemp7d : null;
-    if (avgTempC != null) {
-      if (avgTempC > 0) retention *= 0.6; // above freezing average -> significant melt
-      else if (avgTempC > -2) retention *= 0.85; // near-freezing
+
+    // Enhanced melt calculation using wind chill instead of temperature
+    // Wind chill formula: T_wc = 35.74 + 0.6215*T - 35.75*(V^0.16) + 0.4275*T*(V^0.16)
+    // where T is temperature in °F, V is wind speed in mph
+    let effectiveTempF = result.baseTemp; // default to measured temperature
+
+    if (result.baseTemp != null && result.windSpeed != null && !Number.isNaN(result.baseTemp) && !Number.isNaN(result.windSpeed)) {
+      // Calculate wind chill if temperature <= 50°F and wind speed > 3 mph
+      if (result.baseTemp <= 50 && result.windSpeed > 3) {
+        const windChill = 35.74 + (0.6215 * result.baseTemp) - (35.75 * Math.pow(result.windSpeed, 0.16)) + (0.4275 * result.baseTemp * Math.pow(result.windSpeed, 0.16));
+        effectiveTempF = Math.min(result.baseTemp, windChill); // Use the colder effective temperature
+        console.log(`[SnowModel] Wind chill calculated: ${windChill.toFixed(1)}°F (actual: ${result.baseTemp}°F, wind: ${result.windSpeed} mph)`);
+      }
+    }
+
+    // Use wind chill for melt calculations instead of raw temperature
+    const effectiveTempC = effectiveTempF != null ? (effectiveTempF - 32) * 5 / 9 : null;
+    if (effectiveTempC != null) {
+      if (effectiveTempC > 0) retention *= 0.6; // above freezing effective temp -> significant melt
+      else if (effectiveTempC > -2) retention *= 0.85; // near-freezing
       else retention *= 1.0; // cold preserves
+      result.factors.push('wind-chill-melt');
+    } else {
+      // Fallback to avgTemp7d if available
+      const avgTempC = (extra && typeof extra.avgTemp7d === 'number') ? extra.avgTemp7d : null;
+      if (avgTempC != null) {
+        if (avgTempC > 0) retention *= 0.6; // above freezing average -> significant melt
+        else if (avgTempC > -2) retention *= 0.85; // near-freezing
+        else retention *= 1.0; // cold preserves
+      }
     }
     // wind effect
     const avgWindKph = (extra && typeof extra.avgWind7d === 'number') ? extra.avgWind7d : null;
@@ -300,9 +485,43 @@ export interface SnowPrediction {
       if (avgWindMph > 40) retention *= 0.7;
       else if (avgWindMph > 25) retention *= 0.85;
     }
-    // sun exposure
+    // Enhanced sun/cloud exposure using cloud coverage data
+    // Cloud coverage reduces solar radiation and melt potential
+    let cloudEffect = 1.0; // default no cloud effect
+
+    if (cloudLayers != null) {
+      // cloudLayers is an array of cloud layer objects with coverage percentage
+      let totalCoverage = 0;
+      let layerCount = 0;
+
+      if (Array.isArray(cloudLayers)) {
+        for (const layer of cloudLayers) {
+          if (layer.coverage != null) {
+            totalCoverage += layer.coverage;
+            layerCount++;
+          }
+        }
+        if (layerCount > 0) {
+          const avgCoverage = totalCoverage / layerCount;
+          // Higher cloud coverage reduces melt (less solar radiation)
+          if (avgCoverage >= 80) cloudEffect = 0.7; // Heavy overcast - significant melt reduction
+          else if (avgCoverage >= 60) cloudEffect = 0.8; // Moderate overcast
+          else if (avgCoverage >= 40) cloudEffect = 0.9; // Partly cloudy
+          else if (avgCoverage >= 20) cloudEffect = 0.95; // Mostly clear
+          else cloudEffect = 1.0; // Clear skies - full solar radiation
+
+          result.factors.push('cloud-coverage');
+          console.log(`[SnowModel] Cloud coverage: ${avgCoverage.toFixed(0)}%, melt reduction factor: ${cloudEffect}`);
+        }
+      }
+    }
+
+    // Apply cloud effect to retention
+    retention *= cloudEffect;
+
+    // Fallback to sun hours if cloud data not available
     const avgSun = (extra && typeof extra.avgSunHours7d === 'number') ? extra.avgSunHours7d : null;
-    if (avgSun != null) {
+    if (avgSun != null && cloudEffect === 1.0) { // Only use sun hours if no cloud data
       if (avgSun > 4) retention *= 0.85;
       else if (avgSun > 2) retention *= 0.95;
     }

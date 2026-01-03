@@ -61,7 +61,19 @@ export interface ObservationLike {
   // If available, a resort-reported 7-day snowfall total (in inches). Used to bias/blend
   // the model's weekly estimate toward on-mountain reports when provided.
   resortReportedWeekly?: number | null; // inches
-  // Optional weight (0-1) indicating how much to trust the resort-reported value when blending.
-  // 1.0 = trust resort entirely, 0.0 = ignore resort report. Default handled by model if omitted.
-  resortWeight?: number | null;
+  // Enhanced weather parameters for improved modeling
+  humidity?: number | null; // relative humidity (0-100)
+  dewpoint?: number | null; // dewpoint temperature in Celsius
+  pressure?: number | null; // barometric pressure in hPa
+  windDirection?: number | null; // wind direction in degrees
+  windChill?: number | null; // wind chill temperature in Celsius
+  clouds?: any[] | null; // cloud layer information
+  // Multi-station data for consensus modeling
+  multiStationData?: Array<{
+    stationId: string;
+    distanceKm: number;
+    elevationFt?: number;
+    observation: any;
+    quality: number; // 0-1 quality score
+  }>;
 }

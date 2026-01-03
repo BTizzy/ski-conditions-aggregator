@@ -6,171 +6,126 @@ import { getNWSObservation, NWSObservation } from '../../../lib/nws';
 import { getHistoricalObservations } from '../../../lib/nws';
 import snowModel from '../../../lib/snowModel';
 
-// Generate weekly observations using real OpenWeatherMap forecast data and NWS data
-async function generateWeeklyObservationsFromRealData(lat: number, lon: number, currentNWS: NWSObservation | null, currentWeather?: any) {
+// Generate weekly observations using REAL historical weather data from Open-Meteo
+async function generateWeeklyObservationsFromHistoricalData(lat: number, lon: number) {
   const observations = [];
-  let totalPrecipMm = 0;
-  let totalTempC = 0;
-  let totalWindKph = 0;
   const now = new Date();
 
-  // Fetch real forecast data from OpenWeatherMap
-  let forecastData = null;
+  // Calculate date range for past 7 days
+  const endDate = new Date(now);
+  endDate.setDate(endDate.getDate() - 1); // Yesterday (don't include today)
+  const startDate = new Date(endDate);
+  startDate.setDate(startDate.getDate() - 6); // 7 days ago
+
+  const startDateStr = startDate.toISOString().split('T')[0];
+  const endDateStr = endDate.toISOString().split('T')[0];
+
+  console.log(`[API] Fetching historical data from ${startDateStr} to ${endDateStr} for ${lat},${lon}`);
+
   try {
-    const apiKey = process.env.OPENWEATHER_API_KEY;
-    if (apiKey) {
-      const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
-      const response = await fetch(forecastUrl, { signal: controller.signal });
-      clearTimeout(timeoutId);
-      if (response.ok) {
-        forecastData = await response.json();
-        console.log(`[API] Got real forecast data for ${lat},${lon}: ${forecastData.list?.length || 0} forecast points`);
-      }
+    // Use Open-Meteo's FREE historical weather API
+    const historicalUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${startDateStr}&end_date=${endDateStr}&hourly=precipitation,temperature_2m,relative_humidity_2m,wind_speed_10m&timezone=America/New_York`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    const response = await fetch(historicalUrl, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`Open-Meteo API returned ${response.status}: ${response.statusText}`);
     }
+
+    const data = await response.json();
+
+    if (!data.hourly || !data.hourly.time || !Array.isArray(data.hourly.time)) {
+      throw new Error('Invalid response format from Open-Meteo API');
+    }
+
+    const { time, precipitation, temperature_2m, relative_humidity_2m, wind_speed_10m } = data.hourly;
+
+    console.log(`[API] Got ${time.length} historical hourly records`);
+
+    // Group by day and aggregate
+    const dailyData = new Map();
+
+    for (let i = 0; i < time.length; i++) {
+      const timestamp = new Date(time[i]);
+      const dateKey = timestamp.toISOString().split('T')[0];
+
+      if (!dailyData.has(dateKey)) {
+        dailyData.set(dateKey, {
+          precipMm: 0,
+          temps: [],
+          humidities: [],
+          windSpeeds: []
+        });
+      }
+
+      const dayData = dailyData.get(dateKey);
+      dayData.precipMm += precipitation[i] || 0;
+      if (temperature_2m[i] != null) dayData.temps.push(temperature_2m[i]);
+      if (relative_humidity_2m[i] != null) dayData.humidities.push(relative_humidity_2m[i]);
+      if (wind_speed_10m[i] != null) dayData.windSpeeds.push(wind_speed_10m[i]);
+    }
+
+    // Convert to observations array (one per day)
+    let totalPrecipMm = 0;
+    let totalTempC = 0;
+    let totalWindKph = 0;
+    let validDays = 0;
+
+    for (const [dateStr, dayData] of dailyData.entries()) {
+      const timestamp = new Date(dateStr + 'T12:00:00'); // Noon for daily average
+
+      // Calculate daily averages
+      const avgTempC = dayData.temps.length > 0
+        ? dayData.temps.reduce((sum: number, temp: number) => sum + temp, 0) / dayData.temps.length
+        : 0;
+
+      const avgHumidity = dayData.humidities.length > 0
+        ? dayData.humidities.reduce((sum: number, hum: number) => sum + hum, 0) / dayData.humidities.length
+        : 50;
+
+      const avgWindKph = dayData.windSpeeds.length > 0
+        ? dayData.windSpeeds.reduce((sum: number, wind: number) => sum + wind, 0) / dayData.windSpeeds.length
+        : 7.2;
+
+      observations.push({
+        precipMm: dayData.precipMm,
+        tempC: avgTempC,
+        windKph: avgWindKph,
+        timestamp: timestamp.toISOString()
+      });
+
+      totalPrecipMm += dayData.precipMm;
+      totalTempC += avgTempC;
+      totalWindKph += avgWindKph;
+      validDays++;
+
+      console.log(`[API] Day ${dateStr}: ${dayData.precipMm.toFixed(2)}mm precip, ${avgTempC.toFixed(1)}°C, ${avgWindKph.toFixed(1)}km/h wind`);
+    }
+
+    console.log(`[API] Historical data summary: ${validDays} days, ${totalPrecipMm.toFixed(2)}mm total precipitation`);
+
+    return {
+      observations,
+      totalPrecipMm,
+      avgTempC: validDays > 0 ? totalTempC / validDays : 0,
+      avgWindKph: validDays > 0 ? totalWindKph / validDays : 7.2
+    };
+
   } catch (error) {
-    console.log(`[API] Could not fetch forecast data, using current weather only:`, error instanceof Error ? error.message : String(error));
+    console.error(`[API] Failed to fetch historical data from Open-Meteo:`, error instanceof Error ? error.message : String(error));
+
+    // Fallback: return empty observations (no synthetic data generation)
+    console.log(`[API] Returning empty historical observations - no actual past weather data available`);
+    return {
+      observations: [],
+      totalPrecipMm: 0,
+      avgTempC: 0,
+      avgWindKph: 7.2
+    };
   }
-
-  // Use provided current weather data or try to get current weather
-  let realWeatherData = currentWeather;
-  if (!realWeatherData) {
-    try {
-      const apiKey = process.env.OPENWEATHER_API_KEY;
-      if (apiKey) {
-        const currentUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000);
-        const currentResponse = await fetch(currentUrl, { signal: controller.signal });
-        clearTimeout(timeoutId);
-        if (currentResponse.ok) {
-          const currentData = await currentResponse.json();
-          realWeatherData = {
-            temp: currentData.main?.temp,
-            humidity: currentData.main?.humidity,
-            windSpeed: currentData.wind?.speed * 3.6, // m/s to kph
-            weather: currentData.weather?.[0]?.main,
-            description: currentData.weather?.[0]?.description
-          };
-        }
-      }
-    } catch (error) {
-      console.log(`[API] Could not fetch current weather data:`, error instanceof Error ? error.message : String(error));
-    }
-  }
-
-  // Generate 7 daily observations instead of 168 hourly for better performance
-  // This reduces processing time significantly while maintaining accuracy
-  for (let i = 6; i >= 0; i--) {
-    const timestamp = new Date(now.getTime() - i * 24 * 60 * 60 * 1000); // Daily instead of hourly
-
-    // Get forecast data for this day if available
-    let forecastForDay = null;
-    if (forecastData?.list) {
-      // Find forecast entries for this day (within 24 hours of timestamp)
-      const dayStart = new Date(timestamp);
-      dayStart.setHours(0, 0, 0, 0);
-      const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
-
-      forecastForDay = forecastData.list.filter((f: any) => {
-        const forecastTime = new Date(f.dt * 1000);
-        return forecastTime >= dayStart && forecastTime < dayEnd;
-      });
-    }
-
-    // Use forecast temperature or fall back to current weather or NWS data
-    let baseTempC = realWeatherData?.temp ?? (currentNWS?.temperature ? (currentNWS.temperature - 32) * 5/9 : 0);
-
-    // If we have forecast data, use the average temperature for the day
-    if (forecastForDay && forecastForDay.length > 0) {
-      const avgTemp = forecastForDay.reduce((sum: number, f: any) => sum + f.main.temp, 0) / forecastForDay.length;
-      baseTempC = avgTemp;
-    }
-
-    // Add seasonal variation (colder in winter)
-    const month = timestamp.getMonth();
-    if (month >= 11 || month <= 2) { // Winter months (Dec-Feb)
-      baseTempC -= 8; // Colder baseline for winter
-    } else if (month >= 9 || month <= 4) { // Fall/Spring (Oct-Apr)
-      baseTempC -= 3; // Mildly cooler
-    }
-
-    // Add daily temperature variation (simpler for daily observations)
-    const hour = 12; // Assume noon for daily average
-    const tempVariation = Math.sin((hour - 6) * Math.PI / 12) * 5; // Reduced variation for daily
-    const tempC = baseTempC + tempVariation + (Math.random() - 0.5) * 2; // Reduced noise for daily
-
-    // Wind speed based on forecast or current conditions
-    let baseWindKph = realWeatherData?.windSpeed ?? currentNWS?.windSpeed ?? 7.2;
-
-    // If we have forecast data, use average wind speed
-    if (forecastForDay && forecastForDay.length > 0) {
-      const avgWind = forecastForDay.reduce((sum: number, f: any) => sum + (f.wind?.speed || 0) * 3.6, 0) / forecastForDay.length;
-      if (avgWind > 0) baseWindKph = avgWind;
-    }
-
-    const windKph = Math.max(0, baseWindKph + (Math.random() - 0.5) * 4); // Reduced variation
-
-    // Precipitation based on REAL forecast data or MORE REALISTIC synthetic fallback for winter resorts
-    let precipMm = 0;
-    const isWinter = month >= 11 || month <= 2;
-    const isCold = tempC < 2;
-
-    // Use real forecast precipitation data if available
-    if (forecastData?.list) {
-      // Find forecast entries for this day (within 24 hours of timestamp)
-      const dayStart = new Date(timestamp);
-      dayStart.setHours(0, 0, 0, 0);
-      const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
-
-      const forecastForDay = forecastData.list.filter((f: any) => {
-        const forecastTime = new Date(f.dt * 1000);
-        return forecastTime >= dayStart && forecastTime < dayEnd;
-      });
-
-      if (forecastForDay.length > 0) {
-        // Sum up precipitation from all forecast points for this day
-        const totalForecastPrecip = forecastForDay.reduce((sum: number, f: any) => {
-          const rain = f.rain?.['3h'] || 0;
-          const snow = f.snow?.['3h'] || 0;
-          return sum + rain + snow;
-        }, 0);
-
-        // Convert 3-hour totals to daily total and use directly WITHOUT artificial boosting
-        precipMm = totalForecastPrecip;
-
-        // Apply minimal randomization to account for forecast uncertainty, but keep close to real data
-        precipMm *= 0.8 + Math.random() * 0.4; // 80-120% of forecast
-
-        console.log(`[API] Using real forecast precipitation for day ${i}: ${precipMm.toFixed(2)}mm (from ${totalForecastPrecip.toFixed(2)}mm forecast)`);
-      }
-    }
-
-    // If no forecast data available, use 0 precipitation (no synthetic data generation)
-    // Real precipitation data should come from actual forecasts or historical observations
-    if (precipMm === 0) {
-      console.log(`[API] No forecast precipitation data available for day ${i}, using 0mm`);
-    }
-
-    observations.push({
-      precipMm,
-      tempC,
-      windKph,
-      timestamp: timestamp.toISOString()
-    });
-
-    totalPrecipMm += precipMm;
-    totalTempC += tempC;
-    totalWindKph += windKph;
-  }
-
-  return {
-    observations,
-    totalPrecipMm,
-    avgTempC: totalTempC / observations.length,
-    avgWindKph: totalWindKph / observations.length
-  };
 }
 
 // Resort-specific scraping removed. All logic now uses NWS-based predictive model.
@@ -271,33 +226,51 @@ export async function GET(request: NextRequest) {
         extra.elevationFt = resort.elevationFt ?? null;
         extra.stationDistanceKm = hist.stationDistanceKm;
 
-        // Use real NWS historical observations when available
-        // Do NOT override with synthetic data for winter resorts - use real data only
-        console.log(`[API] Using real NWS historical observations: ${hist.observations.length} observations, ${weeklyPrecipMm.toFixed(2)}mm total precip`);
+        // Check if NWS data has any actual precipitation - if not, prefer Open-Meteo
+        const hasPrecipitation = weeklyPrecipMm > 0;
+        if (!hasPrecipitation) {
+          console.log(`[API] NWS historical data has no precipitation (${weeklyPrecipMm}mm), trying Open-Meteo for better data`);
+          const historicalWeeklyObs = await generateWeeklyObservationsFromHistoricalData(resort.lat, resort.lon);
+          console.log(`[API] Open-Meteo fallback: ${historicalWeeklyObs.observations.length} observations, total precip: ${historicalWeeklyObs.totalPrecipMm}mm`);
+          if (historicalWeeklyObs.totalPrecipMm > 0) {
+            extra.weeklyObservations = historicalWeeklyObs.observations;
+            extra.weeklyPrecipMm = historicalWeeklyObs.totalPrecipMm;
+            extra.avgTemp7d = historicalWeeklyObs.avgTempC;
+            extra.avgWind7d = historicalWeeklyObs.avgWindKph;
+            extra.stationDistanceKm = 0; // local historical data
+            console.log(`[API] Using Open-Meteo historical data: ${historicalWeeklyObs.totalPrecipMm}mm total precip`);
+          } else {
+            console.log(`[API] Using NWS historical observations (empty but available): ${hist.observations.length} observations, ${weeklyPrecipMm.toFixed(2)}mm total precip`);
+          }
+        } else {
+          // Use real NWS historical observations when available
+          // Do NOT override with synthetic data for winter resorts - use real data only
+          console.log(`[API] Using real NWS historical observations: ${hist.observations.length} observations, ${weeklyPrecipMm.toFixed(2)}mm total precip`);
+        }
       } else {
-        // No historical observations available, try to get real forecast data
-        console.log(`[API] No historical observations available, trying real forecast data`);
-        const forecastWeeklyObs = await generateWeeklyObservationsFromRealData(resort.lat, resort.lon, nwsData, currentWeather);
-        console.log(`[API] Forecast data: ${forecastWeeklyObs.observations.length} observations, total precip: ${forecastWeeklyObs.totalPrecipMm}mm`);
-        extra.weeklyObservations = forecastWeeklyObs.observations;
-        extra.weeklyPrecipMm = forecastWeeklyObs.totalPrecipMm;
-        extra.avgTemp7d = forecastWeeklyObs.avgTempC;
-        extra.avgWind7d = forecastWeeklyObs.avgWindKph;
+        // No historical observations available, try to get real historical data from Open-Meteo
+        console.log(`[API] No NWS historical observations available, trying Open-Meteo historical data`);
+        const historicalWeeklyObs = await generateWeeklyObservationsFromHistoricalData(resort.lat, resort.lon);
+        console.log(`[API] Historical data: ${historicalWeeklyObs.observations.length} observations, total precip: ${historicalWeeklyObs.totalPrecipMm}mm`);
+        extra.weeklyObservations = historicalWeeklyObs.observations;
+        extra.weeklyPrecipMm = historicalWeeklyObs.totalPrecipMm;
+        extra.avgTemp7d = historicalWeeklyObs.avgTempC;
+        extra.avgWind7d = historicalWeeklyObs.avgWindKph;
         extra.elevationFt = resort.elevationFt ?? null;
-        extra.stationDistanceKm = 0; // forecast data is local
+        extra.stationDistanceKm = 0; // local historical data
       }
     } catch (e) {
       console.error(`[API] Historical observations failed:`, e);
-      // Try to get real forecast data as fallback
-      console.log(`[API] Historical fetch failed, trying real forecast data`);
-      const forecastWeeklyObs = await generateWeeklyObservationsFromRealData(resort.lat, resort.lon, nwsData, currentWeather);
-      console.log(`[API] Forecast data fallback: ${forecastWeeklyObs.observations.length} observations, total precip: ${forecastWeeklyObs.totalPrecipMm}mm`);
-      extra.weeklyObservations = forecastWeeklyObs.observations;
-      extra.weeklyPrecipMm = forecastWeeklyObs.totalPrecipMm;
-      extra.avgTemp7d = forecastWeeklyObs.avgTempC;
-      extra.avgWind7d = forecastWeeklyObs.avgWindKph;
+      // Try to get real historical data as fallback
+      console.log(`[API] Historical fetch failed, trying Open-Meteo historical data`);
+      const historicalWeeklyObs = await generateWeeklyObservationsFromHistoricalData(resort.lat, resort.lon);
+      console.log(`[API] Historical data fallback: ${historicalWeeklyObs.observations.length} observations, total precip: ${historicalWeeklyObs.totalPrecipMm}mm`);
+      extra.weeklyObservations = historicalWeeklyObs.observations;
+      extra.weeklyPrecipMm = historicalWeeklyObs.totalPrecipMm;
+      extra.avgTemp7d = historicalWeeklyObs.avgTempC;
+      extra.avgWind7d = historicalWeeklyObs.avgWindKph;
       extra.elevationFt = resort.elevationFt ?? null;
-      extra.stationDistanceKm = 0; // forecast data is local
+      extra.stationDistanceKm = 0; // local historical data
     }
 
     console.log(`[API] Calling predictFromNWS with nws=`, nwsData !== null, 'extra keys=', Object.keys(extra));

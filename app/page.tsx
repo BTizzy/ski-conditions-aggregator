@@ -57,6 +57,13 @@ const HomePage: React.FC = () => {
   const [data, setData] = useState<Record<string, ResortConditions | null>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<Record<string, string | null>>({});
+  const [mounted, setMounted] = useState(false);
+
+  // Prevent hydration mismatches by ensuring any text that depends on client-only
+  // state (effects/network/etc.) is only rendered after mount.
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const loadConditions = async () => {
@@ -131,7 +138,10 @@ const HomePage: React.FC = () => {
 
       {/* Status Bar */}
       <div className="relative z-10 px-4 py-2 text-center bg-white/20 backdrop-blur-sm text-blue-100 text-sm font-medium">
-        <span>🗻 {resorts.length} resorts • {error.global ? `Error: ${error.global}` : 'Loading conditions…'}</span>
+        <span>
+          🗻 {resorts.length} resorts •{' '}
+          {mounted ? (error.global ? `Error: ${error.global}` : 'Loading conditions…') : ''}
+        </span>
       </div>
 
       {/* Map */}

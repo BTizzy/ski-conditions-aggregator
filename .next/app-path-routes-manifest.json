@@ -1,0 +1,14 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/api/radar/debug-pixel/route": "/api/radar/debug-pixel",
+  "/api/radar/debug-screenshot/route": "/api/radar/debug-screenshot",
+  "/api/radar/frames/route": "/api/radar/frames",
+  "/api/radar/noaa-scrape/route": "/api/radar/noaa-scrape",
+  "/api/radar/synthetic-frames/route": "/api/radar/synthetic-frames",
+  "/api/radar/synthetic/route": "/api/radar/synthetic",
+  "/api/radar/tile/route": "/api/radar/tile",
+  "/api/resorts/conditions/route": "/api/resorts/conditions",
+  "/api/scrape/route": "/api/scrape",
+  "/page": "/"
+}

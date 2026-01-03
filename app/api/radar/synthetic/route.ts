@@ -337,7 +337,9 @@ function generateSyntheticTile(
 ): Buffer {
   const canvas = createCanvas(256, 256);
   const ctx = canvas.getContext('2d');
-
+  
+  const n = Math.pow(2, z);  // ← ADD THIS LINE: Number of tiles at zoom level z
+  
   console.log(`[Tile Generation] z=${z} x=${x} y=${y}, ${conditions.length} conditions`);
 
   // Create image data
@@ -356,6 +358,11 @@ function generateSyntheticTile(
 
       // Interpolate snowfall at this location with improved parameters
       const snowfall = interpolateIDW({ lat, lon }, conditions, 6, 5.0);
+
+      // Sample a few points to verify interpolation is working
+      if (px === 128 && py === 128) { // Center pixel
+        console.log(`[Tile] Center pixel snowfall: ${snowfall.toFixed(3)} inches at (${lat.toFixed(4)}, ${lon.toFixed(4)})`);
+      }
 
       // Convert to color
       const rgba = snowfallToRGBA(snowfall);

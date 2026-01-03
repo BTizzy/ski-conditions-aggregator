@@ -1,0 +1,11 @@
+{
+  "[project]/app/components/ResortMap.tsx [app-client] (ecmascript, next/dynamic entry)": {
+    "id": "[project]/app/components/ResortMap.tsx [app-client] (ecmascript, next/dynamic entry)",
+    "files": [
+      "static/chunks/app_components_e1e1996c._.js",
+      "static/chunks/node_modules_970e0cce._.js",
+      "static/chunks/node_modules_leaflet_dist_leaflet_ef5f0413.css",
+      "static/chunks/app_components_ResortMap_tsx_82e9cf03._.js"
+    ]
+  }
+}

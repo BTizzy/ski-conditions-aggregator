@@ -4,6 +4,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import RadarTimeline from './RadarTimeline';
+import RadarControls from './RadarControls';
+import ResortSidebar from './ResortSidebar';
 
 interface Resort {
   id: string;
@@ -710,24 +712,47 @@ const ResortMap: React.FC<ResortMapProps> = ({
     if (canvas2Ref.current) canvas2Ref.current.style.opacity = String(radarOpacity);
   }, [radarOpacity]);
 
+  // Prepare resorts with conditions for sidebar
+  const resortsWithConditions = resorts
+    .map(resort => {
+      const cond = conditions[resort.id];
+      if (!cond) return null;
+      return {
+        id: resort.id,
+        name: resort.name,
+        state: resort.state,
+        recentSnowfall: cond.recentSnowfall,
+        snowDepth: cond.snowDepth,
+        baseTemp: cond.baseTemp,
+      };
+    })
+    .filter(Boolean) as Array<{
+      id: string;
+      name: string;
+      state: string;
+      recentSnowfall: number;
+      snowDepth: number;
+      baseTemp: number;
+    }>;
+
   return (
     <div className="relative w-full h-screen bg-gray-100 flex flex-col">
       <div ref={containerRef} className="flex-1 w-full" style={{ position: 'relative', width: '100%', height: '100%', minHeight: '400px' }} />
 
-      <div className="absolute top-4 left-4 z-[99999] bg-white/95 rounded-lg p-4 shadow-lg max-w-xs">
-        <div className="font-bold mb-2 text-gray-800 text-sm">🛰️ Radar 48h</div>
-        <div className="text-xs text-blue-600 font-semibold mb-2" data-testid="radar-source">
-          {radarSource === 'synthetic' ? '🔬 Synthetic (Resort Data)' : 
-           radarSource === 'noaa' ? '�️ NOAA (Real Radar)' : '�� RainViewer'}
-        </div>
-        <div className="flex gap-2 mb-3">
-          <button data-testid="radar-play-pause" onClick={() => { setRadarPlaying(true); radarPlayingRef.current = true; }} className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 font-semibold">▶ Play</button>
-          <button data-testid="radar-pause" onClick={() => { setRadarPlaying(false); radarPlayingRef.current = false; }} className="px-3 py-1 bg-gray-400 text-white rounded text-sm hover:bg-gray-500 font-semibold">⏸ Pause</button>
-        </div>
-        <div className="mb-3"><label className="text-xs font-semibold text-gray-700 block mb-1">Speed</label><input data-testid="radar-speed" type="range" min="100" max="2000" step="50" value={radarSpeedMs} onChange={(e) => setRadarSpeedMs(Number(e.target.value))} className="w-full" /></div>
-        <div className="mb-3"><label className="text-xs font-semibold text-gray-700 block mb-1">Opacity</label><input data-testid="radar-opacity" type="range" min="0" max="1" step="0.05" value={radarOpacity} onChange={(e) => setRadarOpacity(Number(e.target.value))} className="w-full" /></div>
-        <div className="text-xs text-gray-700 border-t pt-2"><div>Status: {loadingStatus}</div><div>Markers: {markersRef.current.size}/43</div><div>Frames: {frameCount}</div></div>
-      </div>
+      {/* Modern Radar Controls */}
+      {radarFramesAvailable && (
+        <RadarControls
+          isPlaying={radarPlaying}
+          onPlayPause={handlePlayPause}
+          opacity={radarOpacity}
+          onOpacityChange={setRadarOpacity}
+          speed={radarSpeedMs}
+          onSpeedChange={setRadarSpeedMs}
+          frameCount={frameCount}
+          currentFrame={radarIndexRef.current + 1}
+          radarSource={radarSource}
+        />
+      )}
 
       {/* Radar Timeline */}
       {radarFramesAvailable && radarFramesRef.current.length > 0 && (
@@ -799,6 +824,9 @@ const ResortMap: React.FC<ResortMapProps> = ({
           </div>
         </div>
       )}
+
+      {/* Resort Sidebar */}
+      <ResortSidebar resorts={resortsWithConditions} />
     </div>
   );
 };

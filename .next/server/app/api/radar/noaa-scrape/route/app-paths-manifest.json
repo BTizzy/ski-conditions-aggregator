@@ -1,0 +1,3 @@
+{
+  "/api/radar/noaa-scrape/route": "app/api/radar/noaa-scrape/route.js"
+}

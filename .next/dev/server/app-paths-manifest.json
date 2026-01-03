@@ -1,0 +1,8 @@
+{
+  "/api/radar/frames/route": "app/api/radar/frames/route.js",
+  "/api/radar/synthetic/route": "app/api/radar/synthetic/route.js",
+  "/api/radar/tile/route": "app/api/radar/tile/route.js",
+  "/api/resorts/conditions/route": "app/api/resorts/conditions/route.js",
+  "/api/scrape/route": "app/api/scrape/route.js",
+  "/page": "app/page.js"
+}

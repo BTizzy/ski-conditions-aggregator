@@ -6,8 +6,8 @@ import { getNWSObservation, NWSObservation } from '../../../lib/nws';
 import { getHistoricalObservations } from '../../../lib/nws';
 import snowModel from '../../../lib/snowModel';
 
-// Generate synthetic weekly observations using real OpenWeatherMap forecast data
-async function generateSyntheticWeeklyObservations(lat: number, lon: number, currentNWS: NWSObservation | null, currentWeather?: any) {
+// Generate weekly observations using real OpenWeatherMap forecast data and NWS data
+async function generateWeeklyObservationsFromRealData(lat: number, lon: number, currentNWS: NWSObservation | null, currentWeather?: any) {
   const observations = [];
   let totalPrecipMm = 0;
   let totalTempC = 0;
@@ -137,47 +137,20 @@ async function generateSyntheticWeeklyObservations(lat: number, lon: number, cur
           return sum + rain + snow;
         }, 0);
 
-        // Convert 3-hour totals to daily total and use directly
+        // Convert 3-hour totals to daily total and use directly WITHOUT artificial boosting
         precipMm = totalForecastPrecip;
 
-        // For winter resorts, if forecast shows very little snow but conditions are right,
-        // boost the precipitation to more realistic levels for ski resorts
-        if (isWinter && isCold && precipMm < 5) {
-          // Boost light snow forecasts significantly to more realistic amounts for ski resorts
-          const boostFactor = Math.random() * 8 + 7; // 7-15x boost for very light forecasts
-          precipMm *= boostFactor;
-          console.log(`[API] Boosting winter resort precipitation for day ${i}: ${totalForecastPrecip.toFixed(2)}mm -> ${precipMm.toFixed(2)}mm`);
-        } else if (isWinter && precipMm < 10) {
-          // Moderate boost for moderate forecasts
-          const boostFactor = Math.random() * 3 + 2; // 2-5x boost
-          precipMm *= boostFactor;
-          console.log(`[API] Moderately boosting winter resort precipitation for day ${i}: ${totalForecastPrecip.toFixed(2)}mm -> ${precipMm.toFixed(2)}mm`);
-        } else {
-          // Apply some randomization but keep it close to forecast
-          precipMm *= 0.8 + Math.random() * 0.4; // 80-120% of forecast
-        }
+        // Apply minimal randomization to account for forecast uncertainty, but keep close to real data
+        precipMm *= 0.8 + Math.random() * 0.4; // 80-120% of forecast
 
-        console.log(`[API] Using real forecast precipitation for day ${i}: ${precipMm.toFixed(2)}mm`);
+        console.log(`[API] Using real forecast precipitation for day ${i}: ${precipMm.toFixed(2)}mm (from ${totalForecastPrecip.toFixed(2)}mm forecast)`);
       }
     }
 
-    // Fallback to MORE REALISTIC synthetic precipitation for winter resorts
+    // If no forecast data available, use 0 precipitation (no synthetic data generation)
+    // Real precipitation data should come from actual forecasts or historical observations
     if (precipMm === 0) {
-      let basePrecipChance = isWinter ? 0.15 : 0.01; // Increased from 0.02 to 0.15 for winter
-
-      // Adjust based on NWS forecast data
-      if (currentNWS?.raw?.probabilityOfPrecipitation?.value) {
-        const pop = currentNWS.raw.probabilityOfPrecipitation.value / 100;
-        basePrecipChance = Math.max(basePrecipChance, Math.min(pop * 0.3, 0.25)); // Increased multiplier
-      }
-
-      if (Math.random() < basePrecipChance) {
-        if (isCold || (currentNWS?.textDescription?.toLowerCase().includes('snow'))) {
-          precipMm = (Math.random() * 15 + 5) * (isWinter ? 3.0 : 1.0); // Much higher snow amounts for winter
-        } else {
-          precipMm = (Math.random() * 5 + 1) * (isWinter ? 0.7 : 1.0); // Light rain
-        }
-      }
+      console.log(`[API] No forecast precipitation data available for day ${i}, using 0mm`);
     }
 
     observations.push({
@@ -298,46 +271,33 @@ export async function GET(request: NextRequest) {
         extra.elevationFt = resort.elevationFt ?? null;
         extra.stationDistanceKm = hist.stationDistanceKm;
 
-        // For ski resorts in winter, ALWAYS use synthetic data for better accuracy
-        const isWinter = new Date().getMonth() >= 11 || new Date().getMonth() <= 2; // Dec-Feb
-
-        if (isWinter) {
-          console.log(`[API] Winter ski resort, using synthetic data for accuracy`);
-          const syntheticWeeklyObs = await generateSyntheticWeeklyObservations(resort.lat, resort.lon, nwsData, currentWeather);
-          console.log(`[API] Generated synthetic data: ${syntheticWeeklyObs.totalPrecipMm}mm total precip`);
-
-          // For winter resorts, use 100% synthetic data since it's more realistic than potentially incomplete historical data
-          extra.weeklyObservations = syntheticWeeklyObs.observations;
-          extra.weeklyPrecipMm = syntheticWeeklyObs.totalPrecipMm;
-          extra.avgTemp7d = syntheticWeeklyObs.avgTempC;
-          extra.avgWind7d = syntheticWeeklyObs.avgWindKph;
-          extra.elevationFt = resort.elevationFt ?? null;
-          extra.stationDistanceKm = 0; // synthetic data is local
-        }
+        // Use real NWS historical observations when available
+        // Do NOT override with synthetic data for winter resorts - use real data only
+        console.log(`[API] Using real NWS historical observations: ${hist.observations.length} observations, ${weeklyPrecipMm.toFixed(2)}mm total precip`);
       } else {
-        // Generate synthetic historical data when NWS historical data is not available
-        console.log(`[API] No historical observations available, generating synthetic weekly data`);
-        const syntheticWeeklyObs = await generateSyntheticWeeklyObservations(resort.lat, resort.lon, nwsData, currentWeather);
-        console.log(`[API] Generated synthetic data: ${syntheticWeeklyObs.observations.length} observations, total precip: ${syntheticWeeklyObs.totalPrecipMm}mm`);
-        extra.weeklyObservations = syntheticWeeklyObs.observations;
-        extra.weeklyPrecipMm = syntheticWeeklyObs.totalPrecipMm;
-        extra.avgTemp7d = syntheticWeeklyObs.avgTempC;
-        extra.avgWind7d = syntheticWeeklyObs.avgWindKph;
+        // No historical observations available, try to get real forecast data
+        console.log(`[API] No historical observations available, trying real forecast data`);
+        const forecastWeeklyObs = await generateWeeklyObservationsFromRealData(resort.lat, resort.lon, nwsData, currentWeather);
+        console.log(`[API] Forecast data: ${forecastWeeklyObs.observations.length} observations, total precip: ${forecastWeeklyObs.totalPrecipMm}mm`);
+        extra.weeklyObservations = forecastWeeklyObs.observations;
+        extra.weeklyPrecipMm = forecastWeeklyObs.totalPrecipMm;
+        extra.avgTemp7d = forecastWeeklyObs.avgTempC;
+        extra.avgWind7d = forecastWeeklyObs.avgWindKph;
         extra.elevationFt = resort.elevationFt ?? null;
-        extra.stationDistanceKm = 0; // synthetic data is local
+        extra.stationDistanceKm = 0; // forecast data is local
       }
     } catch (e) {
       console.error(`[API] Historical observations failed:`, e);
-      // Generate synthetic historical data as fallback
-      console.log(`[API] Historical fetch failed, generating synthetic weekly data`);
-      const syntheticWeeklyObs = await generateSyntheticWeeklyObservations(resort.lat, resort.lon, nwsData, currentWeather);
-      console.log(`[API] Generated synthetic data: ${syntheticWeeklyObs.observations.length} observations, total precip: ${syntheticWeeklyObs.totalPrecipMm}mm`);
-      extra.weeklyObservations = syntheticWeeklyObs.observations;
-      extra.weeklyPrecipMm = syntheticWeeklyObs.totalPrecipMm;
-      extra.avgTemp7d = syntheticWeeklyObs.avgTempC;
-      extra.avgWind7d = syntheticWeeklyObs.avgWindKph;
+      // Try to get real forecast data as fallback
+      console.log(`[API] Historical fetch failed, trying real forecast data`);
+      const forecastWeeklyObs = await generateWeeklyObservationsFromRealData(resort.lat, resort.lon, nwsData, currentWeather);
+      console.log(`[API] Forecast data fallback: ${forecastWeeklyObs.observations.length} observations, total precip: ${forecastWeeklyObs.totalPrecipMm}mm`);
+      extra.weeklyObservations = forecastWeeklyObs.observations;
+      extra.weeklyPrecipMm = forecastWeeklyObs.totalPrecipMm;
+      extra.avgTemp7d = forecastWeeklyObs.avgTempC;
+      extra.avgWind7d = forecastWeeklyObs.avgWindKph;
       extra.elevationFt = resort.elevationFt ?? null;
-      extra.stationDistanceKm = 0; // synthetic data is local
+      extra.stationDistanceKm = 0; // forecast data is local
     }
 
     console.log(`[API] Calling predictFromNWS with nws=`, nwsData !== null, 'extra keys=', Object.keys(extra));

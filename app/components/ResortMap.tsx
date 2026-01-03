@@ -103,6 +103,27 @@ const ResortMap: React.FC<ResortMapProps> = ({
 
       mapRef.current = map;
 
+      // MONKEY PATCH: Log any radar-related fetches at the global level so we
+      // can reliably observe requests regardless of local code path.
+      try {
+        // Avoid double-patching in HMR/dev reloads
+        if (!(window as any).__radarFetchPatched) {
+          const origFetch = window.fetch.bind(window);
+          (window as any).__radarFetchPatched = true;
+          window.fetch = async (input: any, init?: any) => {
+            try {
+              const url = typeof input === 'string' ? input : (input && input.url) || '';
+              if (typeof url === 'string' && url.includes('/api/radar')) {
+                console.log('[Radar Debug] global fetch', { url, init });
+              }
+            } catch (e) { /* ignore */ }
+            return origFetch(input, init);
+          };
+        }
+      } catch (e) {
+        console.warn('[Radar Debug] failed to patch fetch', e);
+      }
+
       if (!map.getPane('radarPane')) map.createPane('radarPane');
       const radarPane = map.getPane('radarPane') as HTMLElement;
       radarPane.style.zIndex = '400';
@@ -707,6 +728,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
           if (ctx1) {
             ctx1.clearRect(0, 0, c1.width, c1.height);
             ctx1.drawImage(currentFrameC, 0, 0);
+            console.log('[Radar Debug] drew current frame', { keyCurrent, z, canvasW: c1.width, canvasH: c1.height });
           }
         }
 
@@ -717,6 +739,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
           if (ctx2) {
             ctx2.clearRect(0, 0, c2.width, c2.height);
             ctx2.drawImage(nextFrameC, 0, 0);
+            console.log('[Radar Debug] drew next frame', { keyNext, z, canvasW: c2.width, canvasH: c2.height });
           }
         }
 

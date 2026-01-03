@@ -2,7 +2,7 @@ import { NextResponse, NextRequest } from 'next/server';
 import { createCanvas, CanvasRenderingContext2D } from 'canvas';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 60; // Cache 1 minute
+export const revalidate = 0; // Disable route caching (tiles are debugged live)
 
 // Cache for resort conditions to avoid repeated API calls
 let resortConditionsCache: ResortPoint[] | null = null;
@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
       { lat: centerLat, lon: centerLon },
       stormConditions,
       6,
-      undefined,
+      5.0,
       { logTag: 'center', z, x, y }
     );
     console.log('[Tile Debug] Center pixel interpolation:', {
@@ -138,7 +138,10 @@ export async function GET(request: NextRequest) {
     return new NextResponse(new Uint8Array(tileBuffer), {
       headers: {
         'Content-Type': 'image/png',
-        'Cache-Control': 'public, max-age=60',
+        // Disable caching so we always see fresh server-side diagnostics.
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        Pragma: 'no-cache',
+        Expires: '0',
         'Access-Control-Allow-Origin': '*'
       }
     });
@@ -300,7 +303,7 @@ function interpolateIDW(
   point: { lat: number; lon: number },
   samples: ResortPoint[],
   k: number = 6, // Use up to 6 nearest neighbors
-  maxDistance: number = 1.2, // ~130km radius: keeps blobs local, avoids uniform haze
+  maxDistance: number = 5.0, // Wider radius so sparse regions still find neighbors
   debug?: { logTag?: string; z?: number; x?: number; y?: number }
 ): number {
   if (samples.length === 0) return 0;
@@ -331,9 +334,9 @@ function interpolateIDW(
     console.log(`[IDW] (${debug?.logTag}) Nearby samples within radius: ${nearbySamples.length}`, nextFew);
   }
 
-  // If there aren't at least 2 nearby points, treat as no-data (transparent).
-  // This prevents a single distant resort from "painting" huge areas.
-  if (nearbySamples.length < 2) return 0;
+  // If there are no nearby points, treat as no-data (transparent).
+  // (The alpha clamp + blur already prevents single-point haze.)
+  if (nearbySamples.length === 0) return 0;
 
   // Use all nearby samples (up to k) for smoother interpolation
   const neighbors = nearbySamples.slice(0, k);
@@ -428,7 +431,7 @@ function generateSyntheticTile(
   const canvas = createCanvas(256, 256);
   const ctx = canvas.getContext('2d');
   
-  const n = Math.pow(2, z);  // ← ADD THIS LINE: Number of tiles at zoom level z
+  const n = Math.pow(2, z);
   
   console.log(`[Tile Generation] z=${z} x=${x} y=${y}, ${conditions.length} conditions`);
 
@@ -446,8 +449,8 @@ function generateSyntheticTile(
       const lon = (xtile / n) * 360 - 180;
       const lat = (Math.atan(Math.sinh(Math.PI * (1 - (2 * ytile) / n))) * 180) / Math.PI;
 
-      // Interpolate snowfall at this location with improved parameters
-  const snowfall = interpolateIDW({ lat, lon }, conditions, 6);
+    // Interpolate snowfall at this location.
+    const snowfall = interpolateIDW({ lat, lon }, conditions, 6, 5.0);
 
       // Sample a few points to verify interpolation is working
       if (px === 128 && py === 128) { // Center pixel

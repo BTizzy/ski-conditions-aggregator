@@ -423,7 +423,8 @@ const ResortMap: React.FC<ResortMapProps> = ({
         const hourMatch = layerStr.match(/hour=(\d+)/);
         if (hourMatch) {
           const hour = hourMatch[1];
-          url = `/api/radar/synthetic?hour=${hour}&z=${z}&x=${x}&y=${y}`;
+          // Cache-bust synthetic tiles so server-side diagnostics always fire during dev.
+          url = `/api/radar/synthetic?hour=${hour}&z=${z}&x=${x}&y=${y}&cb=${Date.now()}`;
         } else {
           return null;
         }
@@ -431,7 +432,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
         // Extract timestamp from layer string (format: "source-timestamp")
         const timestamp = layerStr.split('-').pop();
         const timeParam = timestamp && !isNaN(parseInt(timestamp)) ? parseInt(timestamp) : Date.now();
-        url = `/api/radar/tile?time=${timeParam}&z=${z}&x=${x}&y=${y}`;
+        url = `/api/radar/tile?time=${timeParam}&z=${z}&x=${x}&y=${y}&cb=${Date.now()}`;
       }
 
       const resp = await fetch(url, {

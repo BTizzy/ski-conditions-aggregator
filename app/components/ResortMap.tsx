@@ -417,6 +417,11 @@ const ResortMap: React.FC<ResortMapProps> = ({
     try {
       let url: string;
 
+      const layerTime =
+        typeof layer === 'object' && typeof layer.time === 'number' && !isNaN(layer.time)
+          ? layer.time
+          : undefined;
+
       // Handle synthetic radar URLs directly
       if (layerStr.includes('/api/radar/synthetic?hour=')) {
         // Extract hour parameter and build tile URL
@@ -428,34 +433,39 @@ const ResortMap: React.FC<ResortMapProps> = ({
         } else {
           return null;
         }
-      } else if (layerStr.startsWith('http://') || layerStr.startsWith('https://') || layerStr.startsWith('/')) {
-        // Multi-source frames provide a fully qualified URL template like:
-        //   https://tilecache.rainviewer.com/v2/radar/{time}/{z}/{x}/{y}/256/png
-        // or already-resolved tile URLs.
-        // Render those directly by substituting {z}/{x}/{y} and best-effort time replacement.
-        const timeParam =
-          typeof layer === 'object' && typeof layer.time === 'number' && !isNaN(layer.time)
-            ? layer.time
-            : Date.now();
-
+      } else if (layerStr.startsWith('/api/radar/synthetic?')) {
+        // Robust: if a synthetic URL comes through without the exact hour= matcher above,
+        // we still treat it as a base URL and just append tile coords.
+        url = `${layerStr}${layerStr.includes('?') ? '&' : '?'}z=${z}&x=${x}&y=${y}&cb=${Date.now()}`;
+      } else if (!layerStr.startsWith('http://') && !layerStr.startsWith('https://') && !layerStr.startsWith('/')) {
+        // Frames API can return SHORT IDENTIFIERS like "iowastate-1767376906078".
+        // These are not tile templates; they must be proxied through our same-origin endpoint.
+        // Prefer the explicit frame.time if present; otherwise best-effort parse from suffix.
+        const parsed = parseInt(layerStr.split('-').pop() || '', 10);
+        const timeParam = typeof layerTime === 'number' ? layerTime : (!isNaN(parsed) ? parsed : Date.now());
+        url = `/api/radar/tile?time=${timeParam}&z=${z}&x=${x}&y=${y}&cb=${Date.now()}`;
+      } else if (
+        layerStr.includes('{z}') ||
+        layerStr.includes('{x}') ||
+        layerStr.includes('{y}') ||
+        layerStr.includes('{time}')
+      ) {
+        // Full template URL (or path template)
+        const timeParam = typeof layerTime === 'number' ? layerTime : Date.now();
         url = layerStr
           .replaceAll('{z}', String(z))
           .replaceAll('{x}', String(x))
           .replaceAll('{y}', String(y))
           .replaceAll('{time}', String(timeParam));
 
-        // Cache-bust for debugging (doesn't affect providers that ignore unknown params)
         url += (url.includes('?') ? '&' : '?') + `cb=${Date.now()}`;
 
-        // Minimal but explicit logging so we can prove tiles are being requested.
         if (tileBitmapCache.current.size < 3) {
-          console.log('[Radar Tile] Fetching provider tile:', { layer: layerStr, url, z, x, y });
+          console.log('[Radar Tile] Fetching template tile:', { layer: layerStr, url, z, x, y });
         }
       } else {
-        // Legacy format fallback: "source-timestamp" (kept for compatibility)
-        const timestamp = layerStr.split('-').pop();
-        const timeParam = timestamp && !isNaN(parseInt(timestamp)) ? parseInt(timestamp) : Date.now();
-        url = `/api/radar/tile?time=${timeParam}&z=${z}&x=${x}&y=${y}&cb=${Date.now()}`;
+        // Direct URL/path that already points at a single tile (rare, but handle it).
+        url = layerStr + (layerStr.includes('?') ? '&' : '?') + `cb=${Date.now()}`;
       }
 
       const resp = await fetch(url, {

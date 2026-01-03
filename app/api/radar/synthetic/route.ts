@@ -20,8 +20,9 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
  *   z, x, y - Tile coordinates (standard Web Mercator)
  */
 export async function GET(request: NextRequest) {
-  console.log('🚨 SYNTHETIC ROUTE HIT - request:', request.url);
-  console.log('[Synthetic Tile] Request:', request.url);
+  const reqId = Math.random().toString(36).slice(2, 8);
+  console.log(`🚨 SYNTHETIC ROUTE HIT [${reqId}] - request:`, request.url);
+  console.log(`[Synthetic Tile] [${reqId}] Request:`, request.url);
   try {
     const { searchParams } = request.nextUrl;
 
@@ -31,12 +32,17 @@ export async function GET(request: NextRequest) {
     const y = parseInt(searchParams.get('y') || '0');
 
     if (isNaN(hour) || hour < 0 || hour > 47) {
+      console.warn(`[Synthetic Tile] [${reqId}] Invalid hour param -> transparent`, { hour });
       return getTransparentTile();
     }
 
-    if (z < 0 || z > 18) return getTransparentTile();
+    if (z < 0 || z > 18) {
+      console.warn(`[Synthetic Tile] [${reqId}] Invalid z -> transparent`, { z });
+      return getTransparentTile();
+    }
     const maxTile = Math.pow(2, z);
     if (x < 0 || x >= maxTile || y < 0 || y >= maxTile) {
+      console.warn(`[Synthetic Tile] [${reqId}] Invalid x/y -> transparent`, { z, x, y });
       return getTransparentTile();
     }
 
@@ -44,6 +50,7 @@ export async function GET(request: NextRequest) {
     const currentConditions = await getCurrentResortConditions();
 
     if (!currentConditions || currentConditions.length === 0) {
+      console.warn(`[Synthetic Tile] [${reqId}] No resort conditions -> transparent`);
       return getTransparentTile();
     }
 
@@ -54,7 +61,7 @@ export async function GET(request: NextRequest) {
     const minSnowfall = Math.min(...snowfallValues);
     const maxSnowfall = Math.max(...snowfallValues);
     const avgSnowfall = snowfallValues.reduce((a, v) => a + v, 0) / (snowfallValues.length || 1);
-    console.log('[Synthetic Debug] Resort snowfall stats:', {
+    console.log('[Synthetic Debug] [${reqId}] Resort snowfall stats:', {
       total: currentConditions.length,
       withSnow: withSnow.length,
       minSnowfall,
@@ -381,7 +388,9 @@ function greatCircleDistance(
 function snowfallToRGBA(inches: number): Uint8ClampedArray {
   // IMPORTANT: Most pixels should be fully transparent.
   // We hard-clamp tiny values to zero so blur + interpolation noise can't paint haze.
-  if (inches < 0.25) return new Uint8ClampedArray([0, 0, 0, 0]);
+  // 0.25" was too aggressive in practice: if resorts report modest amounts,
+  // IDW smoothing can easily push most pixels below that threshold -> fully transparent tiles.
+  if (inches < 0.05) return new Uint8ClampedArray([0, 0, 0, 0]);
 
   // Standard weather radar precipitation color scale (inches per hour)
   if (inches >= 8.0) return new Uint8ClampedArray([255, 0, 255, 255]);     // Extreme: Magenta (#FF00FF, 100% opacity)

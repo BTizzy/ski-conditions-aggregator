@@ -7,7 +7,10 @@ import { FaSkiing, FaSnowboarding } from 'react-icons/fa';
 // Dynamically import the map component to avoid SSR issues with Leaflet
 const ResortMap = dynamic(() => import('./components/ResortMap'), {
   ssr: false,
-  loading: () => <div className="flex-1 flex items-center justify-center"><div className="text-blue-500 text-xl">Loading map...</div></div>
+  loading: () => {
+    console.log('[Page] ResortMap loading...');
+    return <div className="flex-1 flex items-center justify-center"><div className="text-blue-500 text-xl">Loading map...</div></div>;
+  }
 });
 
 interface ResortConditions {

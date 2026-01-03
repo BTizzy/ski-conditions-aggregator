@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import RadarControls from './RadarControls';
 
 interface Resort {
   id: string;
@@ -41,7 +42,10 @@ const ResortMap: React.FC<ResortMapProps> = ({
   loading = {},
   errors = {},
 }) => {
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  console.log('[ResortMap] Component function called');
+
+  try {
+    const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<Map<string, L.CircleMarker>>(new Map());
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -228,6 +232,8 @@ const ResortMap: React.FC<ResortMapProps> = ({
           }
         });
 
+        console.log('[Frames] Fetch result - ok:', radarRes.ok, 'status:', radarRes.status);
+
         if (radarRes.ok) {
           const data = await radarRes.json();
           const frames = data?.radar?.past || [];
@@ -235,20 +241,42 @@ const ResortMap: React.FC<ResortMapProps> = ({
           if (frames.length > 0) {
             console.log('[Frames] Using multi-source radar:', frames.length, 'frames from', data?.metadata?.sources?.length || 0, 'sources');
 
-            const frameObjects = frames.map((frame: any) => ({
+            // Filter to only use provider frames (exclude synthetic frames that start with /api/radar/synthetic)
+            const providerFrames = frames.filter((frame: any) => 
+              !frame.url.startsWith('/api/radar/synthetic')
+            );
+
+            console.log('[Frames] Filtered to provider frames only:', providerFrames.length, 'out of', frames.length);
+
+            const frameObjects = providerFrames.map((frame: any) => ({
               url: frame.url,
               time: frame.time
             }));
 
-            // Clear existing caches to ensure fresh animation
-            tileBitmapCache.current.clear();
-            frameCanvasCache.current.clear();
+            // If no provider frames, fall back to all frames
+            if (frameObjects.length === 0) {
+              console.warn('[Frames] No provider frames found, using all frames');
+              const allFrameObjects = frames.map((frame: any) => ({
+                url: frame.url,
+                time: frame.time
+              }));
+              radarFramesRef.current = allFrameObjects;
+              setFrameCount(allFrameObjects.length);
+              setRadarFramesAvailable(allFrameObjects.length > 0);
+              setRadarSource('multi-source (with synthetic)');
+            } else {
+              // Clear existing caches to ensure fresh animation
+              tileBitmapCache.current.clear();
+              frameCanvasCache.current.clear();
 
-            radarFramesRef.current = frameObjects;
-            setFrameCount(frameObjects.length);
-            setRadarFramesAvailable(frameObjects.length > 0);
-            setRadarSource(data?.metadata?.source || 'multi-source');
-            setLoadingStatus(`Ready: ${frameObjects.length} frames (${data?.metadata?.source || 'Multi-source radar'})`);
+              radarFramesRef.current = frameObjects;
+              setFrameCount(frameObjects.length);
+              setRadarFramesAvailable(frameObjects.length > 0);
+              console.log('[Frames] Set radarFramesAvailable to:', frameObjects.length > 0, 'provider frames:', frameObjects.length);
+              setRadarSource('multi-source (provider only)');
+            }
+            
+            setLoadingStatus(`Ready: ${radarFramesRef.current.length} frames (${radarSource})`);
             return;
           } else {
             console.warn('[Frames] Multi-source radar returned empty frames array');
@@ -278,6 +306,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
         radarFramesRef.current = frameObjects;
         setFrameCount(frameObjects.length);
         setRadarFramesAvailable(true);
+        console.log('[Frames] Set radarFramesAvailable to: true (synthetic), frames:', frameObjects.length);
         setRadarSource('synthetic');
         setLoadingStatus('Ready: 48 synthetic frames (IDW from resorts)');
         return;
@@ -509,6 +538,26 @@ const ResortMap: React.FC<ResortMapProps> = ({
       const bitmap = await createImageBitmap(blob);
       tileBitmapCache.current.set(key, bitmap);
 
+      // DEBUG: Check if the loaded bitmap has magenta pixels
+      try {
+        const debugCanvas = document.createElement('canvas');
+        debugCanvas.width = bitmap.width;
+        debugCanvas.height = bitmap.height;
+        const debugCtx = debugCanvas.getContext('2d');
+        if (debugCtx) {
+          debugCtx.drawImage(bitmap, 0, 0);
+          const imageData = debugCtx.getImageData(0, 0, Math.min(50, bitmap.width), Math.min(50, bitmap.height));
+          const data = imageData.data;
+          let magentaCount = 0;
+          for (let i = 0; i < data.length; i += 4) {
+            if (data[i + 3] > 0 && data[i] > 200 && data[i + 2] > 200 && data[i + 1] < 100) magentaCount++;
+          }
+          console.log('[Radar Debug] Tile bitmap check', { url, width: bitmap.width, height: bitmap.height, magentaCount, totalPixels: data.length / 4 });
+        }
+      } catch (e) {
+        console.log('[Radar Debug] Tile bitmap check failed', e);
+      }
+
       if (tileBitmapCache.current.size > 256) {
         const firstKey = tileBitmapCache.current.keys().next().value;
         if (firstKey) tileBitmapCache.current.delete(firstKey);
@@ -622,6 +671,8 @@ const ResortMap: React.FC<ResortMapProps> = ({
     const frameDuration = calculateFrameDuration();
 
     const step = async (now: number) => {
+      console.log('[Animation] Step function called, radarPlaying:', radarPlayingRef.current, 'radarFramesAvailable:', radarFramesAvailable);
+
       const c1 = canvasRef.current;
       const c2 = canvas2Ref.current;
       if (!c1 || !c2) { rafRef.current = requestAnimationFrame(step); return; }
@@ -702,6 +753,8 @@ const ResortMap: React.FC<ResortMapProps> = ({
         nextFrameIndex = (currentFrameIndex + 1) % totalFrames;
         const frameBlend = frameProgress - Math.floor(frameProgress);
 
+        console.log('[Animation] Rendering frame index:', currentFrameIndex, 'frame:', frames[currentFrameIndex]);
+
         // Update radarIndexRef.current continuously for smooth progression
         radarIndexRef.current = Math.floor(frameProgress) % totalFrames;
 
@@ -728,7 +781,22 @@ const ResortMap: React.FC<ResortMapProps> = ({
           if (ctx1) {
             ctx1.clearRect(0, 0, c1.width, c1.height);
             ctx1.drawImage(currentFrameC, 0, 0);
-            console.log('[Radar Debug] drew current frame', { keyCurrent, z, canvasW: c1.width, canvasH: c1.height });
+            console.log('[Radar Debug] drew current frame', { keyCurrent, z, canvasW: c1.width, canvasH: c1.height, opacity: c1.style.opacity });
+            
+            // Check if canvas has any non-transparent pixels
+            try {
+              const imageData = ctx1.getImageData(0, 0, Math.min(100, c1.width), Math.min(100, c1.height));
+              const data = imageData.data;
+              let nonTransparent = 0;
+              let magentaPixels = 0;
+              for (let i = 0; i < data.length; i += 4) {
+                if (data[i + 3] > 0) nonTransparent++;
+                if (data[i + 3] > 0 && data[i] > 200 && data[i + 2] > 200 && data[i + 1] < 100) magentaPixels++;
+              }
+              console.log('[Radar Debug] Canvas pixels check', { nonTransparent, magentaPixels, totalChecked: data.length / 4 });
+            } catch (e) {
+              console.log('[Radar Debug] Canvas pixel check failed', e);
+            }
           }
         }
 
@@ -747,6 +815,8 @@ const ResortMap: React.FC<ResortMapProps> = ({
         const easeInOut = 0.5 - 0.5 * Math.cos(frameBlend * Math.PI);
         const canvas1Opacity = (1 - easeInOut) * radarOpacity;
         const canvas2Opacity = easeInOut * radarOpacity;
+
+        console.log('[Radar Debug] Setting canvas opacities', { canvas1Opacity, canvas2Opacity, radarOpacity, frameBlend, easeInOut });
 
         c1.style.opacity = canvas1Opacity.toString();
         c2.style.opacity = canvas2Opacity.toString();
@@ -777,27 +847,24 @@ const ResortMap: React.FC<ResortMapProps> = ({
 
   return (
     <div className="relative w-full h-screen bg-gray-100 flex flex-col">
+      {(() => {
+        console.log('[ResortMap] Rendering - radarFramesAvailable:', radarFramesAvailable, 'frames:', radarFramesRef.current.length);
+        return null;
+      })()}
       <div ref={containerRef} className="flex-1 w-full" style={{ position: 'relative', width: '100%', height: '100%', minHeight: '400px' }} />
 
       {radarFramesAvailable && (
-        <div className="fixed bottom-4 right-4 z-[1002] bg-black/60 backdrop-blur-sm rounded-lg p-3 text-white text-xs">
-          <button
-            onClick={handlePlayPause}
-            className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded mb-2 w-full"
-          >
-            {radarPlaying ? '⏸ Pause' : '▶ Play'}
-          </button>
-          <label className="block mb-1">Opacity: {Math.round(radarOpacity * 100)}%</label>
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.1"
-            value={radarOpacity}
-            onChange={(e) => setRadarOpacity(Number(e.target.value))}
-            className="w-full"
-          />
-        </div>
+        <RadarControls
+          isPlaying={radarPlaying}
+          onPlayPause={handlePlayPause}
+          opacity={radarOpacity}
+          onOpacityChange={setRadarOpacity}
+          speed={radarSpeedMs}
+          onSpeedChange={setRadarSpeedMs}
+          frameCount={radarFramesRef.current.length}
+          currentFrame={Math.floor(radarIndexRef.current) + 1}
+          radarSource={radarSource}
+        />
       )}
 
       {/* Timestamp Overlay */}
@@ -875,6 +942,14 @@ const ResortMap: React.FC<ResortMapProps> = ({
 
     </div>
   );
+  } catch (error) {
+    console.error('[ResortMap] Component error:', error);
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-red-500 text-xl">Map Error: {String(error)}</div>
+      </div>
+    );
+  }
 };
 
 export default ResortMap;

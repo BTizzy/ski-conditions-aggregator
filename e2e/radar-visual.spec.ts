@@ -159,7 +159,9 @@ test.describe('Radar Overlay Visual Tests', () => {
     // Verify canvas has actual radar data
     expect(pixelAnalysis.hasData).toBe(true);
     expect(pixelAnalysis.totalPixels).toBeGreaterThan(100);
-    expect(pixelAnalysis.uniqueColors).toBeGreaterThan(1); // Should have varied colors
+    
+    // For provider radar, we expect varied colors (not just uniform)
+    expect(pixelAnalysis.uniqueColors).toBeGreaterThan(1);
 
     console.log('Radar pixel analysis:', pixelAnalysis);
   });

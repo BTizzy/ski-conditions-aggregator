@@ -45,6 +45,7 @@ export default function RadarControls({
 
       {/* Play/Pause Button */}
       <button
+        data-testid="radar-play-pause"
         onClick={onPlayPause}
         className="w-full mb-4 bg-gradient-to-r from-blue-500 to-purple-600
                    hover:from-blue-600 hover:to-purple-700
@@ -66,6 +67,7 @@ export default function RadarControls({
             Opacity
           </label>
           <input
+            data-testid="radar-opacity"
             type="range"
             min="0"
             max="1"
@@ -93,6 +95,7 @@ export default function RadarControls({
             Speed
           </label>
           <input
+            data-testid="radar-speed"
             type="range"
             min="100"
             max="2000"

@@ -1,0 +1,3429 @@
+
+> ski-conditions-aggregator@0.1.0 dev
+> next dev
+
+▲ Next.js 16.1.1 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.54:3000
+- Environments: .env.local
+
+✓ Starting...
+✓ Ready in 375ms
+🚨 SYNTHETIC ROUTE HIT [qfufu4] - request: http://localhost:3000/api/radar/synthetic?hour=21&z=7&x=37&y=45
+[Synthetic Tile] [qfufu4] Request: http://localhost:3000/api/radar/synthetic?hour=21&z=7&x=37&y=45
+🚨 SYNTHETIC ROUTE HIT [tyavi3] - request: http://localhost:3000/api/radar/synthetic?hour=21&z=7&x=38&y=45
+[Synthetic Tile] [tyavi3] Request: http://localhost:3000/api/radar/synthetic?hour=21&z=7&x=38&y=45
+🚨 SYNTHETIC ROUTE HIT [69d62r] - request: http://localhost:3000/api/radar/synthetic?hour=21&z=7&x=37&y=48
+[Synthetic Tile] [69d62r] Request: http://localhost:3000/api/radar/synthetic?hour=21&z=7&x=37&y=48
+🚨 SYNTHETIC ROUTE HIT [zqo5yv] - request: http://localhost:3000/api/radar/synthetic?hour=21&z=7&x=37&y=47
+[Synthetic Tile] [zqo5yv] Request: http://localhost:3000/api/radar/synthetic?hour=21&z=7&x=37&y=47
+🚨 SYNTHETIC ROUTE HIT [m35cr4] - request: http://localhost:3000/api/radar/synthetic?hour=21&z=7&x=37&y=46
+[Synthetic Tile] [m35cr4] Request: http://localhost:3000/api/radar/synthetic?hour=21&z=7&x=37&y=46
+[Synthetic Debug] [${reqId}] Resort snowfall stats: {
+  total: 43,
+  withSnow: 11,
+  minSnowfall: 0,
+  maxSnowfall: 1,
+  avgSnowfall: 0.19767441860465115,
+  sampleResorts: [
+    { name: 'Loon Mountain', lat: '44.04', lon: '-71.62', snow: 0 },
+    { name: 'Sunday River', lat: '44.47', lon: '-70.86', snow: 0 },
+    { name: 'Sugarloaf', lat: '45.03', lon: '-70.31', snow: 0 },
+    { name: 'Stowe', lat: '44.47', lon: '-72.69', snow: 0.5 },
+    { name: 'Killington', lat: '43.60', lon: '-72.82', snow: 1 }
+  ]
+}
+[Synthetic Tile] Hour 21: 43 resorts loaded
+[Synthetic Tile] Sample resorts: [
+  { name: 'Loon Mountain', lat: 44.0367, lon: -71.6217, snowfall: 0 },
+  { name: 'Sunday River', lat: 44.4722, lon: -70.8567, snowfall: 0 },
+  { name: 'Sugarloaf', lat: 45.0311, lon: -70.3133, snowfall: 0 }
+]
+[Tile Debug] Storm-evolved resorts: [
+  {
+    name: 'Loon Mountain',
+    originalLat: '44.0367',
+    originalLon: '-71.6217',
+    stormLat: '38.2564',
+    stormLon: '-77.4020',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    originalLat: '44.4722',
+    originalLon: '-70.8567',
+    stormLat: '38.6919',
+    stormLon: '-76.6370',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    originalLat: '45.0311',
+    originalLon: '-70.3133',
+    stormLat: '39.2508',
+    stormLon: '-76.0936',
+    snowfall: '0.00'
+  }
+]
+[Tile Debug] Tile bounds: {
+  z: 7,
+  x: 37,
+  y: 45,
+  latRange: [ '45.09', '47.04' ],
+  lonRange: [ '-75.94', '-73.13' ]
+}
+[Tile Debug] Resorts in tile bounds: 0
+[IDW] (center) Interpolating at (46.0646, -74.5313) z=7 x=37 y=45 samples=43 maxDistance=5
+[IDW] (center) Nearby samples within radius: 0 []
+[Tile Debug] Center pixel interpolation: { lat: '46.0646', lon: '-74.5313', snowfall: '0.0000' }
+[Synthetic Tile] After storm evolution: [
+  {
+    name: 'Loon Mountain',
+    lat: '38.2564',
+    lon: '-77.4020',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    lat: '38.6919',
+    lon: '-76.6370',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    lat: '39.2508',
+    lon: '-76.0936',
+    snowfall: '0.00'
+  }
+]
+[Tile Generation] z=7 x=37 y=45, 43 conditions
+[Tile] Center pixel snowfall: 0.000 inches at (46.0732, -74.5313)
+[Tile Debug] Pixel statistics (pre-blur): {
+  totalPixels: 65536,
+  nonTransparent: 0,
+  alphaMin: null,
+  alphaMax: null
+}
+ GET /api/radar/synthetic?hour=21&z=7&x=37&y=45 200 in 441ms (compile: 267ms, render: 174ms)
+[Synthetic Debug] [${reqId}] Resort snowfall stats: {
+  total: 43,
+  withSnow: 11,
+  minSnowfall: 0,
+  maxSnowfall: 1,
+  avgSnowfall: 0.19767441860465115,
+  sampleResorts: [
+    { name: 'Loon Mountain', lat: '44.04', lon: '-71.62', snow: 0 },
+    { name: 'Sunday River', lat: '44.47', lon: '-70.86', snow: 0 },
+    { name: 'Sugarloaf', lat: '45.03', lon: '-70.31', snow: 0 },
+    { name: 'Stowe', lat: '44.47', lon: '-72.69', snow: 0.5 },
+    { name: 'Killington', lat: '43.60', lon: '-72.82', snow: 1 }
+  ]
+}
+[Synthetic Tile] Hour 21: 43 resorts loaded
+[Synthetic Tile] Sample resorts: [
+  { name: 'Loon Mountain', lat: 44.0367, lon: -71.6217, snowfall: 0 },
+  { name: 'Sunday River', lat: 44.4722, lon: -70.8567, snowfall: 0 },
+  { name: 'Sugarloaf', lat: 45.0311, lon: -70.3133, snowfall: 0 }
+]
+[Tile Debug] Storm-evolved resorts: [
+  {
+    name: 'Loon Mountain',
+    originalLat: '44.0367',
+    originalLon: '-71.6217',
+    stormLat: '38.2564',
+    stormLon: '-77.4020',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    originalLat: '44.4722',
+    originalLon: '-70.8567',
+    stormLat: '38.6919',
+    stormLon: '-76.6370',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    originalLat: '45.0311',
+    originalLon: '-70.3133',
+    stormLat: '39.2508',
+    stormLon: '-76.0936',
+    snowfall: '0.00'
+  }
+]
+[Tile Debug] Tile bounds: {
+  z: 7,
+  x: 38,
+  y: 45,
+  latRange: [ '45.09', '47.04' ],
+  lonRange: [ '-73.13', '-70.31' ]
+}
+[Tile Debug] Resorts in tile bounds: 0
+[IDW] (center) Interpolating at (46.0646, -71.7188) z=7 x=38 y=45 samples=43 maxDistance=5
+[IDW] (center) Nearby samples within radius: 0 []
+[Tile Debug] Center pixel interpolation: { lat: '46.0646', lon: '-71.7188', snowfall: '0.0000' }
+[Synthetic Tile] After storm evolution: [
+  {
+    name: 'Loon Mountain',
+    lat: '38.2564',
+    lon: '-77.4020',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    lat: '38.6919',
+    lon: '-76.6370',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    lat: '39.2508',
+    lon: '-76.0936',
+    snowfall: '0.00'
+  }
+]
+[Tile Generation] z=7 x=38 y=45, 43 conditions
+[Tile] Center pixel snowfall: 0.000 inches at (46.0732, -71.7188)
+[Tile Debug] Pixel statistics (pre-blur): {
+  totalPixels: 65536,
+  nonTransparent: 0,
+  alphaMin: null,
+  alphaMax: null
+}
+ GET /api/radar/synthetic?hour=21&z=7&x=38&y=45 200 in 621ms (compile: 278ms, render: 344ms)
+[Synthetic Debug] [${reqId}] Resort snowfall stats: {
+  total: 43,
+  withSnow: 11,
+  minSnowfall: 0,
+  maxSnowfall: 1,
+  avgSnowfall: 0.19767441860465115,
+  sampleResorts: [
+    { name: 'Loon Mountain', lat: '44.04', lon: '-71.62', snow: 0 },
+    { name: 'Sunday River', lat: '44.47', lon: '-70.86', snow: 0 },
+    { name: 'Sugarloaf', lat: '45.03', lon: '-70.31', snow: 0 },
+    { name: 'Stowe', lat: '44.47', lon: '-72.69', snow: 0.5 },
+    { name: 'Killington', lat: '43.60', lon: '-72.82', snow: 1 }
+  ]
+}
+[Synthetic Tile] Hour 21: 43 resorts loaded
+[Synthetic Tile] Sample resorts: [
+  { name: 'Loon Mountain', lat: 44.0367, lon: -71.6217, snowfall: 0 },
+  { name: 'Sunday River', lat: 44.4722, lon: -70.8567, snowfall: 0 },
+  { name: 'Sugarloaf', lat: 45.0311, lon: -70.3133, snowfall: 0 }
+]
+[Tile Debug] Storm-evolved resorts: [
+  {
+    name: 'Loon Mountain',
+    originalLat: '44.0367',
+    originalLon: '-71.6217',
+    stormLat: '38.2564',
+    stormLon: '-77.4020',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    originalLat: '44.4722',
+    originalLon: '-70.8567',
+    stormLat: '38.6919',
+    stormLon: '-76.6370',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    originalLat: '45.0311',
+    originalLon: '-70.3133',
+    stormLat: '39.2508',
+    stormLon: '-76.0936',
+    snowfall: '0.00'
+  }
+]
+[Tile Debug] Tile bounds: {
+  z: 7,
+  x: 37,
+  y: 48,
+  latRange: [ '38.82', '40.98' ],
+  lonRange: [ '-75.94', '-73.13' ]
+}
+[Tile Debug] Resorts in tile bounds: 0
+[IDW] (center) Interpolating at (39.9012, -74.5313) z=7 x=37 y=48 samples=43 maxDistance=5
+[IDW] (center) Nearby samples within radius: 32 [
+  { name: 'Sugarloaf', dist: 1.364, snow: 0 },
+  { name: 'Saddleback', dist: 1.545, snow: 0 },
+  { name: 'Sunday River', dist: 2.018, snow: 0 },
+  { name: 'Squaw Mountain', dist: 2.219, snow: 0 },
+  { name: 'Wildcat', dist: 2.373, snow: 0 },
+  { name: 'Black Mountain', dist: 2.394, snow: 0 }
+]
+[Tile Debug] Center pixel interpolation: { lat: '39.9012', lon: '-74.5313', snowfall: '0.0000' }
+[Synthetic Tile] After storm evolution: [
+  {
+    name: 'Loon Mountain',
+    lat: '38.2564',
+    lon: '-77.4020',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    lat: '38.6919',
+    lon: '-76.6370',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    lat: '39.2508',
+    lon: '-76.0936',
+    snowfall: '0.00'
+  }
+]
+[Tile Generation] z=7 x=37 y=48, 43 conditions
+[Tile] Center pixel snowfall: 0.000 inches at (39.9097, -74.5313)
+[Tile Debug] Pixel statistics (pre-blur): {
+  totalPixels: 65536,
+  nonTransparent: 0,
+  alphaMin: null,
+  alphaMax: null
+}
+ GET /api/radar/synthetic?hour=21&z=7&x=37&y=48 200 in 782ms (compile: 280ms, render: 502ms)
+[Synthetic Debug] [${reqId}] Resort snowfall stats: {
+  total: 43,
+  withSnow: 11,
+  minSnowfall: 0,
+  maxSnowfall: 1,
+  avgSnowfall: 0.19767441860465115,
+  sampleResorts: [
+    { name: 'Loon Mountain', lat: '44.04', lon: '-71.62', snow: 0 },
+    { name: 'Sunday River', lat: '44.47', lon: '-70.86', snow: 0 },
+    { name: 'Sugarloaf', lat: '45.03', lon: '-70.31', snow: 0 },
+    { name: 'Stowe', lat: '44.47', lon: '-72.69', snow: 0.5 },
+    { name: 'Killington', lat: '43.60', lon: '-72.82', snow: 1 }
+  ]
+}
+[Synthetic Tile] Hour 21: 43 resorts loaded
+[Synthetic Tile] Sample resorts: [
+  { name: 'Loon Mountain', lat: 44.0367, lon: -71.6217, snowfall: 0 },
+  { name: 'Sunday River', lat: 44.4722, lon: -70.8567, snowfall: 0 },
+  { name: 'Sugarloaf', lat: 45.0311, lon: -70.3133, snowfall: 0 }
+]
+[Tile Debug] Storm-evolved resorts: [
+  {
+    name: 'Loon Mountain',
+    originalLat: '44.0367',
+    originalLon: '-71.6217',
+    stormLat: '38.2564',
+    stormLon: '-77.4020',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    originalLat: '44.4722',
+    originalLon: '-70.8567',
+    stormLat: '38.6919',
+    stormLon: '-76.6370',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    originalLat: '45.0311',
+    originalLon: '-70.3133',
+    stormLat: '39.2508',
+    stormLon: '-76.0936',
+    snowfall: '0.00'
+  }
+]
+[Tile Debug] Tile bounds: {
+  z: 7,
+  x: 37,
+  y: 47,
+  latRange: [ '40.98', '43.07' ],
+  lonRange: [ '-75.94', '-73.13' ]
+}
+[Tile Debug] Resorts in tile bounds: 0
+[IDW] (center) Interpolating at (42.0244, -74.5313) z=7 x=37 y=47 samples=43 maxDistance=5
+[IDW] (center) Nearby samples within radius: 18 [
+  { name: 'Sugarloaf', dist: 3.007, snow: 0 },
+  { name: 'Saddleback', dist: 3.142, snow: 0 },
+  { name: 'Sunday River', dist: 3.681, snow: 0 },
+  { name: 'Wildcat', dist: 3.995, snow: 0 },
+  { name: 'Squaw Mountain', dist: 4.01, snow: 0 },
+  { name: 'Jay Peak', dist: 4.023, snow: 0.32 }
+]
+[Tile Debug] Center pixel interpolation: { lat: '42.0244', lon: '-74.5313', snowfall: '0.0393' }
+[Synthetic Tile] After storm evolution: [
+  {
+    name: 'Loon Mountain',
+    lat: '38.2564',
+    lon: '-77.4020',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    lat: '38.6919',
+    lon: '-76.6370',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    lat: '39.2508',
+    lon: '-76.0936',
+    snowfall: '0.00'
+  }
+]
+[Tile Generation] z=7 x=37 y=47, 43 conditions
+[Tile] Center pixel snowfall: 0.039 inches at (42.0330, -74.5313)
+[Tile Debug] Pixel statistics (pre-blur): {
+  totalPixels: 65536,
+  nonTransparent: 0,
+  alphaMin: null,
+  alphaMax: null
+}
+ GET /api/radar/synthetic?hour=21&z=7&x=37&y=47 200 in 890ms (compile: 282ms, render: 608ms)
+[Synthetic Debug] [${reqId}] Resort snowfall stats: {
+  total: 43,
+  withSnow: 11,
+  minSnowfall: 0,
+  maxSnowfall: 1,
+  avgSnowfall: 0.19767441860465115,
+  sampleResorts: [
+    { name: 'Loon Mountain', lat: '44.04', lon: '-71.62', snow: 0 },
+    { name: 'Sunday River', lat: '44.47', lon: '-70.86', snow: 0 },
+    { name: 'Sugarloaf', lat: '45.03', lon: '-70.31', snow: 0 },
+    { name: 'Stowe', lat: '44.47', lon: '-72.69', snow: 0.5 },
+    { name: 'Killington', lat: '43.60', lon: '-72.82', snow: 1 }
+  ]
+}
+[Synthetic Tile] Hour 21: 43 resorts loaded
+[Synthetic Tile] Sample resorts: [
+  { name: 'Loon Mountain', lat: 44.0367, lon: -71.6217, snowfall: 0 },
+  { name: 'Sunday River', lat: 44.4722, lon: -70.8567, snowfall: 0 },
+  { name: 'Sugarloaf', lat: 45.0311, lon: -70.3133, snowfall: 0 }
+]
+[Tile Debug] Storm-evolved resorts: [
+  {
+    name: 'Loon Mountain',
+    originalLat: '44.0367',
+    originalLon: '-71.6217',
+    stormLat: '38.2564',
+    stormLon: '-77.4020',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    originalLat: '44.4722',
+    originalLon: '-70.8567',
+    stormLat: '38.6919',
+    stormLon: '-76.6370',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    originalLat: '45.0311',
+    originalLon: '-70.3133',
+    stormLat: '39.2508',
+    stormLon: '-76.0936',
+    snowfall: '0.00'
+  }
+]
+[Tile Debug] Tile bounds: {
+  z: 7,
+  x: 37,
+  y: 46,
+  latRange: [ '43.07', '45.09' ],
+  lonRange: [ '-75.94', '-73.13' ]
+}
+[Tile Debug] Resorts in tile bounds: 0
+[IDW] (center) Interpolating at (44.0790, -74.5313) z=7 x=37 y=46 samples=43 maxDistance=5
+[IDW] (center) Nearby samples within radius: 1 [ { name: 'Sugarloaf', dist: 4.957, snow: 0 } ]
+[Tile Debug] Center pixel interpolation: { lat: '44.0790', lon: '-74.5313', snowfall: '0.0000' }
+[Synthetic Tile] After storm evolution: [
+  {
+    name: 'Loon Mountain',
+    lat: '38.2564',
+    lon: '-77.4020',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    lat: '38.6919',
+    lon: '-76.6370',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    lat: '39.2508',
+    lon: '-76.0936',
+    snowfall: '0.00'
+  }
+]
+[Tile Generation] z=7 x=37 y=46, 43 conditions
+[Tile] Center pixel snowfall: 0.000 inches at (44.0876, -74.5313)
+[Tile Debug] Pixel statistics (pre-blur): {
+  totalPixels: 65536,
+  nonTransparent: 0,
+  alphaMin: null,
+  alphaMax: null
+}
+ GET /api/radar/synthetic?hour=21&z=7&x=37&y=46 200 in 958ms (compile: 284ms, render: 674ms)
+🚨 SYNTHETIC ROUTE HIT [sqzwpy] - request: http://localhost:3000/api/radar/synthetic?hour=21&z=7&x=38&y=46
+[Synthetic Tile] [sqzwpy] Request: http://localhost:3000/api/radar/synthetic?hour=21&z=7&x=38&y=46
+[Synthetic Debug] [${reqId}] Resort snowfall stats: {
+  total: 43,
+  withSnow: 11,
+  minSnowfall: 0,
+  maxSnowfall: 1,
+  avgSnowfall: 0.19767441860465115,
+  sampleResorts: [
+    { name: 'Loon Mountain', lat: '44.04', lon: '-71.62', snow: 0 },
+    { name: 'Sunday River', lat: '44.47', lon: '-70.86', snow: 0 },
+    { name: 'Sugarloaf', lat: '45.03', lon: '-70.31', snow: 0 },
+    { name: 'Stowe', lat: '44.47', lon: '-72.69', snow: 0.5 },
+    { name: 'Killington', lat: '43.60', lon: '-72.82', snow: 1 }
+  ]
+}
+[Synthetic Tile] Hour 21: 43 resorts loaded
+[Synthetic Tile] Sample resorts: [
+  { name: 'Loon Mountain', lat: 44.0367, lon: -71.6217, snowfall: 0 },
+  { name: 'Sunday River', lat: 44.4722, lon: -70.8567, snowfall: 0 },
+  { name: 'Sugarloaf', lat: 45.0311, lon: -70.3133, snowfall: 0 }
+]
+[Tile Debug] Storm-evolved resorts: [
+  {
+    name: 'Loon Mountain',
+    originalLat: '44.0367',
+    originalLon: '-71.6217',
+    stormLat: '38.2564',
+    stormLon: '-77.4020',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    originalLat: '44.4722',
+    originalLon: '-70.8567',
+    stormLat: '38.6919',
+    stormLon: '-76.6370',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    originalLat: '45.0311',
+    originalLon: '-70.3133',
+    stormLat: '39.2508',
+    stormLon: '-76.0936',
+    snowfall: '0.00'
+  }
+]
+[Tile Debug] Tile bounds: {
+  z: 7,
+  x: 38,
+  y: 46,
+  latRange: [ '43.07', '45.09' ],
+  lonRange: [ '-73.13', '-70.31' ]
+}
+[Tile Debug] Resorts in tile bounds: 0
+[IDW] (center) Interpolating at (44.0790, -71.7188) z=7 x=38 y=46 samples=43 maxDistance=5
+[IDW] (center) Nearby samples within radius: 0 []
+[Tile Debug] Center pixel interpolation: { lat: '44.0790', lon: '-71.7188', snowfall: '0.0000' }
+[Synthetic Tile] After storm evolution: [
+  {
+    name: 'Loon Mountain',
+    lat: '38.2564',
+    lon: '-77.4020',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    lat: '38.6919',
+    lon: '-76.6370',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    lat: '39.2508',
+    lon: '-76.0936',
+    snowfall: '0.00'
+  }
+]
+[Tile Generation] z=7 x=38 y=46, 43 conditions
+[Tile] Center pixel snowfall: 0.000 inches at (44.0876, -71.7188)
+[Tile Debug] Pixel statistics (pre-blur): {
+  totalPixels: 65536,
+  nonTransparent: 0,
+  alphaMin: null,
+  alphaMax: null
+}
+ GET /api/radar/synthetic?hour=21&z=7&x=38&y=46 200 in 70ms (compile: 6ms, render: 65ms)
+🚨 SYNTHETIC ROUTE HIT [f6b9el] - request: http://localhost:3000/api/radar/synthetic?hour=21&z=7&x=38&y=47
+[Synthetic Tile] [f6b9el] Request: http://localhost:3000/api/radar/synthetic?hour=21&z=7&x=38&y=47
+[Synthetic Debug] [${reqId}] Resort snowfall stats: {
+  total: 43,
+  withSnow: 11,
+  minSnowfall: 0,
+  maxSnowfall: 1,
+  avgSnowfall: 0.19767441860465115,
+  sampleResorts: [
+    { name: 'Loon Mountain', lat: '44.04', lon: '-71.62', snow: 0 },
+    { name: 'Sunday River', lat: '44.47', lon: '-70.86', snow: 0 },
+    { name: 'Sugarloaf', lat: '45.03', lon: '-70.31', snow: 0 },
+    { name: 'Stowe', lat: '44.47', lon: '-72.69', snow: 0.5 },
+    { name: 'Killington', lat: '43.60', lon: '-72.82', snow: 1 }
+  ]
+}
+[Synthetic Tile] Hour 21: 43 resorts loaded
+[Synthetic Tile] Sample resorts: [
+  { name: 'Loon Mountain', lat: 44.0367, lon: -71.6217, snowfall: 0 },
+  { name: 'Sunday River', lat: 44.4722, lon: -70.8567, snowfall: 0 },
+  { name: 'Sugarloaf', lat: 45.0311, lon: -70.3133, snowfall: 0 }
+]
+[Tile Debug] Storm-evolved resorts: [
+  {
+    name: 'Loon Mountain',
+    originalLat: '44.0367',
+    originalLon: '-71.6217',
+    stormLat: '38.2564',
+    stormLon: '-77.4020',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    originalLat: '44.4722',
+    originalLon: '-70.8567',
+    stormLat: '38.6919',
+    stormLon: '-76.6370',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    originalLat: '45.0311',
+    originalLon: '-70.3133',
+    stormLat: '39.2508',
+    stormLon: '-76.0936',
+    snowfall: '0.00'
+  }
+]
+[Tile Debug] Tile bounds: {
+  z: 7,
+  x: 38,
+  y: 47,
+  latRange: [ '40.98', '43.07' ],
+  lonRange: [ '-73.13', '-70.31' ]
+}
+[Tile Debug] Resorts in tile bounds: 0
+[IDW] (center) Interpolating at (42.0244, -71.7188) z=7 x=38 y=47 samples=43 maxDistance=5
+[IDW] (center) Nearby samples within radius: 3 [
+  { name: 'Sugarloaf', dist: 4.273, snow: 0 },
+  { name: 'Saddleback', dist: 4.444, snow: 0 },
+  { name: 'Sunday River', dist: 4.945, snow: 0 }
+]
+[Tile Debug] Center pixel interpolation: { lat: '42.0244', lon: '-71.7188', snowfall: '0.0000' }
+[Synthetic Tile] After storm evolution: [
+  {
+    name: 'Loon Mountain',
+    lat: '38.2564',
+    lon: '-77.4020',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    lat: '38.6919',
+    lon: '-76.6370',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    lat: '39.2508',
+    lon: '-76.0936',
+    snowfall: '0.00'
+  }
+]
+[Tile Generation] z=7 x=38 y=47, 43 conditions
+[Tile] Center pixel snowfall: 0.000 inches at (42.0330, -71.7188)
+[Tile Debug] Pixel statistics (pre-blur): {
+  totalPixels: 65536,
+  nonTransparent: 0,
+  alphaMin: null,
+  alphaMax: null
+}
+🚨 SYNTHETIC ROUTE HIT [an14gz] - request: http://localhost:3000/api/radar/synthetic?hour=21&z=7&x=38&y=48
+[Synthetic Tile] [an14gz] Request: http://localhost:3000/api/radar/synthetic?hour=21&z=7&x=38&y=48
+[Synthetic Debug] [${reqId}] Resort snowfall stats: {
+  total: 43,
+  withSnow: 11,
+  minSnowfall: 0,
+  maxSnowfall: 1,
+  avgSnowfall: 0.19767441860465115,
+  sampleResorts: [
+    { name: 'Loon Mountain', lat: '44.04', lon: '-71.62', snow: 0 },
+    { name: 'Sunday River', lat: '44.47', lon: '-70.86', snow: 0 },
+    { name: 'Sugarloaf', lat: '45.03', lon: '-70.31', snow: 0 },
+    { name: 'Stowe', lat: '44.47', lon: '-72.69', snow: 0.5 },
+    { name: 'Killington', lat: '43.60', lon: '-72.82', snow: 1 }
+  ]
+}
+[Synthetic Tile] Hour 21: 43 resorts loaded
+[Synthetic Tile] Sample resorts: [
+  { name: 'Loon Mountain', lat: 44.0367, lon: -71.6217, snowfall: 0 },
+  { name: 'Sunday River', lat: 44.4722, lon: -70.8567, snowfall: 0 },
+  { name: 'Sugarloaf', lat: 45.0311, lon: -70.3133, snowfall: 0 }
+]
+[Tile Debug] Storm-evolved resorts: [
+  {
+    name: 'Loon Mountain',
+    originalLat: '44.0367',
+    originalLon: '-71.6217',
+    stormLat: '38.2564',
+    stormLon: '-77.4020',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    originalLat: '44.4722',
+    originalLon: '-70.8567',
+    stormLat: '38.6919',
+    stormLon: '-76.6370',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    originalLat: '45.0311',
+    originalLon: '-70.3133',
+    stormLat: '39.2508',
+    stormLon: '-76.0936',
+    snowfall: '0.00'
+  }
+]
+[Tile Debug] Tile bounds: {
+  z: 7,
+  x: 38,
+  y: 48,
+  latRange: [ '38.82', '40.98' ],
+  lonRange: [ '-73.13', '-70.31' ]
+}
+[Tile Debug] Resorts in tile bounds: 0
+[IDW] (center) Interpolating at (39.9012, -71.7188) z=7 x=38 y=48 samples=43 maxDistance=5
+[IDW] (center) Nearby samples within radius: 13 [
+  { name: 'Sugarloaf', dist: 3.419, snow: 0 },
+  { name: 'Saddleback', dist: 3.595, snow: 0 },
+  { name: 'Sunday River', dist: 3.962, snow: 0 },
+  { name: 'Squaw Mountain', dist: 4.028, snow: 0 },
+  { name: 'Black Mountain', dist: 4.287, snow: 0 },
+  { name: 'Wildcat', dist: 4.299, snow: 0 }
+]
+[Tile Debug] Center pixel interpolation: { lat: '39.9012', lon: '-71.7188', snowfall: '0.0000' }
+[Synthetic Tile] After storm evolution: [
+  {
+    name: 'Loon Mountain',
+    lat: '38.2564',
+    lon: '-77.4020',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    lat: '38.6919',
+    lon: '-76.6370',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    lat: '39.2508',
+    lon: '-76.0936',
+    snowfall: '0.00'
+  }
+]
+[Tile Generation] z=7 x=38 y=48, 43 conditions
+[Tile] Center pixel snowfall: 0.000 inches at (39.9097, -71.7188)
+[Tile Debug] Pixel statistics (pre-blur): {
+  totalPixels: 65536,
+  nonTransparent: 0,
+  alphaMin: null,
+  alphaMax: null
+}
+🚨 SYNTHETIC ROUTE HIT [eondsq] - request: http://localhost:3000/api/radar/synthetic?hour=21&z=7&x=39&y=45
+[Synthetic Tile] [eondsq] Request: http://localhost:3000/api/radar/synthetic?hour=21&z=7&x=39&y=45
+[Synthetic Debug] [${reqId}] Resort snowfall stats: {
+  total: 43,
+  withSnow: 11,
+  minSnowfall: 0,
+  maxSnowfall: 1,
+  avgSnowfall: 0.19767441860465115,
+  sampleResorts: [
+    { name: 'Loon Mountain', lat: '44.04', lon: '-71.62', snow: 0 },
+    { name: 'Sunday River', lat: '44.47', lon: '-70.86', snow: 0 },
+    { name: 'Sugarloaf', lat: '45.03', lon: '-70.31', snow: 0 },
+    { name: 'Stowe', lat: '44.47', lon: '-72.69', snow: 0.5 },
+    { name: 'Killington', lat: '43.60', lon: '-72.82', snow: 1 }
+  ]
+}
+[Synthetic Tile] Hour 21: 43 resorts loaded
+[Synthetic Tile] Sample resorts: [
+  { name: 'Loon Mountain', lat: 44.0367, lon: -71.6217, snowfall: 0 },
+  { name: 'Sunday River', lat: 44.4722, lon: -70.8567, snowfall: 0 },
+  { name: 'Sugarloaf', lat: 45.0311, lon: -70.3133, snowfall: 0 }
+]
+[Tile Debug] Storm-evolved resorts: [
+  {
+    name: 'Loon Mountain',
+    originalLat: '44.0367',
+    originalLon: '-71.6217',
+    stormLat: '38.2564',
+    stormLon: '-77.4020',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    originalLat: '44.4722',
+    originalLon: '-70.8567',
+    stormLat: '38.6919',
+    stormLon: '-76.6370',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    originalLat: '45.0311',
+    originalLon: '-70.3133',
+    stormLat: '39.2508',
+    stormLon: '-76.0936',
+    snowfall: '0.00'
+  }
+]
+[Tile Debug] Tile bounds: {
+  z: 7,
+  x: 39,
+  y: 45,
+  latRange: [ '45.09', '47.04' ],
+  lonRange: [ '-70.31', '-67.50' ]
+}
+[Tile Debug] Resorts in tile bounds: 0
+[IDW] (center) Interpolating at (46.0646, -68.9063) z=7 x=39 y=45 samples=43 maxDistance=5
+[IDW] (center) Nearby samples within radius: 0 []
+[Tile Debug] Center pixel interpolation: { lat: '46.0646', lon: '-68.9063', snowfall: '0.0000' }
+[Synthetic Tile] After storm evolution: [
+  {
+    name: 'Loon Mountain',
+    lat: '38.2564',
+    lon: '-77.4020',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    lat: '38.6919',
+    lon: '-76.6370',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    lat: '39.2508',
+    lon: '-76.0936',
+    snowfall: '0.00'
+  }
+]
+[Tile Generation] z=7 x=39 y=45, 43 conditions
+[Tile] Center pixel snowfall: 0.000 inches at (46.0732, -68.9063)
+[Tile Debug] Pixel statistics (pre-blur): {
+  totalPixels: 65536,
+  nonTransparent: 0,
+  alphaMin: null,
+  alphaMax: null
+}
+🚨 SYNTHETIC ROUTE HIT [uo5ss1] - request: http://localhost:3000/api/radar/synthetic?hour=21&z=7&x=39&y=46
+[Synthetic Tile] [uo5ss1] Request: http://localhost:3000/api/radar/synthetic?hour=21&z=7&x=39&y=46
+[Synthetic Debug] [${reqId}] Resort snowfall stats: {
+  total: 43,
+  withSnow: 11,
+  minSnowfall: 0,
+  maxSnowfall: 1,
+  avgSnowfall: 0.19767441860465115,
+  sampleResorts: [
+    { name: 'Loon Mountain', lat: '44.04', lon: '-71.62', snow: 0 },
+    { name: 'Sunday River', lat: '44.47', lon: '-70.86', snow: 0 },
+    { name: 'Sugarloaf', lat: '45.03', lon: '-70.31', snow: 0 },
+    { name: 'Stowe', lat: '44.47', lon: '-72.69', snow: 0.5 },
+    { name: 'Killington', lat: '43.60', lon: '-72.82', snow: 1 }
+  ]
+}
+[Synthetic Tile] Hour 21: 43 resorts loaded
+[Synthetic Tile] Sample resorts: [
+  { name: 'Loon Mountain', lat: 44.0367, lon: -71.6217, snowfall: 0 },
+  { name: 'Sunday River', lat: 44.4722, lon: -70.8567, snowfall: 0 },
+  { name: 'Sugarloaf', lat: 45.0311, lon: -70.3133, snowfall: 0 }
+]
+[Tile Debug] Storm-evolved resorts: [
+  {
+    name: 'Loon Mountain',
+    originalLat: '44.0367',
+    originalLon: '-71.6217',
+    stormLat: '38.2564',
+    stormLon: '-77.4020',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    originalLat: '44.4722',
+    originalLon: '-70.8567',
+    stormLat: '38.6919',
+    stormLon: '-76.6370',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    originalLat: '45.0311',
+    originalLon: '-70.3133',
+    stormLat: '39.2508',
+    stormLon: '-76.0936',
+    snowfall: '0.00'
+  }
+]
+[Tile Debug] Tile bounds: {
+  z: 7,
+  x: 39,
+  y: 46,
+  latRange: [ '43.07', '45.09' ],
+  lonRange: [ '-70.31', '-67.50' ]
+}
+[Tile Debug] Resorts in tile bounds: 0
+[IDW] (center) Interpolating at (44.0790, -68.9063) z=7 x=39 y=46 samples=43 maxDistance=5
+[IDW] (center) Nearby samples within radius: 0 []
+[Tile Debug] Center pixel interpolation: { lat: '44.0790', lon: '-68.9063', snowfall: '0.0000' }
+[Synthetic Tile] After storm evolution: [
+  {
+    name: 'Loon Mountain',
+    lat: '38.2564',
+    lon: '-77.4020',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    lat: '38.6919',
+    lon: '-76.6370',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    lat: '39.2508',
+    lon: '-76.0936',
+    snowfall: '0.00'
+  }
+]
+[Tile Generation] z=7 x=39 y=46, 43 conditions
+[Tile] Center pixel snowfall: 0.000 inches at (44.0876, -68.9063)
+[Tile Debug] Pixel statistics (pre-blur): {
+  totalPixels: 65536,
+  nonTransparent: 0,
+  alphaMin: null,
+  alphaMax: null
+}
+ GET / 200 in 1389ms (compile: 482ms, render: 907ms)
+ GET / 200 in 23ms (compile: 2ms, render: 21ms)
+[Resorts Conditions] Fetching conditions for all resorts...
+[API] Starting conditions fetch for Waterville Valley (waterville-valley)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Cannon Mountain (cannon-mountain)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Mad River Glen (mad-river-glen)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Bretton Woods (bretton-woods)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Bromley (bromley)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Smugglers' Notch (smugglers-notch)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Jay Peak (jay-peak)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Stratton (stratton)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Mount Snow (mount-snow)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Okemo (okemo)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Killington (killington)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Sugarbush (sugarbush)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Sugarloaf (sugarloaf)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Stowe (stowe)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Sunday River (sunday-river)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Loon Mountain (loon-mountain)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Wildcat (wildcat)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Cranmore (cranmore)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Attitash (attitash)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Pats Peak (pats-peak)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Mount Sunapee (mount-sunapee)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[Radar Frames] Fetching multi-source radar frames...
+[API] Starting conditions fetch for Gunstock (gunstock)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Crotched Mountain (crotched-mountain)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for McIntyre Ski Area (mcintyre)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Saddleback (saddleback)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Ragged Mountain (ragged-mountain)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Squaw Mountain (squaw-mountain)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Wachusett (wachusett)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Jiminy Peak (jiminy-peak)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Whiteface (whiteface)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Hunter Mountain (hunter-mountain)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Gore Mountain (gore-mountain)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Windham Mountain (windham-mountain)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Belleayre (belleayre)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Jack Frost Big Boulder (jack-frost-big-boulder)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Elk Mountain (elk-mountain)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Blue Mountain (blue-mountain)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Seven Springs (seven-springs)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Powder Ridge (powder-ridge)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Mount Southington (mount-southington)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Mountain Creek (mountain-creek)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] Starting conditions fetch for Black Mountain (black-mountain)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] Starting conditions fetch for Campgaw Mountain (campgaw-mountain)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[Resorts Conditions] Fetching conditions for all resorts...
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] Starting conditions fetch for Loon Mountain (loon-mountain)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] Starting conditions fetch for Sunday River (sunday-river)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] Starting conditions fetch for Sugarloaf (sugarloaf)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] Starting conditions fetch for Stowe (stowe)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] Starting conditions fetch for Killington (killington)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Sugarbush (sugarbush)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Okemo (okemo)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] Starting conditions fetch for Mount Snow (mount-snow)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Stratton (stratton)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Jay Peak (jay-peak)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Smugglers' Notch (smugglers-notch)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Bromley (bromley)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] Starting conditions fetch for Mad River Glen (mad-river-glen)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Bretton Woods (bretton-woods)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Cannon Mountain (cannon-mountain)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Waterville Valley (waterville-valley)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[Radar Frames] Fetching multi-source radar frames...
+[API] Starting conditions fetch for Wildcat (wildcat)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] Starting conditions fetch for Attitash (attitash)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Pats Peak (pats-peak)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Cranmore (cranmore)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] Starting conditions fetch for Mount Sunapee (mount-sunapee)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] Starting conditions fetch for Gunstock (gunstock)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for McIntyre Ski Area (mcintyre)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] Starting conditions fetch for Crotched Mountain (crotched-mountain)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Ragged Mountain (ragged-mountain)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Saddleback (saddleback)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] Starting conditions fetch for Squaw Mountain (squaw-mountain)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Jiminy Peak (jiminy-peak)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Wachusett (wachusett)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Whiteface (whiteface)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] Starting conditions fetch for Hunter Mountain (hunter-mountain)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Gore Mountain (gore-mountain)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Belleayre (belleayre)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] Starting conditions fetch for Windham Mountain (windham-mountain)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] Starting conditions fetch for Elk Mountain (elk-mountain)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] Starting conditions fetch for Jack Frost Big Boulder (jack-frost-big-boulder)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] Starting conditions fetch for Seven Springs (seven-springs)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Blue Mountain (blue-mountain)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] Starting conditions fetch for Mount Southington (mount-southington)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[Radar Frames] Returning 288 frames from 529 total
+ GET /api/radar/frames?t=1767473925703 200 in 427ms (compile: 19ms, render: 408ms)
+[API] Starting conditions fetch for Powder Ridge (powder-ridge)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] Starting conditions fetch for Campgaw Mountain (campgaw-mountain)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] Starting conditions fetch for Mountain Creek (mountain-creek)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] Starting conditions fetch for Black Mountain (black-mountain)
+[API] Fetching NWS data and OpenWeatherMap current weather in parallel
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+🚨 SYNTHETIC ROUTE HIT [at91ys] - request: http://localhost:3000/api/radar/synthetic?hour=47&z=7&x=37&y=45&cb=1767473926190
+[Synthetic Tile] [at91ys] Request: http://localhost:3000/api/radar/synthetic?hour=47&z=7&x=37&y=45&cb=1767473926190
+[Synthetic Debug] [${reqId}] Resort snowfall stats: {
+  total: 43,
+  withSnow: 11,
+  minSnowfall: 0,
+  maxSnowfall: 1,
+  avgSnowfall: 0.19767441860465115,
+  sampleResorts: [
+    { name: 'Loon Mountain', lat: '44.04', lon: '-71.62', snow: 0 },
+    { name: 'Sunday River', lat: '44.47', lon: '-70.86', snow: 0 },
+    { name: 'Sugarloaf', lat: '45.03', lon: '-70.31', snow: 0 },
+    { name: 'Stowe', lat: '44.47', lon: '-72.69', snow: 0.5 },
+    { name: 'Killington', lat: '43.60', lon: '-72.82', snow: 1 }
+  ]
+}
+[Synthetic Tile] Hour 47: 43 resorts loaded
+[Synthetic Tile] Sample resorts: [
+  { name: 'Loon Mountain', lat: 44.0367, lon: -71.6217, snowfall: 0 },
+  { name: 'Sunday River', lat: 44.4722, lon: -70.8567, snowfall: 0 },
+  { name: 'Sugarloaf', lat: 45.0311, lon: -70.3133, snowfall: 0 }
+]
+[Tile Debug] Storm-evolved resorts: [
+  {
+    name: 'Loon Mountain',
+    originalLat: '44.0367',
+    originalLon: '-71.6217',
+    stormLat: '44.0367',
+    stormLon: '-71.6217',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    originalLat: '44.4722',
+    originalLon: '-70.8567',
+    stormLat: '44.4722',
+    stormLon: '-70.8567',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    originalLat: '45.0311',
+    originalLon: '-70.3133',
+    stormLat: '45.0311',
+    stormLon: '-70.3133',
+    snowfall: '0.00'
+  }
+]
+[Tile Debug] Tile bounds: {
+  z: 7,
+  x: 37,
+  y: 45,
+  latRange: [ '45.09', '47.04' ],
+  lonRange: [ '-75.94', '-73.13' ]
+}
+[Tile Debug] Resorts in tile bounds: 0
+[IDW] (center) Interpolating at (46.0646, -74.5313) z=7 x=37 y=45 samples=43 maxDistance=5
+[IDW] (center) Nearby samples within radius: 39 [
+  { name: 'Whiteface', dist: 1.754, snow: 1 },
+  { name: 'Jay Peak', dist: 1.796, snow: 1 },
+  { name: "Smugglers' Notch", dist: 1.911, snow: 1 },
+  { name: 'Stowe', dist: 2.048, snow: 0.5 },
+  { name: 'Mad River Glen', dist: 2.173, snow: 1 },
+  { name: 'Sugarbush', dist: 2.232, snow: 1 }
+]
+[Tile Debug] Center pixel interpolation: { lat: '46.0646', lon: '-74.5313', snowfall: '0.9251' }
+[Synthetic Tile] After storm evolution: [
+  {
+    name: 'Loon Mountain',
+    lat: '44.0367',
+    lon: '-71.6217',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    lat: '44.4722',
+    lon: '-70.8567',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    lat: '45.0311',
+    lon: '-70.3133',
+    snowfall: '0.00'
+  }
+]
+[Tile Generation] z=7 x=37 y=45, 43 conditions
+[Tile] Center pixel snowfall: 0.925 inches at (46.0732, -74.5313)
+[Tile Debug] Pixel statistics (pre-blur): {
+  totalPixels: 65536,
+  nonTransparent: 65536,
+  alphaMin: 153,
+  alphaMax: 153
+}
+ GET /api/radar/synthetic?hour=47&z=7&x=37&y=45&cb=1767473926190 200 in 169ms (compile: 3ms, render: 166ms)
+🚨 SYNTHETIC ROUTE HIT [e8q7t6] - request: http://localhost:3000/api/radar/synthetic?hour=47&z=7&x=37&y=46&cb=1767473926190
+[Synthetic Tile] [e8q7t6] Request: http://localhost:3000/api/radar/synthetic?hour=47&z=7&x=37&y=46&cb=1767473926190
+[Synthetic Debug] [${reqId}] Resort snowfall stats: {
+  total: 43,
+  withSnow: 11,
+  minSnowfall: 0,
+  maxSnowfall: 1,
+  avgSnowfall: 0.19767441860465115,
+  sampleResorts: [
+    { name: 'Loon Mountain', lat: '44.04', lon: '-71.62', snow: 0 },
+    { name: 'Sunday River', lat: '44.47', lon: '-70.86', snow: 0 },
+    { name: 'Sugarloaf', lat: '45.03', lon: '-70.31', snow: 0 },
+    { name: 'Stowe', lat: '44.47', lon: '-72.69', snow: 0.5 },
+    { name: 'Killington', lat: '43.60', lon: '-72.82', snow: 1 }
+  ]
+}
+[Synthetic Tile] Hour 47: 43 resorts loaded
+[Synthetic Tile] Sample resorts: [
+  { name: 'Loon Mountain', lat: 44.0367, lon: -71.6217, snowfall: 0 },
+  { name: 'Sunday River', lat: 44.4722, lon: -70.8567, snowfall: 0 },
+  { name: 'Sugarloaf', lat: 45.0311, lon: -70.3133, snowfall: 0 }
+]
+[Tile Debug] Storm-evolved resorts: [
+  {
+    name: 'Loon Mountain',
+    originalLat: '44.0367',
+    originalLon: '-71.6217',
+    stormLat: '44.0367',
+    stormLon: '-71.6217',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    originalLat: '44.4722',
+    originalLon: '-70.8567',
+    stormLat: '44.4722',
+    stormLon: '-70.8567',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    originalLat: '45.0311',
+    originalLon: '-70.3133',
+    stormLat: '45.0311',
+    stormLon: '-70.3133',
+    snowfall: '0.00'
+  }
+]
+[Tile Debug] Tile bounds: {
+  z: 7,
+  x: 37,
+  y: 46,
+  latRange: [ '43.07', '45.09' ],
+  lonRange: [ '-75.94', '-73.13' ]
+}
+[Tile Debug] Resorts in tile bounds: 2
+[IDW] (center) Interpolating at (44.0790, -74.5313) z=7 x=37 y=46 samples=43 maxDistance=5
+[IDW] (center) Nearby samples within radius: 42 [
+  { name: 'Whiteface', dist: 0.535, snow: 1 },
+  { name: 'Gore Mountain', dist: 0.553, snow: 0.5 },
+  { name: 'Mad River Glen', dist: 1.166, snow: 1 },
+  { name: 'Sugarbush', dist: 1.178, snow: 1 },
+  { name: 'Killington', dist: 1.318, snow: 1 },
+  { name: "Smugglers' Notch", dist: 1.356, snow: 1 }
+]
+[Tile Debug] Center pixel interpolation: { lat: '44.0790', lon: '-74.5313', snowfall: '0.8167' }
+[Synthetic Tile] After storm evolution: [
+  {
+    name: 'Loon Mountain',
+    lat: '44.0367',
+    lon: '-71.6217',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    lat: '44.4722',
+    lon: '-70.8567',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    lat: '45.0311',
+    lon: '-70.3133',
+    snowfall: '0.00'
+  }
+]
+[Tile Generation] z=7 x=37 y=46, 43 conditions
+[Tile] Center pixel snowfall: 0.821 inches at (44.0876, -74.5313)
+[Tile Debug] Pixel statistics (pre-blur): {
+  totalPixels: 65536,
+  nonTransparent: 46687,
+  alphaMin: 153,
+  alphaMax: 153
+}
+ GET /api/radar/synthetic?hour=47&z=7&x=37&y=46&cb=1767473926190 200 in 329ms (compile: 170ms, render: 159ms)
+🚨 SYNTHETIC ROUTE HIT [wct3zu] - request: http://localhost:3000/api/radar/synthetic?hour=47&z=7&x=37&y=47&cb=1767473926190
+[Synthetic Tile] [wct3zu] Request: http://localhost:3000/api/radar/synthetic?hour=47&z=7&x=37&y=47&cb=1767473926190
+[Synthetic Debug] [${reqId}] Resort snowfall stats: {
+  total: 43,
+  withSnow: 11,
+  minSnowfall: 0,
+  maxSnowfall: 1,
+  avgSnowfall: 0.19767441860465115,
+  sampleResorts: [
+    { name: 'Loon Mountain', lat: '44.04', lon: '-71.62', snow: 0 },
+    { name: 'Sunday River', lat: '44.47', lon: '-70.86', snow: 0 },
+    { name: 'Sugarloaf', lat: '45.03', lon: '-70.31', snow: 0 },
+    { name: 'Stowe', lat: '44.47', lon: '-72.69', snow: 0.5 },
+    { name: 'Killington', lat: '43.60', lon: '-72.82', snow: 1 }
+  ]
+}
+[Synthetic Tile] Hour 47: 43 resorts loaded
+[Synthetic Tile] Sample resorts: [
+  { name: 'Loon Mountain', lat: 44.0367, lon: -71.6217, snowfall: 0 },
+  { name: 'Sunday River', lat: 44.4722, lon: -70.8567, snowfall: 0 },
+  { name: 'Sugarloaf', lat: 45.0311, lon: -70.3133, snowfall: 0 }
+]
+[Tile Debug] Storm-evolved resorts: [
+  {
+    name: 'Loon Mountain',
+    originalLat: '44.0367',
+    originalLon: '-71.6217',
+    stormLat: '44.0367',
+    stormLon: '-71.6217',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    originalLat: '44.4722',
+    originalLon: '-70.8567',
+    stormLat: '44.4722',
+    stormLon: '-70.8567',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    originalLat: '45.0311',
+    originalLon: '-70.3133',
+    stormLat: '45.0311',
+    stormLon: '-70.3133',
+    snowfall: '0.00'
+  }
+]
+[Tile Debug] Tile bounds: {
+  z: 7,
+  x: 37,
+  y: 47,
+  latRange: [ '40.98', '43.07' ],
+  lonRange: [ '-75.94', '-73.13' ]
+}
+[Tile Debug] Resorts in tile bounds: 8
+[IDW] (center) Interpolating at (42.0244, -74.5313) z=7 x=37 y=47 samples=43 maxDistance=5
+[IDW] (center) Nearby samples within radius: 43 [
+  { name: 'Belleayre', dist: 0.113, snow: 0.5 },
+  { name: 'Hunter Mountain', dist: 0.284, snow: 0 },
+  { name: 'Windham Mountain', dist: 0.336, snow: 0 },
+  { name: 'Elk Mountain', dist: 0.838, snow: 0 },
+  { name: 'Mountain Creek', dist: 0.842, snow: 0 },
+  { name: 'Campgaw Mountain', dist: 1.005, snow: 0.5 }
+]
+[Tile Debug] Center pixel interpolation: { lat: '42.0244', lon: '-74.5313', snowfall: '0.3480' }
+[Synthetic Tile] After storm evolution: [
+  {
+    name: 'Loon Mountain',
+    lat: '44.0367',
+    lon: '-71.6217',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    lat: '44.4722',
+    lon: '-70.8567',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    lat: '45.0311',
+    lon: '-70.3133',
+    snowfall: '0.00'
+  }
+]
+[Tile Generation] z=7 x=37 y=47, 43 conditions
+[Tile] Center pixel snowfall: 0.355 inches at (42.0330, -74.5313)
+[Tile Debug] Pixel statistics (pre-blur): {
+  totalPixels: 65536,
+  nonTransparent: 0,
+  alphaMin: null,
+  alphaMax: null
+}
+ GET /api/radar/synthetic?hour=47&z=7&x=37&y=47&cb=1767473926190 200 in 508ms (compile: 329ms, render: 179ms)
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+🚨 SYNTHETIC ROUTE HIT [jhz4pe] - request: http://localhost:3000/api/radar/synthetic?hour=47&z=7&x=37&y=48&cb=1767473926190
+[Synthetic Tile] [jhz4pe] Request: http://localhost:3000/api/radar/synthetic?hour=47&z=7&x=37&y=48&cb=1767473926190
+[Synthetic Debug] [${reqId}] Resort snowfall stats: {
+  total: 43,
+  withSnow: 11,
+  minSnowfall: 0,
+  maxSnowfall: 1,
+  avgSnowfall: 0.19767441860465115,
+  sampleResorts: [
+    { name: 'Loon Mountain', lat: '44.04', lon: '-71.62', snow: 0 },
+    { name: 'Sunday River', lat: '44.47', lon: '-70.86', snow: 0 },
+    { name: 'Sugarloaf', lat: '45.03', lon: '-70.31', snow: 0 },
+    { name: 'Stowe', lat: '44.47', lon: '-72.69', snow: 0.5 },
+    { name: 'Killington', lat: '43.60', lon: '-72.82', snow: 1 }
+  ]
+}
+[Synthetic Tile] Hour 47: 43 resorts loaded
+[Synthetic Tile] Sample resorts: [
+  { name: 'Loon Mountain', lat: 44.0367, lon: -71.6217, snowfall: 0 },
+  { name: 'Sunday River', lat: 44.4722, lon: -70.8567, snowfall: 0 },
+  { name: 'Sugarloaf', lat: 45.0311, lon: -70.3133, snowfall: 0 }
+]
+[Tile Debug] Storm-evolved resorts: [
+  {
+    name: 'Loon Mountain',
+    originalLat: '44.0367',
+    originalLon: '-71.6217',
+    stormLat: '44.0367',
+    stormLon: '-71.6217',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    originalLat: '44.4722',
+    originalLon: '-70.8567',
+    stormLat: '44.4722',
+    stormLon: '-70.8567',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    originalLat: '45.0311',
+    originalLon: '-70.3133',
+    stormLat: '45.0311',
+    stormLon: '-70.3133',
+    snowfall: '0.00'
+  }
+]
+[Tile Debug] Tile bounds: {
+  z: 7,
+  x: 37,
+  y: 48,
+  latRange: [ '38.82', '40.98' ],
+  lonRange: [ '-75.94', '-73.13' ]
+}
+[Tile Debug] Resorts in tile bounds: 1
+[IDW] (center) Interpolating at (39.9012, -74.5313) z=7 x=37 y=48 samples=43 maxDistance=5
+[IDW] (center) Nearby samples within radius: 37 [
+  { name: 'Campgaw Mountain', dist: 1.173, snow: 0.5 },
+  { name: 'Blue Mountain', dist: 1.186, snow: 0 },
+  { name: 'Mountain Creek', dist: 1.281, snow: 0 },
+  { name: 'Jack Frost Big Boulder', dist: 1.485, snow: 0 },
+  { name: 'Elk Mountain', dist: 1.982, snow: 0 },
+  { name: 'Powder Ridge', dist: 2.065, snow: 0 }
+]
+[Tile Debug] Center pixel interpolation: { lat: '39.9012', lon: '-74.5313', snowfall: '0.1273' }
+[Synthetic Tile] After storm evolution: [
+  {
+    name: 'Loon Mountain',
+    lat: '44.0367',
+    lon: '-71.6217',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    lat: '44.4722',
+    lon: '-70.8567',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    lat: '45.0311',
+    lon: '-70.3133',
+    snowfall: '0.00'
+  }
+]
+[Tile Generation] z=7 x=37 y=48, 43 conditions
+[Tile] Center pixel snowfall: 0.128 inches at (39.9097, -74.5313)
+[Tile Debug] Pixel statistics (pre-blur): {
+  totalPixels: 65536,
+  nonTransparent: 0,
+  alphaMin: null,
+  alphaMax: null
+}
+ GET /api/radar/synthetic?hour=47&z=7&x=37&y=48&cb=1767473926190 200 in 148ms (compile: 1855µs, render: 146ms)
+🚨 SYNTHETIC ROUTE HIT [y27nba] - request: http://localhost:3000/api/radar/synthetic?hour=47&z=7&x=38&y=45&cb=1767473926190
+[Synthetic Tile] [y27nba] Request: http://localhost:3000/api/radar/synthetic?hour=47&z=7&x=38&y=45&cb=1767473926190
+[Synthetic Debug] [${reqId}] Resort snowfall stats: {
+  total: 43,
+  withSnow: 11,
+  minSnowfall: 0,
+  maxSnowfall: 1,
+  avgSnowfall: 0.19767441860465115,
+  sampleResorts: [
+    { name: 'Loon Mountain', lat: '44.04', lon: '-71.62', snow: 0 },
+    { name: 'Sunday River', lat: '44.47', lon: '-70.86', snow: 0 },
+    { name: 'Sugarloaf', lat: '45.03', lon: '-70.31', snow: 0 },
+    { name: 'Stowe', lat: '44.47', lon: '-72.69', snow: 0.5 },
+    { name: 'Killington', lat: '43.60', lon: '-72.82', snow: 1 }
+  ]
+}
+[Synthetic Tile] Hour 47: 43 resorts loaded
+[Synthetic Tile] Sample resorts: [
+  { name: 'Loon Mountain', lat: 44.0367, lon: -71.6217, snowfall: 0 },
+  { name: 'Sunday River', lat: 44.4722, lon: -70.8567, snowfall: 0 },
+  { name: 'Sugarloaf', lat: 45.0311, lon: -70.3133, snowfall: 0 }
+]
+[Tile Debug] Storm-evolved resorts: [
+  {
+    name: 'Loon Mountain',
+    originalLat: '44.0367',
+    originalLon: '-71.6217',
+    stormLat: '44.0367',
+    stormLon: '-71.6217',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    originalLat: '44.4722',
+    originalLon: '-70.8567',
+    stormLat: '44.4722',
+    stormLon: '-70.8567',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    originalLat: '45.0311',
+    originalLon: '-70.3133',
+    stormLat: '45.0311',
+    stormLon: '-70.3133',
+    snowfall: '0.00'
+  }
+]
+[Tile Debug] Tile bounds: {
+  z: 7,
+  x: 38,
+  y: 45,
+  latRange: [ '45.09', '47.04' ],
+  lonRange: [ '-73.13', '-70.31' ]
+}
+[Tile Debug] Resorts in tile bounds: 0
+[IDW] (center) Interpolating at (46.0646, -71.7188) z=7 x=38 y=45 samples=43 maxDistance=5
+[IDW] (center) Nearby samples within radius: 37 [
+  { name: 'Jay Peak', dist: 1.272, snow: 1 },
+  { name: 'Saddleback', dist: 1.385, snow: 0 },
+  { name: 'Sugarloaf', dist: 1.421, snow: 0 },
+  { name: "Smugglers' Notch", dist: 1.65, snow: 1 },
+  { name: 'Sunday River', dist: 1.701, snow: 0 },
+  { name: 'Stowe', dist: 1.735, snow: 0.5 }
+]
+[Tile Debug] Center pixel interpolation: { lat: '46.0646', lon: '-71.7188', snowfall: '0.4327' }
+[Synthetic Tile] After storm evolution: [
+  {
+    name: 'Loon Mountain',
+    lat: '44.0367',
+    lon: '-71.6217',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    lat: '44.4722',
+    lon: '-70.8567',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    lat: '45.0311',
+    lon: '-70.3133',
+    snowfall: '0.00'
+  }
+]
+[Tile Generation] z=7 x=38 y=45, 43 conditions
+[Tile] Center pixel snowfall: 0.432 inches at (46.0732, -71.7188)
+[Tile Debug] Pixel statistics (pre-blur): {
+  totalPixels: 65536,
+  nonTransparent: 24743,
+  alphaMin: 153,
+  alphaMax: 153
+}
+ GET /api/radar/synthetic?hour=47&z=7&x=38&y=45&cb=1767473926190 200 in 299ms (compile: 148ms, render: 151ms)
+🚨 SYNTHETIC ROUTE HIT [fps58j] - request: http://localhost:3000/api/radar/synthetic?hour=47&z=7&x=38&y=46&cb=1767473926191
+[Synthetic Tile] [fps58j] Request: http://localhost:3000/api/radar/synthetic?hour=47&z=7&x=38&y=46&cb=1767473926191
+[Synthetic Debug] [${reqId}] Resort snowfall stats: {
+  total: 43,
+  withSnow: 11,
+  minSnowfall: 0,
+  maxSnowfall: 1,
+  avgSnowfall: 0.19767441860465115,
+  sampleResorts: [
+    { name: 'Loon Mountain', lat: '44.04', lon: '-71.62', snow: 0 },
+    { name: 'Sunday River', lat: '44.47', lon: '-70.86', snow: 0 },
+    { name: 'Sugarloaf', lat: '45.03', lon: '-70.31', snow: 0 },
+    { name: 'Stowe', lat: '44.47', lon: '-72.69', snow: 0.5 },
+    { name: 'Killington', lat: '43.60', lon: '-72.82', snow: 1 }
+  ]
+}
+[Synthetic Tile] Hour 47: 43 resorts loaded
+[Synthetic Tile] Sample resorts: [
+  { name: 'Loon Mountain', lat: 44.0367, lon: -71.6217, snowfall: 0 },
+  { name: 'Sunday River', lat: 44.4722, lon: -70.8567, snowfall: 0 },
+  { name: 'Sugarloaf', lat: 45.0311, lon: -70.3133, snowfall: 0 }
+]
+[Tile Debug] Storm-evolved resorts: [
+  {
+    name: 'Loon Mountain',
+    originalLat: '44.0367',
+    originalLon: '-71.6217',
+    stormLat: '44.0367',
+    stormLon: '-71.6217',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    originalLat: '44.4722',
+    originalLon: '-70.8567',
+    stormLat: '44.4722',
+    stormLon: '-70.8567',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    originalLat: '45.0311',
+    originalLon: '-70.3133',
+    stormLat: '45.0311',
+    stormLon: '-70.3133',
+    snowfall: '0.00'
+  }
+]
+[Tile Debug] Tile bounds: {
+  z: 7,
+  x: 38,
+  y: 46,
+  latRange: [ '43.07', '45.09' ],
+  lonRange: [ '-73.13', '-70.31' ]
+}
+[Tile Debug] Resorts in tile bounds: 25
+[IDW] (center) Interpolating at (44.0790, -71.7188) z=7 x=38 y=46 samples=43 maxDistance=5
+[IDW] (center) Nearby samples within radius: 42 [
+  { name: 'Loon Mountain', dist: 0.082, snow: 0 },
+  { name: 'Cannon Mountain', dist: 0.101, snow: 0 },
+  { name: 'Waterville Valley', dist: 0.199, snow: 0 },
+  { name: 'Bretton Woods', dist: 0.266, snow: 0 },
+  { name: 'Attitash', dist: 0.352, snow: 0 },
+  { name: 'Wildcat', dist: 0.397, snow: 0 }
+]
+[Tile Debug] Center pixel interpolation: { lat: '44.0790', lon: '-71.7188', snowfall: '0.0000' }
+[Synthetic Tile] After storm evolution: [
+  {
+    name: 'Loon Mountain',
+    lat: '44.0367',
+    lon: '-71.6217',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    lat: '44.4722',
+    lon: '-70.8567',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    lat: '45.0311',
+    lon: '-70.3133',
+    snowfall: '0.00'
+  }
+]
+[Tile Generation] z=7 x=38 y=46, 43 conditions
+[Tile] Center pixel snowfall: 0.000 inches at (44.0876, -71.7188)
+[Tile Debug] Pixel statistics (pre-blur): {
+  totalPixels: 65536,
+  nonTransparent: 17489,
+  alphaMin: 153,
+  alphaMax: 153
+}
+ GET /api/radar/synthetic?hour=47&z=7&x=38&y=46&cb=1767473926191 200 in 454ms (compile: 300ms, render: 154ms)
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[Radar Frames] Returning 288 frames from 529 total
+ GET /api/radar/frames?t=1767473926039 200 in 1148ms (compile: 8ms, render: 1141ms)
+🚨 SYNTHETIC ROUTE HIT [mfswe1] - request: http://localhost:3000/api/radar/synthetic?hour=47&z=7&x=38&y=47&cb=1767473926191
+[Synthetic Tile] [mfswe1] Request: http://localhost:3000/api/radar/synthetic?hour=47&z=7&x=38&y=47&cb=1767473926191
+[Synthetic Debug] [${reqId}] Resort snowfall stats: {
+  total: 43,
+  withSnow: 11,
+  minSnowfall: 0,
+  maxSnowfall: 1,
+  avgSnowfall: 0.19767441860465115,
+  sampleResorts: [
+    { name: 'Loon Mountain', lat: '44.04', lon: '-71.62', snow: 0 },
+    { name: 'Sunday River', lat: '44.47', lon: '-70.86', snow: 0 },
+    { name: 'Sugarloaf', lat: '45.03', lon: '-70.31', snow: 0 },
+    { name: 'Stowe', lat: '44.47', lon: '-72.69', snow: 0.5 },
+    { name: 'Killington', lat: '43.60', lon: '-72.82', snow: 1 }
+  ]
+}
+[Synthetic Tile] Hour 47: 43 resorts loaded
+[Synthetic Tile] Sample resorts: [
+  { name: 'Loon Mountain', lat: 44.0367, lon: -71.6217, snowfall: 0 },
+  { name: 'Sunday River', lat: 44.4722, lon: -70.8567, snowfall: 0 },
+  { name: 'Sugarloaf', lat: 45.0311, lon: -70.3133, snowfall: 0 }
+]
+[Tile Debug] Storm-evolved resorts: [
+  {
+    name: 'Loon Mountain',
+    originalLat: '44.0367',
+    originalLon: '-71.6217',
+    stormLat: '44.0367',
+    stormLon: '-71.6217',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    originalLat: '44.4722',
+    originalLon: '-70.8567',
+    stormLat: '44.4722',
+    stormLon: '-70.8567',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    originalLat: '45.0311',
+    originalLon: '-70.3133',
+    stormLat: '45.0311',
+    stormLon: '-70.3133',
+    snowfall: '0.00'
+  }
+]
+[Tile Debug] Tile bounds: {
+  z: 7,
+  x: 38,
+  y: 47,
+  latRange: [ '40.98', '43.07' ],
+  lonRange: [ '-73.13', '-70.31' ]
+}
+[Tile Debug] Resorts in tile bounds: 6
+[IDW] (center) Interpolating at (42.0244, -71.7188) z=7 x=38 y=47 samples=43 maxDistance=5
+[IDW] (center) Nearby samples within radius: 42 [
+  { name: 'Wachusett', dist: 0.495, snow: 0 },
+  { name: 'Crotched Mountain', dist: 0.833, snow: 0 },
+  { name: 'Powder Ridge', dist: 0.977, snow: 0 },
+  { name: 'McIntyre Ski Area', dist: 0.99, snow: 0 },
+  { name: 'Mount Southington', dist: 0.993, snow: 0 },
+  { name: 'Pats Peak', dist: 1.05, snow: 0 }
+]
+[Tile Debug] Center pixel interpolation: { lat: '42.0244', lon: '-71.7188', snowfall: '0.0000' }
+[Synthetic Tile] After storm evolution: [
+  {
+    name: 'Loon Mountain',
+    lat: '44.0367',
+    lon: '-71.6217',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    lat: '44.4722',
+    lon: '-70.8567',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    lat: '45.0311',
+    lon: '-70.3133',
+    snowfall: '0.00'
+  }
+]
+[Tile Generation] z=7 x=38 y=47, 43 conditions
+[Tile] Center pixel snowfall: 0.000 inches at (42.0330, -71.7188)
+[Tile Debug] Pixel statistics (pre-blur): {
+  totalPixels: 65536,
+  nonTransparent: 0,
+  alphaMin: null,
+  alphaMax: null
+}
+ GET /api/radar/synthetic?hour=47&z=7&x=38&y=47&cb=1767473926191 200 in 170ms (compile: 1752µs, render: 168ms)
+🚨 SYNTHETIC ROUTE HIT [hownam] - request: http://localhost:3000/api/radar/synthetic?hour=47&z=7&x=38&y=48&cb=1767473926191
+[Synthetic Tile] [hownam] Request: http://localhost:3000/api/radar/synthetic?hour=47&z=7&x=38&y=48&cb=1767473926191
+[Synthetic Debug] [${reqId}] Resort snowfall stats: {
+  total: 43,
+  withSnow: 11,
+  minSnowfall: 0,
+  maxSnowfall: 1,
+  avgSnowfall: 0.19767441860465115,
+  sampleResorts: [
+    { name: 'Loon Mountain', lat: '44.04', lon: '-71.62', snow: 0 },
+    { name: 'Sunday River', lat: '44.47', lon: '-70.86', snow: 0 },
+    { name: 'Sugarloaf', lat: '45.03', lon: '-70.31', snow: 0 },
+    { name: 'Stowe', lat: '44.47', lon: '-72.69', snow: 0.5 },
+    { name: 'Killington', lat: '43.60', lon: '-72.82', snow: 1 }
+  ]
+}
+[Synthetic Tile] Hour 47: 43 resorts loaded
+[Synthetic Tile] Sample resorts: [
+  { name: 'Loon Mountain', lat: 44.0367, lon: -71.6217, snowfall: 0 },
+  { name: 'Sunday River', lat: 44.4722, lon: -70.8567, snowfall: 0 },
+  { name: 'Sugarloaf', lat: 45.0311, lon: -70.3133, snowfall: 0 }
+]
+[Tile Debug] Storm-evolved resorts: [
+  {
+    name: 'Loon Mountain',
+    originalLat: '44.0367',
+    originalLon: '-71.6217',
+    stormLat: '44.0367',
+    stormLon: '-71.6217',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    originalLat: '44.4722',
+    originalLon: '-70.8567',
+    stormLat: '44.4722',
+    stormLon: '-70.8567',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    originalLat: '45.0311',
+    originalLon: '-70.3133',
+    stormLat: '45.0311',
+    stormLon: '-70.3133',
+    snowfall: '0.00'
+  }
+]
+[Tile Debug] Tile bounds: {
+  z: 7,
+  x: 38,
+  y: 48,
+  latRange: [ '38.82', '40.98' ],
+  lonRange: [ '-73.13', '-70.31' ]
+}
+[Tile Debug] Resorts in tile bounds: 0
+[IDW] (center) Interpolating at (39.9012, -71.7188) z=7 x=38 y=48 samples=43 maxDistance=5
+[IDW] (center) Nearby samples within radius: 39 [
+  { name: 'Powder Ridge', dist: 1.81, snow: 0 },
+  { name: 'Mount Southington', dist: 1.935, snow: 0 },
+  { name: 'Campgaw Mountain', dist: 2.228, snow: 0.5 },
+  { name: 'Mountain Creek', dist: 2.494, snow: 0 },
+  { name: 'Wachusett', dist: 2.605, snow: 0 },
+  { name: 'Jiminy Peak', dist: 2.916, snow: 0 }
+]
+[Tile Debug] Center pixel interpolation: { lat: '39.9012', lon: '-71.7188', snowfall: '0.0832' }
+[Synthetic Tile] After storm evolution: [
+  {
+    name: 'Loon Mountain',
+    lat: '44.0367',
+    lon: '-71.6217',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    lat: '44.4722',
+    lon: '-70.8567',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    lat: '45.0311',
+    lon: '-70.3133',
+    snowfall: '0.00'
+  }
+]
+[Tile Generation] z=7 x=38 y=48, 43 conditions
+[Tile] Center pixel snowfall: 0.083 inches at (39.9097, -71.7188)
+[Tile Debug] Pixel statistics (pre-blur): {
+  totalPixels: 65536,
+  nonTransparent: 0,
+  alphaMin: null,
+  alphaMax: null
+}
+ GET /api/radar/synthetic?hour=47&z=7&x=38&y=48&cb=1767473926191 200 in 329ms (compile: 170ms, render: 159ms)
+🚨 SYNTHETIC ROUTE HIT [sanjtv] - request: http://localhost:3000/api/radar/synthetic?hour=47&z=7&x=39&y=45&cb=1767473926191
+[Synthetic Tile] [sanjtv] Request: http://localhost:3000/api/radar/synthetic?hour=47&z=7&x=39&y=45&cb=1767473926191
+[Synthetic Debug] [${reqId}] Resort snowfall stats: {
+  total: 43,
+  withSnow: 11,
+  minSnowfall: 0,
+  maxSnowfall: 1,
+  avgSnowfall: 0.19767441860465115,
+  sampleResorts: [
+    { name: 'Loon Mountain', lat: '44.04', lon: '-71.62', snow: 0 },
+    { name: 'Sunday River', lat: '44.47', lon: '-70.86', snow: 0 },
+    { name: 'Sugarloaf', lat: '45.03', lon: '-70.31', snow: 0 },
+    { name: 'Stowe', lat: '44.47', lon: '-72.69', snow: 0.5 },
+    { name: 'Killington', lat: '43.60', lon: '-72.82', snow: 1 }
+  ]
+}
+[Synthetic Tile] Hour 47: 43 resorts loaded
+[Synthetic Tile] Sample resorts: [
+  { name: 'Loon Mountain', lat: 44.0367, lon: -71.6217, snowfall: 0 },
+  { name: 'Sunday River', lat: 44.4722, lon: -70.8567, snowfall: 0 },
+  { name: 'Sugarloaf', lat: 45.0311, lon: -70.3133, snowfall: 0 }
+]
+[Tile Debug] Storm-evolved resorts: [
+  {
+    name: 'Loon Mountain',
+    originalLat: '44.0367',
+    originalLon: '-71.6217',
+    stormLat: '44.0367',
+    stormLon: '-71.6217',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    originalLat: '44.4722',
+    originalLon: '-70.8567',
+    stormLat: '44.4722',
+    stormLon: '-70.8567',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    originalLat: '45.0311',
+    originalLon: '-70.3133',
+    stormLat: '45.0311',
+    stormLon: '-70.3133',
+    snowfall: '0.00'
+  }
+]
+[Tile Debug] Tile bounds: {
+  z: 7,
+  x: 39,
+  y: 45,
+  latRange: [ '45.09', '47.04' ],
+  lonRange: [ '-70.31', '-67.50' ]
+}
+[Tile Debug] Resorts in tile bounds: 0
+[IDW] (center) Interpolating at (46.0646, -68.9063) z=7 x=39 y=45 samples=43 maxDistance=5
+[IDW] (center) Nearby samples within radius: 32 [
+  { name: 'Sugarloaf', dist: 1.422, snow: 0 },
+  { name: 'Saddleback', dist: 1.581, snow: 0 },
+  { name: 'Sunday River', dist: 2.09, snow: 0 },
+  { name: 'Squaw Mountain', dist: 2.362, snow: 0 },
+  { name: 'Wildcat', dist: 2.419, snow: 0 },
+  { name: 'Black Mountain', dist: 2.462, snow: 0 }
+]
+[Tile Debug] Center pixel interpolation: { lat: '46.0646', lon: '-68.9063', snowfall: '0.0000' }
+[Synthetic Tile] After storm evolution: [
+  {
+    name: 'Loon Mountain',
+    lat: '44.0367',
+    lon: '-71.6217',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    lat: '44.4722',
+    lon: '-70.8567',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    lat: '45.0311',
+    lon: '-70.3133',
+    snowfall: '0.00'
+  }
+]
+[Tile Generation] z=7 x=39 y=45, 43 conditions
+[Tile] Center pixel snowfall: 0.000 inches at (46.0732, -68.9063)
+[Tile Debug] Pixel statistics (pre-blur): {
+  totalPixels: 65536,
+  nonTransparent: 0,
+  alphaMin: null,
+  alphaMax: null
+}
+ GET /api/radar/synthetic?hour=47&z=7&x=39&y=45&cb=1767473926191 200 in 478ms (compile: 330ms, render: 148ms)
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+🚨 SYNTHETIC ROUTE HIT [mr05z8] - request: http://localhost:3000/api/radar/synthetic?hour=47&z=7&x=39&y=46&cb=1767473926191
+[Synthetic Tile] [mr05z8] Request: http://localhost:3000/api/radar/synthetic?hour=47&z=7&x=39&y=46&cb=1767473926191
+[Synthetic Debug] [${reqId}] Resort snowfall stats: {
+  total: 43,
+  withSnow: 11,
+  minSnowfall: 0,
+  maxSnowfall: 1,
+  avgSnowfall: 0.19767441860465115,
+  sampleResorts: [
+    { name: 'Loon Mountain', lat: '44.04', lon: '-71.62', snow: 0 },
+    { name: 'Sunday River', lat: '44.47', lon: '-70.86', snow: 0 },
+    { name: 'Sugarloaf', lat: '45.03', lon: '-70.31', snow: 0 },
+    { name: 'Stowe', lat: '44.47', lon: '-72.69', snow: 0.5 },
+    { name: 'Killington', lat: '43.60', lon: '-72.82', snow: 1 }
+  ]
+}
+[Synthetic Tile] Hour 47: 43 resorts loaded
+[Synthetic Tile] Sample resorts: [
+  { name: 'Loon Mountain', lat: 44.0367, lon: -71.6217, snowfall: 0 },
+  { name: 'Sunday River', lat: 44.4722, lon: -70.8567, snowfall: 0 },
+  { name: 'Sugarloaf', lat: 45.0311, lon: -70.3133, snowfall: 0 }
+]
+[Tile Debug] Storm-evolved resorts: [
+  {
+    name: 'Loon Mountain',
+    originalLat: '44.0367',
+    originalLon: '-71.6217',
+    stormLat: '44.0367',
+    stormLon: '-71.6217',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    originalLat: '44.4722',
+    originalLon: '-70.8567',
+    stormLat: '44.4722',
+    stormLon: '-70.8567',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    originalLat: '45.0311',
+    originalLon: '-70.3133',
+    stormLat: '45.0311',
+    stormLon: '-70.3133',
+    snowfall: '0.00'
+  }
+]
+[Tile Debug] Tile bounds: {
+  z: 7,
+  x: 39,
+  y: 46,
+  latRange: [ '43.07', '45.09' ],
+  lonRange: [ '-70.31', '-67.50' ]
+}
+[Tile Debug] Resorts in tile bounds: 0
+[IDW] (center) Interpolating at (44.0790, -68.9063) z=7 x=39 y=46 samples=43 maxDistance=5
+[IDW] (center) Nearby samples within radius: 39 [
+  { name: 'Squaw Mountain', dist: 1.329, snow: 0 },
+  { name: 'Sugarloaf', dist: 1.389, snow: 0 },
+  { name: 'Sunday River', dist: 1.455, snow: 0 },
+  { name: 'Saddleback', dist: 1.456, snow: 0 },
+  { name: 'Cranmore', dist: 1.596, snow: 0 },
+  { name: 'Black Mountain', dist: 1.626, snow: 0 }
+]
+[Tile Debug] Center pixel interpolation: { lat: '44.0790', lon: '-68.9063', snowfall: '0.0000' }
+[Synthetic Tile] After storm evolution: [
+  {
+    name: 'Loon Mountain',
+    lat: '44.0367',
+    lon: '-71.6217',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    lat: '44.4722',
+    lon: '-70.8567',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    lat: '45.0311',
+    lon: '-70.3133',
+    snowfall: '0.00'
+  }
+]
+[Tile Generation] z=7 x=39 y=46, 43 conditions
+[Tile] Center pixel snowfall: 0.000 inches at (44.0876, -68.9063)
+[Tile Debug] Pixel statistics (pre-blur): {
+  totalPixels: 65536,
+  nonTransparent: 0,
+  alphaMin: null,
+  alphaMax: null
+}
+ GET /api/radar/synthetic?hour=47&z=7&x=39&y=46&cb=1767473926191 200 in 159ms (compile: 4ms, render: 154ms)
+🚨 SYNTHETIC ROUTE HIT [sg34v4] - request: http://localhost:3000/api/radar/synthetic?hour=47&z=7&x=39&y=47&cb=1767473926191
+[Synthetic Tile] [sg34v4] Request: http://localhost:3000/api/radar/synthetic?hour=47&z=7&x=39&y=47&cb=1767473926191
+[Synthetic Debug] [${reqId}] Resort snowfall stats: {
+  total: 43,
+  withSnow: 11,
+  minSnowfall: 0,
+  maxSnowfall: 1,
+  avgSnowfall: 0.19767441860465115,
+  sampleResorts: [
+    { name: 'Loon Mountain', lat: '44.04', lon: '-71.62', snow: 0 },
+    { name: 'Sunday River', lat: '44.47', lon: '-70.86', snow: 0 },
+    { name: 'Sugarloaf', lat: '45.03', lon: '-70.31', snow: 0 },
+    { name: 'Stowe', lat: '44.47', lon: '-72.69', snow: 0.5 },
+    { name: 'Killington', lat: '43.60', lon: '-72.82', snow: 1 }
+  ]
+}
+[Synthetic Tile] Hour 47: 43 resorts loaded
+[Synthetic Tile] Sample resorts: [
+  { name: 'Loon Mountain', lat: 44.0367, lon: -71.6217, snowfall: 0 },
+  { name: 'Sunday River', lat: 44.4722, lon: -70.8567, snowfall: 0 },
+  { name: 'Sugarloaf', lat: 45.0311, lon: -70.3133, snowfall: 0 }
+]
+[Tile Debug] Storm-evolved resorts: [
+  {
+    name: 'Loon Mountain',
+    originalLat: '44.0367',
+    originalLon: '-71.6217',
+    stormLat: '44.0367',
+    stormLon: '-71.6217',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    originalLat: '44.4722',
+    originalLon: '-70.8567',
+    stormLat: '44.4722',
+    stormLon: '-70.8567',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    originalLat: '45.0311',
+    originalLon: '-70.3133',
+    stormLat: '45.0311',
+    stormLon: '-70.3133',
+    snowfall: '0.00'
+  }
+]
+[Tile Debug] Tile bounds: {
+  z: 7,
+  x: 39,
+  y: 47,
+  latRange: [ '40.98', '43.07' ],
+  lonRange: [ '-70.31', '-67.50' ]
+}
+[Tile Debug] Resorts in tile bounds: 0
+[IDW] (center) Interpolating at (42.0244, -68.9063) z=7 x=39 y=47 samples=43 maxDistance=5
+[IDW] (center) Nearby samples within radius: 40 [
+  { name: 'McIntyre Ski Area', dist: 2.131, snow: 0 },
+  { name: 'Crotched Mountain', dist: 2.176, snow: 0 },
+  { name: 'Wachusett', dist: 2.265, snow: 0 },
+  { name: 'Pats Peak', dist: 2.359, snow: 0 },
+  { name: 'Gunstock', dist: 2.433, snow: 0 },
+  { name: 'Squaw Mountain', dist: 2.475, snow: 0 }
+]
+[Tile Debug] Center pixel interpolation: { lat: '42.0244', lon: '-68.9063', snowfall: '0.0000' }
+[Synthetic Tile] After storm evolution: [
+  {
+    name: 'Loon Mountain',
+    lat: '44.0367',
+    lon: '-71.6217',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    lat: '44.4722',
+    lon: '-70.8567',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    lat: '45.0311',
+    lon: '-70.3133',
+    snowfall: '0.00'
+  }
+]
+[Tile Generation] z=7 x=39 y=47, 43 conditions
+[Tile] Center pixel snowfall: 0.000 inches at (42.0330, -68.9063)
+[Tile Debug] Pixel statistics (pre-blur): {
+  totalPixels: 65536,
+  nonTransparent: 0,
+  alphaMin: null,
+  alphaMax: null
+}
+ GET /api/radar/synthetic?hour=47&z=7&x=39&y=47&cb=1767473926191 200 in 322ms (compile: 158ms, render: 165ms)
+🚨 SYNTHETIC ROUTE HIT [nszdtt] - request: http://localhost:3000/api/radar/synthetic?hour=47&z=7&x=39&y=48&cb=1767473926191
+[Synthetic Tile] [nszdtt] Request: http://localhost:3000/api/radar/synthetic?hour=47&z=7&x=39&y=48&cb=1767473926191
+[Synthetic Debug] [${reqId}] Resort snowfall stats: {
+  total: 43,
+  withSnow: 11,
+  minSnowfall: 0,
+  maxSnowfall: 1,
+  avgSnowfall: 0.19767441860465115,
+  sampleResorts: [
+    { name: 'Loon Mountain', lat: '44.04', lon: '-71.62', snow: 0 },
+    { name: 'Sunday River', lat: '44.47', lon: '-70.86', snow: 0 },
+    { name: 'Sugarloaf', lat: '45.03', lon: '-70.31', snow: 0 },
+    { name: 'Stowe', lat: '44.47', lon: '-72.69', snow: 0.5 },
+    { name: 'Killington', lat: '43.60', lon: '-72.82', snow: 1 }
+  ]
+}
+[Synthetic Tile] Hour 47: 43 resorts loaded
+[Synthetic Tile] Sample resorts: [
+  { name: 'Loon Mountain', lat: 44.0367, lon: -71.6217, snowfall: 0 },
+  { name: 'Sunday River', lat: 44.4722, lon: -70.8567, snowfall: 0 },
+  { name: 'Sugarloaf', lat: 45.0311, lon: -70.3133, snowfall: 0 }
+]
+[Tile Debug] Storm-evolved resorts: [
+  {
+    name: 'Loon Mountain',
+    originalLat: '44.0367',
+    originalLon: '-71.6217',
+    stormLat: '44.0367',
+    stormLon: '-71.6217',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    originalLat: '44.4722',
+    originalLon: '-70.8567',
+    stormLat: '44.4722',
+    stormLon: '-70.8567',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    originalLat: '45.0311',
+    originalLon: '-70.3133',
+    stormLat: '45.0311',
+    stormLon: '-70.3133',
+    snowfall: '0.00'
+  }
+]
+[Tile Debug] Tile bounds: {
+  z: 7,
+  x: 39,
+  y: 48,
+  latRange: [ '38.82', '40.98' ],
+  lonRange: [ '-70.31', '-67.50' ]
+}
+[Tile Debug] Resorts in tile bounds: 0
+[IDW] (center) Interpolating at (39.9012, -68.9063) z=7 x=39 y=48 samples=43 maxDistance=5
+[IDW] (center) Nearby samples within radius: 30 [
+  { name: 'Powder Ridge', dist: 3.406, snow: 0 },
+  { name: 'Wachusett', dist: 3.464, snow: 0 },
+  { name: 'Mount Southington', dist: 3.521, snow: 0 },
+  { name: 'Crotched Mountain', dist: 3.61, snow: 0 },
+  { name: 'McIntyre Ski Area', dist: 3.662, snow: 0 },
+  { name: 'Pats Peak', dist: 3.851, snow: 0 }
+]
+[Tile Debug] Center pixel interpolation: { lat: '39.9012', lon: '-68.9063', snowfall: '0.0000' }
+[Synthetic Tile] After storm evolution: [
+  {
+    name: 'Loon Mountain',
+    lat: '44.0367',
+    lon: '-71.6217',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    lat: '44.4722',
+    lon: '-70.8567',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    lat: '45.0311',
+    lon: '-70.3133',
+    snowfall: '0.00'
+  }
+]
+[Tile Generation] z=7 x=39 y=48, 43 conditions
+[Tile] Center pixel snowfall: 0.000 inches at (39.9097, -68.9063)
+[Tile Debug] Pixel statistics (pre-blur): {
+  totalPixels: 65536,
+  nonTransparent: 0,
+  alphaMin: null,
+  alphaMax: null
+}
+ GET /api/radar/synthetic?hour=47&z=7&x=39&y=48&cb=1767473926191 200 in 446ms (compile: 323ms, render: 123ms)
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+🚨 SYNTHETIC ROUTE HIT [dj613x] - request: http://localhost:3000/api/radar/synthetic?hour=46&z=7&x=37&y=45&cb=1767473928151
+[Synthetic Tile] [dj613x] Request: http://localhost:3000/api/radar/synthetic?hour=46&z=7&x=37&y=45&cb=1767473928151
+[Synthetic Debug] [${reqId}] Resort snowfall stats: {
+  total: 43,
+  withSnow: 11,
+  minSnowfall: 0,
+  maxSnowfall: 1,
+  avgSnowfall: 0.19767441860465115,
+  sampleResorts: [
+    { name: 'Loon Mountain', lat: '44.04', lon: '-71.62', snow: 0 },
+    { name: 'Sunday River', lat: '44.47', lon: '-70.86', snow: 0 },
+    { name: 'Sugarloaf', lat: '45.03', lon: '-70.31', snow: 0 },
+    { name: 'Stowe', lat: '44.47', lon: '-72.69', snow: 0.5 },
+    { name: 'Killington', lat: '43.60', lon: '-72.82', snow: 1 }
+  ]
+}
+[Synthetic Tile] Hour 46: 43 resorts loaded
+[Synthetic Tile] Sample resorts: [
+  { name: 'Loon Mountain', lat: 44.0367, lon: -71.6217, snowfall: 0 },
+  { name: 'Sunday River', lat: 44.4722, lon: -70.8567, snowfall: 0 },
+  { name: 'Sugarloaf', lat: 45.0311, lon: -70.3133, snowfall: 0 }
+]
+[Tile Debug] Storm-evolved resorts: [
+  {
+    name: 'Loon Mountain',
+    originalLat: '44.0367',
+    originalLon: '-71.6217',
+    stormLat: '43.8144',
+    stormLon: '-71.8440',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    originalLat: '44.4722',
+    originalLon: '-70.8567',
+    stormLat: '44.2499',
+    stormLon: '-71.0790',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    originalLat: '45.0311',
+    originalLon: '-70.3133',
+    stormLat: '44.8088',
+    stormLon: '-70.5356',
+    snowfall: '0.00'
+  }
+]
+[Tile Debug] Tile bounds: {
+  z: 7,
+  x: 37,
+  y: 45,
+  latRange: [ '45.09', '47.04' ],
+  lonRange: [ '-75.94', '-73.13' ]
+}
+[Tile Debug] Resorts in tile bounds: 0
+[IDW] (center) Interpolating at (46.0646, -74.5313) z=7 x=37 y=45 samples=43 maxDistance=5
+[IDW] (center) Nearby samples within radius: 38 [
+  { name: 'Jay Peak', dist: 1.838, snow: 1 },
+  { name: 'Whiteface', dist: 1.942, snow: 1 },
+  { name: "Smugglers' Notch", dist: 2.002, snow: 1 },
+  { name: 'Stowe', dist: 2.141, snow: 0.5 },
+  { name: 'Mad River Glen', dist: 2.298, snow: 1 },
+  { name: 'Sugarbush', dist: 2.357, snow: 1 }
+]
+[Tile Debug] Center pixel interpolation: { lat: '46.0646', lon: '-74.5313', snowfall: '0.9232' }
+[Synthetic Tile] After storm evolution: [
+  {
+    name: 'Loon Mountain',
+    lat: '43.8144',
+    lon: '-71.8440',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    lat: '44.2499',
+    lon: '-71.0790',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    lat: '44.8088',
+    lon: '-70.5356',
+    snowfall: '0.00'
+  }
+]
+[Tile Generation] z=7 x=37 y=45, 43 conditions
+[Tile] Center pixel snowfall: 0.923 inches at (46.0732, -74.5313)
+[Tile Debug] Pixel statistics (pre-blur): {
+  totalPixels: 65536,
+  nonTransparent: 65536,
+  alphaMin: 153,
+  alphaMax: 153
+}
+ GET /api/radar/synthetic?hour=46&z=7&x=37&y=45&cb=1767473928151 200 in 157ms (compile: 2ms, render: 154ms)
+🚨 SYNTHETIC ROUTE HIT [geagsj] - request: http://localhost:3000/api/radar/synthetic?hour=46&z=7&x=37&y=46&cb=1767473928152
+[Synthetic Tile] [geagsj] Request: http://localhost:3000/api/radar/synthetic?hour=46&z=7&x=37&y=46&cb=1767473928152
+[Synthetic Debug] [${reqId}] Resort snowfall stats: {
+  total: 43,
+  withSnow: 11,
+  minSnowfall: 0,
+  maxSnowfall: 1,
+  avgSnowfall: 0.19767441860465115,
+  sampleResorts: [
+    { name: 'Loon Mountain', lat: '44.04', lon: '-71.62', snow: 0 },
+    { name: 'Sunday River', lat: '44.47', lon: '-70.86', snow: 0 },
+    { name: 'Sugarloaf', lat: '45.03', lon: '-70.31', snow: 0 },
+    { name: 'Stowe', lat: '44.47', lon: '-72.69', snow: 0.5 },
+    { name: 'Killington', lat: '43.60', lon: '-72.82', snow: 1 }
+  ]
+}
+[Synthetic Tile] Hour 46: 43 resorts loaded
+[Synthetic Tile] Sample resorts: [
+  { name: 'Loon Mountain', lat: 44.0367, lon: -71.6217, snowfall: 0 },
+  { name: 'Sunday River', lat: 44.4722, lon: -70.8567, snowfall: 0 },
+  { name: 'Sugarloaf', lat: 45.0311, lon: -70.3133, snowfall: 0 }
+]
+[Tile Debug] Storm-evolved resorts: [
+  {
+    name: 'Loon Mountain',
+    originalLat: '44.0367',
+    originalLon: '-71.6217',
+    stormLat: '43.8144',
+    stormLon: '-71.8440',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    originalLat: '44.4722',
+    originalLon: '-70.8567',
+    stormLat: '44.2499',
+    stormLon: '-71.0790',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    originalLat: '45.0311',
+    originalLon: '-70.3133',
+    stormLat: '44.8088',
+    stormLon: '-70.5356',
+    snowfall: '0.00'
+  }
+]
+[Tile Debug] Tile bounds: {
+  z: 7,
+  x: 37,
+  y: 46,
+  latRange: [ '43.07', '45.09' ],
+  lonRange: [ '-75.94', '-73.13' ]
+}
+[Tile Debug] Resorts in tile bounds: 3
+[IDW] (center) Interpolating at (44.0790, -74.5313) z=7 x=37 y=46 samples=43 maxDistance=5
+[IDW] (center) Nearby samples within radius: 42 [
+  { name: 'Whiteface', dist: 0.299, snow: 1 },
+  { name: 'Gore Mountain', dist: 0.663, snow: 0.5 },
+  { name: 'Mad River Glen', dist: 1.005, snow: 1 },
+  { name: 'Sugarbush', dist: 1.028, snow: 1 },
+  { name: "Smugglers' Notch", dist: 1.134, snow: 1 },
+  { name: 'Stowe', dist: 1.176, snow: 0.5 }
+]
+[Tile Debug] Center pixel interpolation: { lat: '44.0790', lon: '-74.5313', snowfall: '0.9138' }
+[Synthetic Tile] After storm evolution: [
+  {
+    name: 'Loon Mountain',
+    lat: '43.8144',
+    lon: '-71.8440',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    lat: '44.2499',
+    lon: '-71.0790',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    lat: '44.8088',
+    lon: '-70.5356',
+    snowfall: '0.00'
+  }
+]
+[Tile Generation] z=7 x=37 y=46, 43 conditions
+[Tile] Center pixel snowfall: 0.916 inches at (44.0876, -74.5313)
+[Tile Debug] Pixel statistics (pre-blur): {
+  totalPixels: 65536,
+  nonTransparent: 54594,
+  alphaMin: 153,
+  alphaMax: 153
+}
+ GET /api/radar/synthetic?hour=46&z=7&x=37&y=46&cb=1767473928152 200 in 316ms (compile: 157ms, render: 159ms)
+🚨 SYNTHETIC ROUTE HIT [46ym2l] - request: http://localhost:3000/api/radar/synthetic?hour=46&z=7&x=37&y=47&cb=1767473928152
+[Synthetic Tile] [46ym2l] Request: http://localhost:3000/api/radar/synthetic?hour=46&z=7&x=37&y=47&cb=1767473928152
+[Synthetic Debug] [${reqId}] Resort snowfall stats: {
+  total: 43,
+  withSnow: 11,
+  minSnowfall: 0,
+  maxSnowfall: 1,
+  avgSnowfall: 0.19767441860465115,
+  sampleResorts: [
+    { name: 'Loon Mountain', lat: '44.04', lon: '-71.62', snow: 0 },
+    { name: 'Sunday River', lat: '44.47', lon: '-70.86', snow: 0 },
+    { name: 'Sugarloaf', lat: '45.03', lon: '-70.31', snow: 0 },
+    { name: 'Stowe', lat: '44.47', lon: '-72.69', snow: 0.5 },
+    { name: 'Killington', lat: '43.60', lon: '-72.82', snow: 1 }
+  ]
+}
+[Synthetic Tile] Hour 46: 43 resorts loaded
+[Synthetic Tile] Sample resorts: [
+  { name: 'Loon Mountain', lat: 44.0367, lon: -71.6217, snowfall: 0 },
+  { name: 'Sunday River', lat: 44.4722, lon: -70.8567, snowfall: 0 },
+  { name: 'Sugarloaf', lat: 45.0311, lon: -70.3133, snowfall: 0 }
+]
+[Tile Debug] Storm-evolved resorts: [
+  {
+    name: 'Loon Mountain',
+    originalLat: '44.0367',
+    originalLon: '-71.6217',
+    stormLat: '43.8144',
+    stormLon: '-71.8440',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    originalLat: '44.4722',
+    originalLon: '-70.8567',
+    stormLat: '44.2499',
+    stormLon: '-71.0790',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    originalLat: '45.0311',
+    originalLon: '-70.3133',
+    stormLat: '44.8088',
+    stormLon: '-70.5356',
+    snowfall: '0.00'
+  }
+]
+[Tile Debug] Tile bounds: {
+  z: 7,
+  x: 37,
+  y: 47,
+  latRange: [ '40.98', '43.07' ],
+  lonRange: [ '-75.94', '-73.13' ]
+}
+[Tile Debug] Resorts in tile bounds: 9
+[IDW] (center) Interpolating at (42.0244, -74.5313) z=7 x=37 y=47 samples=43 maxDistance=5
+[IDW] (center) Nearby samples within radius: 43 [
+  { name: 'Windham Mountain', dist: 0.059, snow: 0 },
+  { name: 'Hunter Mountain', dist: 0.072, snow: 0 },
+  { name: 'Belleayre', dist: 0.184, snow: 0.5 },
+  { name: 'Jiminy Peak', dist: 0.816, snow: 0 },
+  { name: 'Mountain Creek', dist: 1.075, snow: 0 },
+  { name: 'Elk Mountain', dist: 1.083, snow: 0 }
+]
+[Tile Debug] Center pixel interpolation: { lat: '42.0244', lon: '-74.5313', snowfall: '0.0562' }
+[Synthetic Tile] After storm evolution: [
+  {
+    name: 'Loon Mountain',
+    lat: '43.8144',
+    lon: '-71.8440',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    lat: '44.2499',
+    lon: '-71.0790',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    lat: '44.8088',
+    lon: '-70.5356',
+    snowfall: '0.00'
+  }
+]
+[Tile Generation] z=7 x=37 y=47, 43 conditions
+[Tile] Center pixel snowfall: 0.053 inches at (42.0330, -74.5313)
+[Tile Debug] Pixel statistics (pre-blur): {
+  totalPixels: 65536,
+  nonTransparent: 0,
+  alphaMin: null,
+  alphaMax: null
+}
+ GET /api/radar/synthetic?hour=46&z=7&x=37&y=47&cb=1767473928152 200 in 481ms (compile: 316ms, render: 165ms)
+🚨 SYNTHETIC ROUTE HIT [lv4url] - request: http://localhost:3000/api/radar/synthetic?hour=46&z=7&x=37&y=48&cb=1767473928152
+[Synthetic Tile] [lv4url] Request: http://localhost:3000/api/radar/synthetic?hour=46&z=7&x=37&y=48&cb=1767473928152
+[Synthetic Debug] [${reqId}] Resort snowfall stats: {
+  total: 43,
+  withSnow: 11,
+  minSnowfall: 0,
+  maxSnowfall: 1,
+  avgSnowfall: 0.19767441860465115,
+  sampleResorts: [
+    { name: 'Loon Mountain', lat: '44.04', lon: '-71.62', snow: 0 },
+    { name: 'Sunday River', lat: '44.47', lon: '-70.86', snow: 0 },
+    { name: 'Sugarloaf', lat: '45.03', lon: '-70.31', snow: 0 },
+    { name: 'Stowe', lat: '44.47', lon: '-72.69', snow: 0.5 },
+    { name: 'Killington', lat: '43.60', lon: '-72.82', snow: 1 }
+  ]
+}
+[Synthetic Tile] Hour 46: 43 resorts loaded
+[Synthetic Tile] Sample resorts: [
+  { name: 'Loon Mountain', lat: 44.0367, lon: -71.6217, snowfall: 0 },
+  { name: 'Sunday River', lat: 44.4722, lon: -70.8567, snowfall: 0 },
+  { name: 'Sugarloaf', lat: 45.0311, lon: -70.3133, snowfall: 0 }
+]
+[Tile Debug] Storm-evolved resorts: [
+  {
+    name: 'Loon Mountain',
+    originalLat: '44.0367',
+    originalLon: '-71.6217',
+    stormLat: '43.8144',
+    stormLon: '-71.8440',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    originalLat: '44.4722',
+    originalLon: '-70.8567',
+    stormLat: '44.2499',
+    stormLon: '-71.0790',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    originalLat: '45.0311',
+    originalLon: '-70.3133',
+    stormLat: '44.8088',
+    stormLon: '-70.5356',
+    snowfall: '0.00'
+  }
+]
+[Tile Debug] Tile bounds: {
+  z: 7,
+  x: 37,
+  y: 48,
+  latRange: [ '38.82', '40.98' ],
+  lonRange: [ '-75.94', '-73.13' ]
+}
+[Tile Debug] Resorts in tile bounds: 4
+[IDW] (center) Interpolating at (39.9012, -74.5313) z=7 x=37 y=48 samples=43 maxDistance=5
+[IDW] (center) Nearby samples within radius: 40 [
+  { name: 'Campgaw Mountain', dist: 0.928, snow: 0.5 },
+  { name: 'Mountain Creek', dist: 1.07, snow: 0 },
+  { name: 'Blue Mountain', dist: 1.157, snow: 0 },
+  { name: 'Jack Frost Big Boulder', dist: 1.428, snow: 0 },
+  { name: 'Powder Ridge', dist: 1.785, snow: 0 },
+  { name: 'Mount Southington', dist: 1.817, snow: 0 }
+]
+[Tile Debug] Center pixel interpolation: { lat: '39.9012', lon: '-74.5313', snowfall: '0.1598' }
+[Synthetic Tile] After storm evolution: [
+  {
+    name: 'Loon Mountain',
+    lat: '43.8144',
+    lon: '-71.8440',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    lat: '44.2499',
+    lon: '-71.0790',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    lat: '44.8088',
+    lon: '-70.5356',
+    snowfall: '0.00'
+  }
+]
+[Tile Generation] z=7 x=37 y=48, 43 conditions
+[Tile] Center pixel snowfall: 0.161 inches at (39.9097, -74.5313)
+[Tile Debug] Pixel statistics (pre-blur): {
+  totalPixels: 65536,
+  nonTransparent: 0,
+  alphaMin: null,
+  alphaMax: null
+}
+ GET /api/radar/synthetic?hour=46&z=7&x=37&y=48&cb=1767473928152 200 in 631ms (compile: 482ms, render: 149ms)
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+[API] NWS data received: success
+[API] OpenWeatherMap data received: success
+[API] Fetching historical observations
+🚨 SYNTHETIC ROUTE HIT [yatyoi] - request: http://localhost:3000/api/radar/synthetic?hour=46&z=7&x=38&y=45&cb=1767473928152
+[Synthetic Tile] [yatyoi] Request: http://localhost:3000/api/radar/synthetic?hour=46&z=7&x=38&y=45&cb=1767473928152
+[Synthetic Debug] [${reqId}] Resort snowfall stats: {
+  total: 43,
+  withSnow: 11,
+  minSnowfall: 0,
+  maxSnowfall: 1,
+  avgSnowfall: 0.19767441860465115,
+  sampleResorts: [
+    { name: 'Loon Mountain', lat: '44.04', lon: '-71.62', snow: 0 },
+    { name: 'Sunday River', lat: '44.47', lon: '-70.86', snow: 0 },
+    { name: 'Sugarloaf', lat: '45.03', lon: '-70.31', snow: 0 },
+    { name: 'Stowe', lat: '44.47', lon: '-72.69', snow: 0.5 },
+    { name: 'Killington', lat: '43.60', lon: '-72.82', snow: 1 }
+  ]
+}
+[Synthetic Tile] Hour 46: 43 resorts loaded
+[Synthetic Tile] Sample resorts: [
+  { name: 'Loon Mountain', lat: 44.0367, lon: -71.6217, snowfall: 0 },
+  { name: 'Sunday River', lat: 44.4722, lon: -70.8567, snowfall: 0 },
+  { name: 'Sugarloaf', lat: 45.0311, lon: -70.3133, snowfall: 0 }
+]
+[Tile Debug] Storm-evolved resorts: [
+  {
+    name: 'Loon Mountain',
+    originalLat: '44.0367',
+    originalLon: '-71.6217',
+    stormLat: '43.8144',
+    stormLon: '-71.8440',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    originalLat: '44.4722',
+    originalLon: '-70.8567',
+    stormLat: '44.2499',
+    stormLon: '-71.0790',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    originalLat: '45.0311',
+    originalLon: '-70.3133',
+    stormLat: '44.8088',
+    stormLon: '-70.5356',
+    snowfall: '0.00'
+  }
+]
+[Tile Debug] Tile bounds: {
+  z: 7,
+  x: 38,
+  y: 45,
+  latRange: [ '45.09', '47.04' ],
+  lonRange: [ '-73.13', '-70.31' ]
+}
+[Tile Debug] Resorts in tile bounds: 0
+[IDW] (center) Interpolating at (46.0646, -71.7188) z=7 x=38 y=45 samples=43 maxDistance=5
+[IDW] (center) Nearby samples within radius: 37 [
+  { name: 'Saddleback', dist: 1.494, snow: 0 },
+  { name: 'Sugarloaf', dist: 1.5, snow: 0 },
+  { name: 'Jay Peak', dist: 1.54, snow: 1 },
+  { name: 'Sunday River', dist: 1.868, snow: 0 },
+  { name: "Smugglers' Notch", dist: 1.918, snow: 1 },
+  { name: 'Stowe', dist: 2, snow: 0.5 }
+]
+[Tile Debug] Center pixel interpolation: { lat: '46.0646', lon: '-71.7188', snowfall: '0.3801' }
+[Synthetic Tile] After storm evolution: [
+  {
+    name: 'Loon Mountain',
+    lat: '43.8144',
+    lon: '-71.8440',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    lat: '44.2499',
+    lon: '-71.0790',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    lat: '44.8088',
+    lon: '-70.5356',
+    snowfall: '0.00'
+  }
+]
+[Tile Generation] z=7 x=38 y=45, 43 conditions
+[Tile] Center pixel snowfall: 0.380 inches at (46.0732, -71.7188)
+[Tile Debug] Pixel statistics (pre-blur): {
+  totalPixels: 65536,
+  nonTransparent: 17366,
+  alphaMin: 153,
+  alphaMax: 153
+}
+ GET /api/radar/synthetic?hour=46&z=7&x=38&y=45&cb=1767473928152 200 in 154ms (compile: 5ms, render: 149ms)
+🚨 SYNTHETIC ROUTE HIT [nt0xw2] - request: http://localhost:3000/api/radar/synthetic?hour=46&z=7&x=38&y=46&cb=1767473928152
+[Synthetic Tile] [nt0xw2] Request: http://localhost:3000/api/radar/synthetic?hour=46&z=7&x=38&y=46&cb=1767473928152
+[Synthetic Debug] [${reqId}] Resort snowfall stats: {
+  total: 43,
+  withSnow: 11,
+  minSnowfall: 0,
+  maxSnowfall: 1,
+  avgSnowfall: 0.19767441860465115,
+  sampleResorts: [
+    { name: 'Loon Mountain', lat: '44.04', lon: '-71.62', snow: 0 },
+    { name: 'Sunday River', lat: '44.47', lon: '-70.86', snow: 0 },
+    { name: 'Sugarloaf', lat: '45.03', lon: '-70.31', snow: 0 },
+    { name: 'Stowe', lat: '44.47', lon: '-72.69', snow: 0.5 },
+    { name: 'Killington', lat: '43.60', lon: '-72.82', snow: 1 }
+  ]
+}
+[Synthetic Tile] Hour 46: 43 resorts loaded
+[Synthetic Tile] Sample resorts: [
+  { name: 'Loon Mountain', lat: 44.0367, lon: -71.6217, snowfall: 0 },
+  { name: 'Sunday River', lat: 44.4722, lon: -70.8567, snowfall: 0 },
+  { name: 'Sugarloaf', lat: 45.0311, lon: -70.3133, snowfall: 0 }
+]
+[Tile Debug] Storm-evolved resorts: [
+  {
+    name: 'Loon Mountain',
+    originalLat: '44.0367',
+    originalLon: '-71.6217',
+    stormLat: '43.8144',
+    stormLon: '-71.8440',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    originalLat: '44.4722',
+    originalLon: '-70.8567',
+    stormLat: '44.2499',
+    stormLon: '-71.0790',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    originalLat: '45.0311',
+    originalLon: '-70.3133',
+    stormLat: '44.8088',
+    stormLon: '-70.5356',
+    snowfall: '0.00'
+  }
+]
+[Tile Debug] Tile bounds: {
+  z: 7,
+  x: 38,
+  y: 46,
+  latRange: [ '43.07', '45.09' ],
+  lonRange: [ '-73.13', '-70.31' ]
+}
+[Tile Debug] Resorts in tile bounds: 21
+[IDW] (center) Interpolating at (44.0790, -71.7188) z=7 x=38 y=46 samples=43 maxDistance=5
+[IDW] (center) Nearby samples within radius: 42 [
+  { name: 'Bretton Woods', dist: 0.061, snow: 0 },
+  { name: 'Cannon Mountain', dist: 0.19, snow: 0 },
+  { name: 'Wildcat', dist: 0.199, snow: 0 },
+  { name: 'Black Mountain', dist: 0.272, snow: 0 },
+  { name: 'Loon Mountain', dist: 0.279, snow: 0 },
+  { name: 'Attitash', dist: 0.291, snow: 0 }
+]
+[Tile Debug] Center pixel interpolation: { lat: '44.0790', lon: '-71.7188', snowfall: '0.0000' }
+[Synthetic Tile] After storm evolution: [
+  {
+    name: 'Loon Mountain',
+    lat: '43.8144',
+    lon: '-71.8440',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    lat: '44.2499',
+    lon: '-71.0790',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    lat: '44.8088',
+    lon: '-70.5356',
+    snowfall: '0.00'
+  }
+]
+[Tile Generation] z=7 x=38 y=46, 43 conditions
+[Tile] Center pixel snowfall: 0.000 inches at (44.0876, -71.7188)
+[Tile Debug] Pixel statistics (pre-blur): {
+  totalPixels: 65536,
+  nonTransparent: 16471,
+  alphaMin: 153,
+  alphaMax: 153
+}
+ GET /api/radar/synthetic?hour=46&z=7&x=38&y=46&cb=1767473928152 200 in 319ms (compile: 154ms, render: 165ms)
+🚨 SYNTHETIC ROUTE HIT [90tbm0] - request: http://localhost:3000/api/radar/synthetic?hour=46&z=7&x=38&y=47&cb=1767473928152
+[Synthetic Tile] [90tbm0] Request: http://localhost:3000/api/radar/synthetic?hour=46&z=7&x=38&y=47&cb=1767473928152
+[Synthetic Debug] [${reqId}] Resort snowfall stats: {
+  total: 43,
+  withSnow: 11,
+  minSnowfall: 0,
+  maxSnowfall: 1,
+  avgSnowfall: 0.19767441860465115,
+  sampleResorts: [
+    { name: 'Loon Mountain', lat: '44.04', lon: '-71.62', snow: 0 },
+    { name: 'Sunday River', lat: '44.47', lon: '-70.86', snow: 0 },
+    { name: 'Sugarloaf', lat: '45.03', lon: '-70.31', snow: 0 },
+    { name: 'Stowe', lat: '44.47', lon: '-72.69', snow: 0.5 },
+    { name: 'Killington', lat: '43.60', lon: '-72.82', snow: 1 }
+  ]
+}
+[Synthetic Tile] Hour 46: 43 resorts loaded
+[Synthetic Tile] Sample resorts: [
+  { name: 'Loon Mountain', lat: 44.0367, lon: -71.6217, snowfall: 0 },
+  { name: 'Sunday River', lat: 44.4722, lon: -70.8567, snowfall: 0 },
+  { name: 'Sugarloaf', lat: 45.0311, lon: -70.3133, snowfall: 0 }
+]
+[Tile Debug] Storm-evolved resorts: [
+  {
+    name: 'Loon Mountain',
+    originalLat: '44.0367',
+    originalLon: '-71.6217',
+    stormLat: '43.8144',
+    stormLon: '-71.8440',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    originalLat: '44.4722',
+    originalLon: '-70.8567',
+    stormLat: '44.2499',
+    stormLon: '-71.0790',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    originalLat: '45.0311',
+    originalLon: '-70.3133',
+    stormLat: '44.8088',
+    stormLon: '-70.5356',
+    snowfall: '0.00'
+  }
+]
+[Tile Debug] Tile bounds: {
+  z: 7,
+  x: 38,
+  y: 47,
+  latRange: [ '40.98', '43.07' ],
+  lonRange: [ '-73.13', '-70.31' ]
+}
+[Tile Debug] Resorts in tile bounds: 5
+[IDW] (center) Interpolating at (42.0244, -71.7188) z=7 x=38 y=47 samples=43 maxDistance=5
+[IDW] (center) Nearby samples within radius: 42 [
+  { name: 'Wachusett', dist: 0.387, snow: 0 },
+  { name: 'Crotched Mountain', dist: 0.613, snow: 0 },
+  { name: 'McIntyre Ski Area', dist: 0.749, snow: 0 },
+  { name: 'Pats Peak', dist: 0.849, snow: 0 },
+  { name: 'Ragged Mountain', dist: 1.084, snow: 0 },
+  { name: 'Mount Sunapee', dist: 1.164, snow: 0 }
+]
+[Tile Debug] Center pixel interpolation: { lat: '42.0244', lon: '-71.7188', snowfall: '0.0000' }
+[Synthetic Tile] After storm evolution: [
+  {
+    name: 'Loon Mountain',
+    lat: '43.8144',
+    lon: '-71.8440',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    lat: '44.2499',
+    lon: '-71.0790',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    lat: '44.8088',
+    lon: '-70.5356',
+    snowfall: '0.00'
+  }
+]
+[Tile Generation] z=7 x=38 y=47, 43 conditions
+[Tile] Center pixel snowfall: 0.000 inches at (42.0330, -71.7188)
+[Tile Debug] Pixel statistics (pre-blur): {
+  totalPixels: 65536,
+  nonTransparent: 0,
+  alphaMin: null,
+  alphaMax: null
+}
+ GET /api/radar/synthetic?hour=46&z=7&x=38&y=47&cb=1767473928152 200 in 494ms (compile: 320ms, render: 175ms)
+🚨 SYNTHETIC ROUTE HIT [xpdu1k] - request: http://localhost:3000/api/radar/synthetic?hour=46&z=7&x=38&y=48&cb=1767473928152
+[Synthetic Tile] [xpdu1k] Request: http://localhost:3000/api/radar/synthetic?hour=46&z=7&x=38&y=48&cb=1767473928152
+[Synthetic Debug] [${reqId}] Resort snowfall stats: {
+  total: 43,
+  withSnow: 11,
+  minSnowfall: 0,
+  maxSnowfall: 1,
+  avgSnowfall: 0.19767441860465115,
+  sampleResorts: [
+    { name: 'Loon Mountain', lat: '44.04', lon: '-71.62', snow: 0 },
+    { name: 'Sunday River', lat: '44.47', lon: '-70.86', snow: 0 },
+    { name: 'Sugarloaf', lat: '45.03', lon: '-70.31', snow: 0 },
+    { name: 'Stowe', lat: '44.47', lon: '-72.69', snow: 0.5 },
+    { name: 'Killington', lat: '43.60', lon: '-72.82', snow: 1 }
+  ]
+}
+[Synthetic Tile] Hour 46: 43 resorts loaded
+[Synthetic Tile] Sample resorts: [
+  { name: 'Loon Mountain', lat: 44.0367, lon: -71.6217, snowfall: 0 },
+  { name: 'Sunday River', lat: 44.4722, lon: -70.8567, snowfall: 0 },
+  { name: 'Sugarloaf', lat: 45.0311, lon: -70.3133, snowfall: 0 }
+]
+[Tile Debug] Storm-evolved resorts: [
+  {
+    name: 'Loon Mountain',
+    originalLat: '44.0367',
+    originalLon: '-71.6217',
+    stormLat: '43.8144',
+    stormLon: '-71.8440',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    originalLat: '44.4722',
+    originalLon: '-70.8567',
+    stormLat: '44.2499',
+    stormLon: '-71.0790',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    originalLat: '45.0311',
+    originalLon: '-70.3133',
+    stormLat: '44.8088',
+    stormLon: '-70.5356',
+    snowfall: '0.00'
+  }
+]
+[Tile Debug] Tile bounds: {
+  z: 7,
+  x: 38,
+  y: 48,
+  latRange: [ '38.82', '40.98' ],
+  lonRange: [ '-73.13', '-70.31' ]
+}
+[Tile Debug] Resorts in tile bounds: 0
+[IDW] (center) Interpolating at (39.9012, -71.7188) z=7 x=38 y=48 samples=43 maxDistance=5
+[IDW] (center) Nearby samples within radius: 42 [
+  { name: 'Powder Ridge', dist: 1.713, snow: 0 },
+  { name: 'Mount Southington', dist: 1.839, snow: 0 },
+  { name: 'Campgaw Mountain', dist: 2.276, snow: 0.5 },
+  { name: 'Wachusett', dist: 2.398, snow: 0 },
+  { name: 'Mountain Creek', dist: 2.541, snow: 0 },
+  { name: 'Crotched Mountain', dist: 2.732, snow: 0 }
+]
+[Tile Debug] Center pixel interpolation: { lat: '39.9012', lon: '-71.7188', snowfall: '0.0722' }
+[Synthetic Tile] After storm evolution: [
+  {
+    name: 'Loon Mountain',
+    lat: '43.8144',
+    lon: '-71.8440',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    lat: '44.2499',
+    lon: '-71.0790',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    lat: '44.8088',
+    lon: '-70.5356',
+    snowfall: '0.00'
+  }
+]
+[Tile Generation] z=7 x=38 y=48, 43 conditions
+[Tile] Center pixel snowfall: 0.072 inches at (39.9097, -71.7188)
+[Tile Debug] Pixel statistics (pre-blur): {
+  totalPixels: 65536,
+  nonTransparent: 0,
+  alphaMin: null,
+  alphaMax: null
+}
+ GET /api/radar/synthetic?hour=46&z=7&x=38&y=48&cb=1767473928152 200 in 665ms (compile: 495ms, render: 170ms)
+ GET / 200 in 1326ms (compile: 633ms, render: 694ms)
+ GET /api/scrape?resortId=black-mountain 200 in 3.4s (compile: 8ms, render: 3.3s)
+ GET /api/scrape?resortId=mountain-creek 200 in 3.4s (compile: 9ms, render: 3.4s)
+ GET /api/scrape?resortId=campgaw-mountain 200 in 3.4s (compile: 7ms, render: 3.4s)
+ GET /api/scrape?resortId=powder-ridge 200 in 3.4s (compile: 9ms, render: 3.4s)
+ GET /api/scrape?resortId=mount-southington 200 in 3.4s (compile: 8ms, render: 3.4s)
+ GET /api/scrape?resortId=blue-mountain 200 in 3.4s (compile: 5ms, render: 3.4s)
+ GET /api/scrape?resortId=wachusett 200 in 3.4s (compile: 6ms, render: 3.4s)
+ GET /api/scrape?resortId=jiminy-peak 200 in 3.4s (compile: 6ms, render: 3.4s)
+ GET /api/scrape?resortId=squaw-mountain 200 in 3.4s (compile: 4ms, render: 3.4s)
+ GET /api/scrape?resortId=saddleback 200 in 3.4s (compile: 5ms, render: 3.4s)
+ GET /api/scrape?resortId=ragged-mountain 200 in 3.4s (compile: 7ms, render: 3.4s)
+ GET /api/scrape?resortId=crotched-mountain 200 in 3.5s (compile: 6ms, render: 3.4s)
+ GET /api/scrape?resortId=mcintyre 200 in 3.5s (compile: 6ms, render: 3.5s)
+ GET /api/scrape?resortId=gunstock 200 in 3.5s (compile: 4ms, render: 3.5s)
+ GET /api/scrape?resortId=mount-sunapee 200 in 3.5s (compile: 5ms, render: 3.5s)
+ GET /api/scrape?resortId=cranmore 200 in 3.5s (compile: 6ms, render: 3.5s)
+ GET /api/scrape?resortId=pats-peak 200 in 3.5s (compile: 6ms, render: 3.5s)
+ GET /api/scrape?resortId=attitash 200 in 3.5s (compile: 9ms, render: 3.5s)
+ GET /api/scrape?resortId=wildcat 200 in 3.5s (compile: 9ms, render: 3.5s)
+ GET /api/scrape?resortId=waterville-valley 200 in 3.5s (compile: 7ms, render: 3.5s)
+ GET /api/scrape?resortId=cannon-mountain 200 in 3.5s (compile: 6ms, render: 3.5s)
+ GET /api/scrape?resortId=bretton-woods 200 in 3.5s (compile: 9ms, render: 3.5s)
+ GET /api/scrape?resortId=mad-river-glen 200 in 3.5s (compile: 13ms, render: 3.5s)
+ GET /api/scrape?resortId=bromley 200 in 3.5s (compile: 7ms, render: 3.5s)
+ GET /api/scrape?resortId=smugglers-notch 200 in 3.5s (compile: 7ms, render: 3.5s)
+ GET /api/scrape?resortId=jay-peak 200 in 3.5s (compile: 6ms, render: 3.5s)
+ GET /api/scrape?resortId=stratton 200 in 3.5s (compile: 3ms, render: 3.5s)
+ GET /api/scrape?resortId=mount-snow 200 in 3.5s (compile: 4ms, render: 3.5s)
+ GET /api/scrape?resortId=okemo 200 in 3.5s (compile: 3ms, render: 3.5s)
+ GET /api/scrape?resortId=sugarbush 200 in 3.5s (compile: 4ms, render: 3.5s)
+ GET /api/scrape?resortId=killington 200 in 3.6s (compile: 4ms, render: 3.5s)
+ GET /api/scrape?resortId=stowe 200 in 3.6s (compile: 5ms, render: 3.6s)
+ GET /api/scrape?resortId=sugarloaf 200 in 3.6s (compile: 6ms, render: 3.6s)
+ GET /api/scrape?resortId=sunday-river 200 in 3.6s (compile: 5ms, render: 3.6s)
+ GET /api/scrape?resortId=loon-mountain 200 in 3.6s (compile: 4ms, render: 3.6s)
+ GET /api/scrape?resortId=campgaw-mountain 200 in 3.6s (compile: 16ms, render: 3.6s)
+ GET /api/scrape?resortId=black-mountain 200 in 3.7s (compile: 8ms, render: 3.6s)
+ GET /api/scrape?resortId=mountain-creek 200 in 3.7s (compile: 6ms, render: 3.6s)
+ GET /api/scrape?resortId=seven-springs 200 in 3.4s (compile: 6ms, render: 3.4s)
+ GET /api/scrape?resortId=jack-frost-big-boulder 200 in 3.4s (compile: 5ms, render: 3.4s)
+ GET /api/scrape?resortId=elk-mountain 200 in 3.4s (compile: 4ms, render: 3.4s)
+ GET /api/scrape?resortId=windham-mountain 200 in 3.4s (compile: 6ms, render: 3.4s)
+ GET /api/scrape?resortId=belleayre 200 in 3.4s (compile: 6ms, render: 3.4s)
+ GET /api/scrape?resortId=gore-mountain 200 in 3.4s (compile: 6ms, render: 3.4s)
+ GET /api/scrape?resortId=hunter-mountain 200 in 3.4s (compile: 6ms, render: 3.4s)
+ GET /api/scrape?resortId=whiteface 200 in 3.4s (compile: 8ms, render: 3.4s)
+ GET /api/scrape?resortId=mount-southington 200 in 3.7s (compile: 12ms, render: 3.7s)
+ GET /api/scrape?resortId=powder-ridge 200 in 3.7s (compile: 8ms, render: 3.7s)
+ GET /api/scrape?resortId=seven-springs 200 in 3.7s (compile: 9ms, render: 3.7s)
+ GET /api/scrape?resortId=blue-mountain 200 in 3.7s (compile: 6ms, render: 3.7s)
+ GET /api/scrape?resortId=elk-mountain 200 in 3.7s (compile: 8ms, render: 3.7s)
+ GET /api/scrape?resortId=jack-frost-big-boulder 200 in 3.7s (compile: 15ms, render: 3.7s)
+ GET /api/scrape?resortId=belleayre 200 in 3.7s (compile: 8ms, render: 3.7s)
+ GET /api/scrape?resortId=windham-mountain 200 in 3.7s (compile: 5ms, render: 3.7s)
+ GET /api/scrape?resortId=gore-mountain 200 in 3.7s (compile: 5ms, render: 3.7s)
+ GET /api/scrape?resortId=hunter-mountain 200 in 3.7s (compile: 12ms, render: 3.7s)
+ GET /api/scrape?resortId=whiteface 200 in 3.7s (compile: 9ms, render: 3.7s)
+ GET /api/scrape?resortId=jiminy-peak 200 in 3.7s (compile: 6ms, render: 3.7s)
+ GET /api/scrape?resortId=wachusett 200 in 3.8s (compile: 4ms, render: 3.7s)
+ GET /api/scrape?resortId=squaw-mountain 200 in 3.8s (compile: 4ms, render: 3.7s)
+ GET /api/scrape?resortId=ragged-mountain 200 in 3.8s (compile: 3ms, render: 3.8s)
+ GET /api/scrape?resortId=saddleback 200 in 3.8s (compile: 7ms, render: 3.8s)
+ GET /api/scrape?resortId=mcintyre 200 in 3.8s (compile: 8ms, render: 3.8s)
+ GET /api/scrape?resortId=crotched-mountain 200 in 3.8s (compile: 5ms, render: 3.8s)
+ GET /api/scrape?resortId=gunstock 200 in 3.8s (compile: 16ms, render: 3.8s)
+ GET /api/scrape?resortId=mount-sunapee 200 in 3.8s (compile: 4ms, render: 3.8s)
+ GET /api/scrape?resortId=pats-peak 200 in 3.8s (compile: 4ms, render: 3.8s)
+ GET /api/scrape?resortId=attitash 200 in 3.8s (compile: 5ms, render: 3.8s)
+ GET /api/scrape?resortId=cranmore 200 in 3.8s (compile: 7ms, render: 3.8s)
+ GET /api/scrape?resortId=wildcat 200 in 3.9s (compile: 51ms, render: 3.8s)
+ GET /api/scrape?resortId=waterville-valley 200 in 3.9s (compile: 13ms, render: 3.8s)
+ GET /api/scrape?resortId=cannon-mountain 200 in 3.9s (compile: 17ms, render: 3.8s)
+ GET /api/scrape?resortId=bretton-woods 200 in 3.9s (compile: 24ms, render: 3.8s)
+ GET /api/scrape?resortId=mad-river-glen 200 in 3.9s (compile: 20ms, render: 3.8s)
+ GET /api/scrape?resortId=bromley 200 in 3.9s (compile: 27ms, render: 3.8s)
+ GET /api/scrape?resortId=smugglers-notch 200 in 3.9s (compile: 29ms, render: 3.8s)
+ GET /api/scrape?resortId=jay-peak 200 in 3.9s (compile: 32ms, render: 3.8s)
+ GET /api/scrape?resortId=stratton 200 in 3.9s (compile: 36ms, render: 3.8s)
+ GET /api/scrape?resortId=loon-mountain 200 in 3.9s (compile: 55ms, render: 3.8s)
+ GET /api/resorts/conditions 200 in 3.9s (compile: 15ms, render: 3.9s)
+ GET /api/scrape?resortId=mount-snow 200 in 3.9s (compile: 38ms, render: 3.8s)
+ GET /api/scrape?resortId=okemo 200 in 3.9s (compile: 40ms, render: 3.8s)
+ GET /api/scrape?resortId=sugarbush 200 in 3.9s (compile: 45ms, render: 3.8s)
+ GET /api/scrape?resortId=killington 200 in 3.9s (compile: 43ms, render: 3.8s)
+ GET /api/scrape?resortId=stowe 200 in 3.9s (compile: 49ms, render: 3.8s)
+ GET /api/scrape?resortId=sugarloaf 200 in 3.9s (compile: 48ms, render: 3.8s)
+ GET /api/scrape?resortId=sunday-river 200 in 3.9s (compile: 52ms, render: 3.8s)
+ GET /api/resorts/conditions 200 in 3.6s (compile: 8ms, render: 3.6s)
+🚨 SYNTHETIC ROUTE HIT [26wguw] - request: http://localhost:3000/api/radar/synthetic?hour=46&z=7&x=39&y=45&cb=1767473928152
+[Synthetic Tile] [26wguw] Request: http://localhost:3000/api/radar/synthetic?hour=46&z=7&x=39&y=45&cb=1767473928152
+[Synthetic Debug] [${reqId}] Resort snowfall stats: {
+  total: 43,
+  withSnow: 11,
+  minSnowfall: 0,
+  maxSnowfall: 1,
+  avgSnowfall: 0.19767441860465115,
+  sampleResorts: [
+    { name: 'Loon Mountain', lat: '44.04', lon: '-71.62', snow: 0 },
+    { name: 'Sunday River', lat: '44.47', lon: '-70.86', snow: 0 },
+    { name: 'Sugarloaf', lat: '45.03', lon: '-70.31', snow: 0 },
+    { name: 'Stowe', lat: '44.47', lon: '-72.69', snow: 0.5 },
+    { name: 'Killington', lat: '43.60', lon: '-72.82', snow: 1 }
+  ]
+}
+[Synthetic Tile] Hour 46: 43 resorts loaded
+[Synthetic Tile] Sample resorts: [
+  { name: 'Loon Mountain', lat: 44.0367, lon: -71.6217, snowfall: 0 },
+  { name: 'Sunday River', lat: 44.4722, lon: -70.8567, snowfall: 0 },
+  { name: 'Sugarloaf', lat: 45.0311, lon: -70.3133, snowfall: 0 }
+]
+[Tile Debug] Storm-evolved resorts: [
+  {
+    name: 'Loon Mountain',
+    originalLat: '44.0367',
+    originalLon: '-71.6217',
+    stormLat: '43.8144',
+    stormLon: '-71.8440',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    originalLat: '44.4722',
+    originalLon: '-70.8567',
+    stormLat: '44.2499',
+    stormLon: '-71.0790',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    originalLat: '45.0311',
+    originalLon: '-70.3133',
+    stormLat: '44.8088',
+    stormLon: '-70.5356',
+    snowfall: '0.00'
+  }
+]
+[Tile Debug] Tile bounds: {
+  z: 7,
+  x: 39,
+  y: 45,
+  latRange: [ '45.09', '47.04' ],
+  lonRange: [ '-70.31', '-67.50' ]
+}
+[Tile Debug] Resorts in tile bounds: 0
+[IDW] (center) Interpolating at (46.0646, -68.9063) z=7 x=39 y=45 samples=43 maxDistance=5
+[IDW] (center) Nearby samples within radius: 32 [
+  { name: 'Sugarloaf', dist: 1.69, snow: 0 },
+  { name: 'Saddleback', dist: 1.848, snow: 0 },
+  { name: 'Sunday River', dist: 2.359, snow: 0 },
+  { name: 'Squaw Mountain', dist: 2.632, snow: 0 },
+  { name: 'Wildcat', dist: 2.688, snow: 0 },
+  { name: 'Black Mountain', dist: 2.732, snow: 0 }
+]
+[Tile Debug] Center pixel interpolation: { lat: '46.0646', lon: '-68.9063', snowfall: '0.0000' }
+[Synthetic Tile] After storm evolution: [
+  {
+    name: 'Loon Mountain',
+    lat: '43.8144',
+    lon: '-71.8440',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sunday River',
+    lat: '44.2499',
+    lon: '-71.0790',
+    snowfall: '0.00'
+  },
+  {
+    name: 'Sugarloaf',
+    lat: '44.8088',
+    lon: '-70.5356',
+    snowfall: '0.00'
+  }
+]
+[Tile Generation] z=7 x=39 y=45, 43 conditions
+[?25h

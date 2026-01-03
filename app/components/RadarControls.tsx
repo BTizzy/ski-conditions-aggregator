@@ -26,7 +26,7 @@ export default function RadarControls({
   radarSource
 }: RadarControlsProps) {
   return (
-    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50
+    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[2000] pointer-events-auto
                     bg-white/10 backdrop-blur-xl rounded-2xl
                     border border-white/20 shadow-2xl p-6 min-w-[400px]">
 

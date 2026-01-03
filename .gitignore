@@ -2,3 +2,12 @@ node_modules
 
 *storybook.log
 storybook-static
+
+# Next.js
+.next
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Env
+.env.local

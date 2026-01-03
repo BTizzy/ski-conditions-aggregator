@@ -3,9 +3,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import RadarTimeline from './RadarTimeline';
-import RadarControls from './RadarControls';
-import ResortSidebar from './ResortSidebar';
 
 interface Resort {
   id: string;
@@ -241,35 +238,28 @@ const ResortMap: React.FC<ResortMapProps> = ({
           console.error('[Frames] Error details:', errorText);
         }
 
-        // Fallback to synthetic (resort snowfall heatmap)
-        console.log('[Frames] Real radar failed, trying synthetic frames...');
-        const synthRes = await fetch('/api/radar/synthetic-frames', {
-          signal: AbortSignal.timeout(3000),
-          headers: {
-            'Cache-Control': 'no-cache'
-          }
-        });
+        // Fallback to synthetic
+        // IMPORTANT: Do NOT fetch a synthetic frames endpoint.
+        // We generate 48 synthetic "frames" client-side, each one referencing /api/radar/synthetic?hour={0..47}
+        // so this works even if the server doesn't maintain a separate frames manifest.
+        console.log('[Frames] Real radar failed, generating 48 synthetic frames client-side...');
 
-        if (synthRes.ok) {
-          const data = await synthRes.json();
-          const layers = data?.radar?.layers || [];
+        const now = Date.now();
+        const frameObjects = Array.from({ length: 48 }, (_, hour) => ({
+          url: `/api/radar/synthetic?hour=${hour}`,
+          time: now - (47 - hour) * 60 * 60 * 1000,
+        }));
 
-          if (layers.length > 0) {
-            console.log('[Frames] Using synthetic:', layers.length, 'frames');
+        // Clear existing caches to ensure fresh animation
+        tileBitmapCache.current.clear();
+        frameCanvasCache.current.clear();
 
-            const frameObjects = layers.map((layer: any) => ({
-              url: layer.url,
-              time: layer.timestamp
-            }));
-
-            radarFramesRef.current = frameObjects;
-            setFrameCount(frameObjects.length);
-            setRadarFramesAvailable(frameObjects.length > 0);
-            setRadarSource('synthetic');
-            setLoadingStatus(`Ready: ${frameObjects.length} synthetic frames (IDW from resorts)`);
-            return;
-          }
-        }
+        radarFramesRef.current = frameObjects;
+        setFrameCount(frameObjects.length);
+        setRadarFramesAvailable(true);
+        setRadarSource('synthetic');
+        setLoadingStatus('Ready: 48 synthetic frames (IDW from resorts)');
+        return;
 
         throw new Error('All radar sources failed');
 
@@ -707,62 +697,36 @@ const ResortMap: React.FC<ResortMapProps> = ({
 
     rafRef.current = requestAnimationFrame(step);
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [radarFramesAvailable]);  useEffect(() => {
+  }, [radarFramesAvailable]);
+
+  useEffect(() => {
     if (canvasRef.current) canvasRef.current.style.opacity = String(radarOpacity);
     if (canvas2Ref.current) canvas2Ref.current.style.opacity = String(radarOpacity);
   }, [radarOpacity]);
-
-  // Prepare resorts with conditions for sidebar
-  const resortsWithConditions = resorts
-    .map(resort => {
-      const cond = conditions[resort.id];
-      if (!cond) return null;
-      return {
-        id: resort.id,
-        name: resort.name,
-        state: resort.state,
-        recentSnowfall: cond.recentSnowfall,
-        snowDepth: cond.snowDepth,
-        baseTemp: cond.baseTemp,
-      };
-    })
-    .filter(Boolean) as Array<{
-      id: string;
-      name: string;
-      state: string;
-      recentSnowfall: number;
-      snowDepth: number;
-      baseTemp: number;
-    }>;
 
   return (
     <div className="relative w-full h-screen bg-gray-100 flex flex-col">
       <div ref={containerRef} className="flex-1 w-full" style={{ position: 'relative', width: '100%', height: '100%', minHeight: '400px' }} />
 
-      {/* Modern Radar Controls */}
       {radarFramesAvailable && (
-        <RadarControls
-          isPlaying={radarPlaying}
-          onPlayPause={handlePlayPause}
-          opacity={radarOpacity}
-          onOpacityChange={setRadarOpacity}
-          speed={radarSpeedMs}
-          onSpeedChange={setRadarSpeedMs}
-          frameCount={frameCount}
-          currentFrame={radarIndexRef.current + 1}
-          radarSource={radarSource}
-        />
-      )}
-
-      {/* Radar Timeline */}
-      {radarFramesAvailable && radarFramesRef.current.length > 0 && (
-        <RadarTimeline
-          frames={radarFramesRef.current}
-          currentFrameIndex={radarIndexRef.current}
-          isPlaying={radarPlaying}
-          onFrameSelect={handleFrameSelect}
-          onPlayPause={handlePlayPause}
-        />
+        <div className="fixed bottom-4 right-4 z-[1002] bg-black/60 backdrop-blur-sm rounded-lg p-3 text-white text-xs">
+          <button
+            onClick={handlePlayPause}
+            className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded mb-2 w-full"
+          >
+            {radarPlaying ? '⏸ Pause' : '▶ Play'}
+          </button>
+          <label className="block mb-1">Opacity: {Math.round(radarOpacity * 100)}%</label>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.1"
+            value={radarOpacity}
+            onChange={(e) => setRadarOpacity(Number(e.target.value))}
+            className="w-full"
+          />
+        </div>
       )}
 
       {/* Timestamp Overlay */}
@@ -783,50 +747,61 @@ const ResortMap: React.FC<ResortMapProps> = ({
       )}
 
       {selectedResort && (
-        <div className="absolute top-4 right-4 z-[99999] bg-white/95 rounded-lg p-5 shadow-lg max-w-sm">
-          <button onClick={() => setSelectedResort(null)} className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-lg font-bold">✕</button>
-          <div className="font-bold text-gray-800 text-base mb-3">📊 {selectedResort.resort.name}</div>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-700 font-semibold">24h Snowfall:</span>
-              <span className="text-blue-600 font-bold text-lg">{selectedResort.conditions.recentSnowfall}"</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-700 font-semibold">Weekly Total:</span>
-              <span className="text-blue-500 font-bold text-lg">{selectedResort.conditions.weeklySnowfall || 'N/A'}"</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-700 font-semibold">Base Depth:</span>
-              <span className="text-gray-700 font-bold text-lg">{selectedResort.conditions.snowDepth}"</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-700 font-semibold">Temperature:</span>
-              <span className="text-red-600 font-bold text-lg">{selectedResort.conditions.baseTemp}°F</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-700 font-semibold">Wind:</span>
-              <span className="text-gray-700 font-bold">{selectedResort.conditions.windSpeed} mph</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-700 font-semibold">Visibility:</span>
-              <span className="text-gray-700 font-bold">{selectedResort.conditions.visibility}</span>
-            </div>
-            {(selectedResort.resort.conditionsUrl || selectedResort.resort.scrapeUrl) && (
-              <a 
-                href={selectedResort.resort.conditionsUrl || selectedResort.resort.scrapeUrl} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="block mt-4 text-center bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition"
+        <div className="absolute top-4 right-4 z-[1001] max-w-sm">
+          <div className="rounded-2xl border border-white/20 bg-white/10 backdrop-blur-xl shadow-[0_10px_40px_rgba(0,0,0,0.25)] overflow-hidden">
+            <div className="flex items-start justify-between px-4 py-3 border-b border-white/15">
+              <div>
+                <div className="text-white font-semibold text-sm">{selectedResort.resort.name}</div>
+                <div className="text-white/70 text-xs">{selectedResort.resort.state}</div>
+              </div>
+              <button
+                onClick={() => setSelectedResort(null)}
+                className="text-white/70 hover:text-white text-lg leading-none"
+                aria-label="Close"
               >
-                View Full Report →
-              </a>
+                ✕
+              </button>
+            </div>
+
+            <div className="px-4 py-3 space-y-2 text-sm">
+              <div className="flex justify-between items-center">
+                <span className="text-white/70">24h Snow</span>
+                <span className="text-white font-semibold">{selectedResort.conditions.recentSnowfall}"</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-white/70">7d Snow</span>
+                <span className="text-white font-semibold">{selectedResort.conditions.weeklySnowfall ?? 0}"</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-white/70">Base</span>
+                <span className="text-white font-semibold">{selectedResort.conditions.snowDepth}"</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-white/70">Temp</span>
+                <span className="text-white font-semibold">{selectedResort.conditions.baseTemp}°F</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-white/70">Wind</span>
+                <span className="text-white font-semibold">{selectedResort.conditions.windSpeed} mph</span>
+              </div>
+            </div>
+
+            {(selectedResort.resort.conditionsUrl || selectedResort.resort.scrapeUrl) && (
+              <div className="px-4 pb-4">
+                <a
+                  href={selectedResort.resort.conditionsUrl || selectedResort.resort.scrapeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block text-center rounded-xl bg-white/15 hover:bg-white/20 border border-white/20 text-white font-semibold py-2 text-sm transition"
+                >
+                  View Full Report →
+                </a>
+              </div>
             )}
           </div>
         </div>
       )}
 
-      {/* Resort Sidebar */}
-      <ResortSidebar resorts={resortsWithConditions} />
     </div>
   );
 };

@@ -26,7 +26,7 @@ export default function ResortSidebar({ resorts }: { resorts: Resort[] }) {
     <div className="fixed right-4 top-4 bottom-4 w-80
                     bg-white/10 backdrop-blur-xl rounded-2xl
                     border border-white/20 shadow-2xl overflow-hidden
-                    flex flex-col">
+                    flex flex-col z-[2000] pointer-events-auto">
 
       {/* Header */}
       <div className="p-4 border-b border-white/10">

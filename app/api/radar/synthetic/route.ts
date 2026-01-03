@@ -46,6 +46,27 @@ export async function GET(request: NextRequest) {
       return getTransparentTile();
     }
 
+    // Diagnostic logs to understand "uniform green" output
+    // (We need to confirm snowfall values have variance and that some resorts have > 0 snowfall.)
+    const snowfallValues = currentConditions.map(r => r.recentSnowfall ?? 0);
+    const withSnow = currentConditions.filter(r => (r.recentSnowfall ?? 0) > 0);
+    const minSnowfall = Math.min(...snowfallValues);
+    const maxSnowfall = Math.max(...snowfallValues);
+    const avgSnowfall = snowfallValues.reduce((a, v) => a + v, 0) / (snowfallValues.length || 1);
+    console.log('[Synthetic Debug] Resort snowfall stats:', {
+      total: currentConditions.length,
+      withSnow: withSnow.length,
+      minSnowfall,
+      maxSnowfall,
+      avgSnowfall,
+      sampleResorts: currentConditions.slice(0, 5).map(r => ({
+        name: r.name,
+        lat: r.lat.toFixed(2),
+        lon: r.lon.toFixed(2),
+        snow: r.recentSnowfall,
+      })),
+    });
+
     console.log(`[Synthetic Tile] Hour ${hour}: ${currentConditions.length} resorts loaded`);
     console.log(`[Synthetic Tile] Sample resorts:`, currentConditions.slice(0, 3).map((r: any) => ({
       name: r.name, lat: r.lat, lon: r.lon, snowfall: r.recentSnowfall
@@ -53,6 +74,55 @@ export async function GET(request: NextRequest) {
 
     // Generate storm evolution for this hour
     const stormConditions = generateStormEvolution(currentConditions, hour);
+
+    // --- Deep diagnostics: storm evolution + tile bounds + IDW sanity sampling ---
+    // (Goal: determine whether resorts are being moved outside the requested tile
+    //  and whether IDW has any neighbors within maxDistance.)
+    console.log('[Tile Debug] Storm-evolved resorts:', stormConditions.slice(0, 3).map(r => {
+      const original = currentConditions.find(c => c.id === r.id);
+      return {
+        name: r.name,
+        originalLat: original ? original.lat.toFixed(4) : null,
+        originalLon: original ? original.lon.toFixed(4) : null,
+        stormLat: r.lat.toFixed(4),
+        stormLon: r.lon.toFixed(4),
+        snowfall: (r.recentSnowfall ?? 0).toFixed(2),
+      };
+    }));
+
+    const n = Math.pow(2, z);
+    const tileLonMin = (x / n) * 360 - 180;
+    const tileLonMax = ((x + 1) / n) * 360 - 180;
+    const tileLatMax = (Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / n))) * 180) / Math.PI;
+    const tileLatMin = (Math.atan(Math.sinh(Math.PI * (1 - (2 * (y + 1)) / n))) * 180) / Math.PI;
+
+    console.log('[Tile Debug] Tile bounds:', {
+      z,
+      x,
+      y,
+      latRange: [tileLatMin.toFixed(2), tileLatMax.toFixed(2)],
+      lonRange: [tileLonMin.toFixed(2), tileLonMax.toFixed(2)],
+    });
+
+    const resortsInBounds = stormConditions.filter(r =>
+      r.lat >= tileLatMin && r.lat <= tileLatMax && r.lon >= tileLonMin && r.lon <= tileLonMax
+    );
+    console.log('[Tile Debug] Resorts in tile bounds:', resortsInBounds.length);
+
+    const centerLat = (tileLatMin + tileLatMax) / 2;
+    const centerLon = (tileLonMin + tileLonMax) / 2;
+    const centerSnow = interpolateIDW(
+      { lat: centerLat, lon: centerLon },
+      stormConditions,
+      6,
+      undefined,
+      { logTag: 'center', z, x, y }
+    );
+    console.log('[Tile Debug] Center pixel interpolation:', {
+      lat: centerLat.toFixed(4),
+      lon: centerLon.toFixed(4),
+      snowfall: centerSnow.toFixed(4),
+    });
 
     console.log(`[Synthetic Tile] After storm evolution:`, stormConditions.slice(0, 3).map((r: any) => ({
       name: r.name, lat: r.lat.toFixed(4), lon: r.lon.toFixed(4), snowfall: r.recentSnowfall.toFixed(2)
@@ -62,7 +132,7 @@ export async function GET(request: NextRequest) {
     const tileBuffer = generateSyntheticTile(
       stormConditions,
       z, x, y,
-      new Date(Date.now() - (47 - hour) * 60 * 60 * 1000) // Convert hour offset to timestamp
+      new Date(Date.now() - (47 - hour) * 60 * 60 * 1000) // hour=47 is now; hour=0 is 47h ago
     );
 
     return new NextResponse(new Uint8Array(tileBuffer), {
@@ -230,11 +300,18 @@ function interpolateIDW(
   point: { lat: number; lon: number },
   samples: ResortPoint[],
   k: number = 6, // Use up to 6 nearest neighbors
-  maxDistance: number = 5.0 // 5.0° radius (~550km) for regional coverage
+  maxDistance: number = 1.2, // ~130km radius: keeps blobs local, avoids uniform haze
+  debug?: { logTag?: string; z?: number; x?: number; y?: number }
 ): number {
   if (samples.length === 0) return 0;
 
-  console.log(`[IDW] Interpolating at (${point.lat.toFixed(4)}, ${point.lon.toFixed(4)}), ${samples.length} samples`);
+  const doLog = Boolean(debug?.logTag);
+  if (doLog) {
+    console.log(
+      `[IDW] (${debug?.logTag}) Interpolating at (${point.lat.toFixed(4)}, ${point.lon.toFixed(4)})` +
+        ` z=${debug?.z} x=${debug?.x} y=${debug?.y} samples=${samples.length} maxDistance=${maxDistance}`
+    );
+  }
 
   // Filter samples within max distance and calculate weights
   const nearbySamples = samples
@@ -245,7 +322,18 @@ function interpolateIDW(
     .filter(n => n.dist <= maxDistance)
     .sort((a, b) => a.dist - b.dist);
 
-  if (nearbySamples.length === 0) return 0;
+  if (doLog) {
+    const nextFew = nearbySamples.slice(0, 6).map(n => ({
+      name: n.sample.name,
+      dist: Number(n.dist.toFixed(3)),
+      snow: Number((n.sample.recentSnowfall ?? 0).toFixed(2)),
+    }));
+    console.log(`[IDW] (${debug?.logTag}) Nearby samples within radius: ${nearbySamples.length}`, nextFew);
+  }
+
+  // If there aren't at least 2 nearby points, treat as no-data (transparent).
+  // This prevents a single distant resort from "painting" huge areas.
+  if (nearbySamples.length < 2) return 0;
 
   // Use all nearby samples (up to k) for smoother interpolation
   const neighbors = nearbySamples.slice(0, k);
@@ -287,14 +375,16 @@ function greatCircleDistance(
  * Based on standard weather radar color schemes (green->yellow->orange->red)
  */
 function snowfallToRGBA(inches: number): Uint8ClampedArray {
+  // IMPORTANT: Most pixels should be fully transparent.
+  // We hard-clamp tiny values to zero so blur + interpolation noise can't paint haze.
+  if (inches < 0.25) return new Uint8ClampedArray([0, 0, 0, 0]);
+
   // Standard weather radar precipitation color scale (inches per hour)
   if (inches >= 8.0) return new Uint8ClampedArray([255, 0, 255, 255]);     // Extreme: Magenta (#FF00FF, 100% opacity)
   if (inches >= 4.0) return new Uint8ClampedArray([255, 0, 0, 230]);       // Very Heavy: Red (#FF0000, 90% opacity)
   if (inches >= 2.0) return new Uint8ClampedArray([255, 165, 0, 204]);     // Heavy: Orange (#FFA500, 80% opacity)
   if (inches >= 1.0) return new Uint8ClampedArray([255, 255, 0, 178]);     // Moderate: Yellow (#FFFF00, 70% opacity)
   if (inches >= 0.5) return new Uint8ClampedArray([0, 255, 0, 153]);       // Light: Green (#00FF00, 60% opacity)
-  if (inches >= 0.1) return new Uint8ClampedArray([144, 238, 144, 102]);   // Very Light: Light Green (#90EE90, 40% opacity)
-  if (inches >= 0.05) return new Uint8ClampedArray([224, 255, 255, 51]);   // Trace: Very Light Cyan (#E0FFFF, 20% opacity)
   return new Uint8ClampedArray([0, 0, 0, 0]); // Transparent - no precipitation
 }
 
@@ -357,7 +447,7 @@ function generateSyntheticTile(
       const lat = (Math.atan(Math.sinh(Math.PI * (1 - (2 * ytile) / n))) * 180) / Math.PI;
 
       // Interpolate snowfall at this location with improved parameters
-      const snowfall = interpolateIDW({ lat, lon }, conditions, 6, 5.0);
+  const snowfall = interpolateIDW({ lat, lon }, conditions, 6);
 
       // Sample a few points to verify interpolation is working
       if (px === 128 && py === 128) { // Center pixel
@@ -375,6 +465,26 @@ function generateSyntheticTile(
   }
 
   ctx.putImageData(imageData, 0, 0);
+
+  // Tile-level pixel diagnostics (pre-blur). This tells us whether we're producing
+  // mostly-transparent output or a constant alpha/color field.
+  // Note: only logs a summary; does not dump large arrays.
+  let nonTransparent = 0;
+  let alphaMin = 255;
+  let alphaMax = 0;
+  for (let i = 3; i < data.length; i += 4) {
+    const a = data[i];
+    if (a === 0) continue;
+    nonTransparent++;
+    if (a < alphaMin) alphaMin = a;
+    if (a > alphaMax) alphaMax = a;
+  }
+  console.log('[Tile Debug] Pixel statistics (pre-blur):', {
+    totalPixels: 256 * 256,
+    nonTransparent,
+    alphaMin: nonTransparent ? alphaMin : null,
+    alphaMax: nonTransparent ? alphaMax : null,
+  });
 
   // Apply Gaussian blur for smooth, natural-looking precipitation zones
   applyGaussianBlur(ctx, 256, 256, 0.5); // Reduced from 1.0 for sharper boundaries

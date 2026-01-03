@@ -468,13 +468,22 @@ const ResortMap: React.FC<ResortMapProps> = ({
         url = layerStr + (layerStr.includes('?') ? '&' : '?') + `cb=${Date.now()}`;
       }
 
+      // LOGGING: Confirm getTileBitmap is being called and what URL is being fetched
+      console.log('[Radar Debug] getTileBitmap called', { layerStr, z, x, y, url });
+
       const resp = await fetch(url, {
         signal: AbortSignal.timeout(5000),
       });
-      if (!resp.ok) return null;
+      if (!resp.ok) {
+        console.warn('[Radar Debug] getTileBitmap fetch failed', { url, status: resp.status });
+        return null;
+      }
 
       const blob = await resp.blob();
-      if (blob.size === 0) return null;
+      if (blob.size === 0) {
+        console.warn('[Radar Debug] getTileBitmap empty blob', { url });
+        return null;
+      }
 
       const bitmap = await createImageBitmap(blob);
       tileBitmapCache.current.set(key, bitmap);
@@ -485,6 +494,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
       }
       return bitmap;
     } catch (e) {
+      console.error('[Radar Debug] getTileBitmap error', e);
       return null;
     }
   };
@@ -499,6 +509,9 @@ const ResortMap: React.FC<ResortMapProps> = ({
     if (frameCanvasCache.current.has(key)) return frameCanvasCache.current.get(key) || null;
 
     try {
+      // LOGGING: Confirm renderFrameToCanvas is being called
+      console.log('[Radar Debug] renderFrameToCanvas called', { layer, z, widthPx, heightPx, key });
+
       const dpr = window.devicePixelRatio || 1;
       const c = document.createElement('canvas');
       c.width = widthPx * dpr;
@@ -557,6 +570,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
       }
       return c;
     } catch (e) {
+      console.error('[Radar Debug] renderFrameToCanvas error', e);
       return null;
     }
   };

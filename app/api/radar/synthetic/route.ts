@@ -9,18 +9,18 @@ let resortConditionsCache: ResortPoint[] | null = null;
 let cacheTimestamp: number = 0;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-// Cache for historical precipitation data
-let historicalCache = new Map<string, HistoricalPrecipitationPoint[]>();
-let historicalCacheTimestamp: number = 0;
+// Cache for daily precipitation data
+let dailyCache = new Map<string, HistoricalPrecipitationPoint[]>();
+let dailyCacheTimestamp: number = 0;
 
 /**
- * Synthetic Radar Tile Generator - HISTORICAL DATA APPROACH
+ * Synthetic Radar Tile Generator - DAILY PRECIPITATION APPROACH
  *
- * Creates 72-frame animation using REAL historical precipitation data
- * No artificial storm simulation - uses actual weather observations
+ * Creates 7-frame animation using REAL daily precipitation data
+ * One frame per day for the past week
  *
  * Query Params:
- *   hour - Hour offset from now (0-71, where 71 = current time)
+ *   day - Days ago (0-6, where 6 = 7 days ago, 0 = today)
  *   z, x, y - Tile coordinates (standard Web Mercator)
  */
 export async function GET(request: NextRequest) {
@@ -30,13 +30,13 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = request.nextUrl;
 
-    const hour = parseInt(searchParams.get('hour') || '0');
+    const day = parseInt(searchParams.get('day') || '0');
     const z = parseInt(searchParams.get('z') || '7');
     const x = parseInt(searchParams.get('x') || '0');
     const y = parseInt(searchParams.get('y') || '0');
 
-    if (isNaN(hour) || hour < 0 || hour > 71) {
-      console.warn(`[Synthetic Tile] [${reqId}] Invalid hour param -> transparent`, { hour });
+    if (isNaN(day) || day < 0 || day > 6) {
+      console.warn(`[Synthetic Tile] [${reqId}] Invalid day param -> transparent`, { day });
       return getTransparentTile();
     }
 
@@ -50,19 +50,19 @@ export async function GET(request: NextRequest) {
       return getTransparentTile();
     }
 
-    // Calculate target time for this hour
-    const targetTime = new Date(Date.now() - (71 - hour) * 60 * 60 * 1000); // hour=71 is now; hour=0 is 71h ago
+    // Calculate target time for this day
+    const targetTime = new Date(Date.now() - day * 24 * 60 * 60 * 1000); // day=0 is today; day=6 is 7 days ago
 
-    // Get historical precipitation data for the specific hour requested
-    const hourData = await getHistoricalPrecipitationForHour(targetTime);
+    // Get daily precipitation data for the specific day requested
+    const dayData = await getDailyPrecipitationForDay(targetTime);
 
-    if (!hourData || hourData.length === 0) {
-      console.warn(`[Synthetic Tile] [${reqId}] No data for hour ${hour} -> transparent`);
+    if (!dayData || dayData.length === 0) {
+      console.warn(`[Synthetic Tile] [${reqId}] No data for day ${day} -> transparent`);
       return getTransparentTile();
     }
 
-    // Convert historical data to resort points for interpolation
-    const resortPoints: ResortPoint[] = hourData.map(point => ({
+    // Convert daily data to resort points for interpolation
+    const resortPoints: ResortPoint[] = dayData.map(point => ({
       id: point.resortId,
       name: point.name,
       lat: point.lat,
@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
       recentRainfall: !point.isSnow ? point.precipitationMm / 25.4 : 0, // Only rain
       totalPrecipitation: point.precipitationMm / 25.4, // Total precipitation in inches
       baseTemp: point.temperatureC * 9/5 + 32, // Convert to Fahrenheit
-      windSpeed: 0, // Not available in historical data
+      windSpeed: 0, // Not available in daily data
       visibility: 'Good' // Default
     }));
 
@@ -142,129 +142,117 @@ const historicalDataCache = new Map<string, CachedHistoricalData>();
 const CACHE_DURATION_MS = 30 * 60 * 1000; // 30 minutes
 
 /**
- * Get historical precipitation data for a specific hour across all resorts
+ * Get daily precipitation data for a specific day across all resorts
  * Uses cached data when available, fetches new data only when needed
  */
-async function getHistoricalPrecipitationForHour(targetTime: Date): Promise<HistoricalPrecipitationPoint[]> {
-  // Get all historical data (this will use cache when available)
-  const allData = await getHistoricalPrecipitationData();
+async function getDailyPrecipitationForDay(targetDate: Date): Promise<HistoricalPrecipitationPoint[]> {
+  // Get all daily data (this will use cache when available)
+  const allData = await getDailyPrecipitationData();
 
-  // Find data points within 30 minutes of the target time
-  const tolerance = 30 * 60 * 1000; // 30 minutes
+  // Find data points for the target date (within 24 hours)
+  const startOfDay = new Date(targetDate);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(targetDate);
+  endOfDay.setHours(23, 59, 59, 999);
+
   return allData.filter(point =>
-    Math.abs(point.timestamp.getTime() - targetTime.getTime()) <= tolerance
+    point.timestamp >= startOfDay && point.timestamp <= endOfDay
   );
 }
 
-async function getHistoricalPrecipitationData(): Promise<HistoricalPrecipitationPoint[]> {
+async function getDailyPrecipitationData(): Promise<HistoricalPrecipitationPoint[]> {
+  const now = Date.now();
+  const cacheKey = 'daily';
+
+  // Return cached data if recent (5 minutes)
+  if (dailyCache.has(cacheKey) && (now - dailyCacheTimestamp) < CACHE_DURATION) {
+    return dailyCache.get(cacheKey)!;
+  }
+
   const allData: HistoricalPrecipitationPoint[] = [];
   const resorts = await getBasicResortList();
-  const now = new Date();
 
-  // Get data for the past 72 hours
-  const endTime = new Date();
-  const startTime = new Date(endTime.getTime() - 72 * 60 * 60 * 1000);
+  console.log(`[Daily Data] Fetching 7-day precipitation data for ${resorts.length} resorts`);
 
-  console.log(`[Historical Data] Fetching 72h precipitation data from ${startTime.toISOString()} to ${endTime.toISOString()}`);
+  // Process resorts in batches to avoid rate limiting
+  const batchSize = 5;
+  for (let i = 0; i < resorts.length; i += batchSize) {
+    const batch = resorts.slice(i, i + batchSize);
+    const promises = batch.map(async (resort) => {
+      try {
+        // Get daily weather data for the past week
+        const endDate = new Date();
+        const startDate = new Date(endDate.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-  // Check which resorts need fresh data
-  const resortsToFetch: Array<{id: string, name: string, lat: number, lon: number}> = [];
-  const cachedResorts: string[] = [];
+        const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${resort.lat}&longitude=${resort.lon}&daily=precipitation_sum,temperature_2m_max,temperature_2m_min&start_date=${startDate.toISOString().split('T')[0]}&end_date=${endDate.toISOString().split('T')[0]}&timezone=America/New_York`;
 
-  for (const resort of resorts) {
-    const cached = historicalDataCache.get(resort.id);
-    if (!cached || (now.getTime() - cached.lastFetch.getTime()) > CACHE_DURATION_MS) {
-      resortsToFetch.push(resort);
-    } else {
-      cachedResorts.push(resort.id);
-      allData.push(...cached.data);
-    }
-  }
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const response = await fetch(weatherUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
 
-  console.log(`[Historical Data] Using cached data for ${cachedResorts.length} resorts, fetching ${resortsToFetch.length} new`);
-
-  // Fetch data for resorts that need it
-  if (resortsToFetch.length > 0) {
-    // Process in smaller batches to avoid overwhelming the API
-    const batchSize = 2; // Even smaller batches for reliability
-    for (let i = 0; i < resortsToFetch.length; i += batchSize) {
-      const batch = resortsToFetch.slice(i, i + batchSize);
-      const promises = batch.map(async (resort) => {
-        try {
-          // Use Open-Meteo historical archive API
-          const historicalUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${resort.lat}&longitude=${resort.lon}&start_date=${startTime.toISOString().split('T')[0]}&end_date=${endTime.toISOString().split('T')[0]}&hourly=precipitation,temperature_2m,relative_humidity_2m,dewpoint_2m&timezone=America/New_York`;
-
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 15000); // Longer timeout for historical data
-          const response = await fetch(historicalUrl, { signal: controller.signal });
-          clearTimeout(timeoutId);
-
-          if (!response.ok) {
-            console.warn(`[Historical Data] Failed to fetch for ${resort.name}: ${response.status}`);
-            return [];
-          }
-
-          const data = await response.json();
-
-          if (!data.hourly?.time) {
-            console.warn(`[Historical Data] No hourly data for ${resort.name}`);
-            return [];
-          }
-
-          const { time, precipitation, temperature_2m, relative_humidity_2m, dewpoint_2m } = data.hourly;
-
-          // Convert to our data structure
-          const resortData: HistoricalPrecipitationPoint[] = [];
-          for (let j = 0; j < time.length; j++) {
-            const timestamp = new Date(time[j]);
-            const precipMm = precipitation[j] || 0;
-            const tempC = temperature_2m[j] ?? 0;
-            const humidity = relative_humidity_2m[j] ?? 50;
-            const dewpointC = dewpoint_2m[j] ?? tempC - 5;
-
-            // Classify as snow vs rain
-            const snowFraction = classifyPrecipitationType(tempC, dewpointC, humidity);
-            const isSnow = snowFraction > 0.5; // More than 50% snow
-
-            resortData.push({
-              resortId: resort.id,
-              name: resort.name,
-              lat: resort.lat,
-              lon: resort.lon,
-              timestamp,
-              precipitationMm: precipMm,
-              temperatureC: tempC,
-              isSnow
-            });
-          }
-
-          // Cache the data
-          historicalDataCache.set(resort.id, {
-            data: resortData,
-            lastFetch: now,
-            resortId: resort.id
-          });
-
-          console.log(`[Historical Data] ${resort.name}: ${resortData.length} hourly records (fetched)`);
-          return resortData;
-
-        } catch (error) {
-          console.warn(`[Historical Data] Error for ${resort.name}:`, error);
+        if (!response.ok) {
+          console.warn(`[Daily Data] Failed to fetch for ${resort.name}: ${response.status}`);
           return [];
         }
-      });
 
-      const batchResults = await Promise.all(promises);
-      batchResults.forEach(data => allData.push(...data));
+        const data = await response.json();
 
-      // Longer delay between batches for historical API
-      if (i + batchSize < resortsToFetch.length) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        if (!data.daily?.time) {
+          console.warn(`[Daily Data] No daily data for ${resort.name}`);
+          return [];
+        }
+
+        const { time, precipitation_sum, temperature_2m_max, temperature_2m_min } = data.daily;
+
+        // Convert to our data structure
+        const resortData: HistoricalPrecipitationPoint[] = [];
+        for (let j = 0; j < time.length; j++) {
+          const date = new Date(time[j]);
+          const precipMm = precipitation_sum[j] || 0;
+          const tempMaxC = temperature_2m_max[j] ?? 0;
+          const tempMinC = temperature_2m_min[j] ?? 0;
+          const avgTempC = (tempMaxC + tempMinC) / 2;
+
+          // Classify as snow vs rain using average temperature
+          const snowFraction = classifyPrecipitationType(avgTempC, avgTempC - 5, 60); // Estimate dewpoint and humidity
+          const isSnow = snowFraction > 0.5;
+
+          resortData.push({
+            resortId: resort.id,
+            name: resort.name,
+            lat: resort.lat,
+            lon: resort.lon,
+            timestamp: date,
+            precipitationMm: precipMm,
+            temperatureC: avgTempC,
+            isSnow
+          });
+        }
+
+        console.log(`[Daily Data] ${resort.name}: ${resortData.length} daily records`);
+        return resortData;
+
+      } catch (error) {
+        console.warn(`[Daily Data] Error for ${resort.name}:`, error);
+        return [];
       }
+    });
+
+    const batchResults = await Promise.all(promises);
+    batchResults.forEach(data => allData.push(...data));
+
+    // Rate limiting
+    if (i + batchSize < resorts.length) {
+      await new Promise(resolve => setTimeout(resolve, 200));
     }
   }
 
-  console.log(`[Historical Data] Total records: ${allData.length} from ${resorts.length} resorts (${cachedResorts.length} cached, ${resortsToFetch.length} fetched)`);
+  // Cache the results
+  dailyCache.set(cacheKey, allData);
+  dailyCacheTimestamp = now;
+
+  console.log(`[Daily Data] Total records: ${allData.length} from ${resorts.length} resorts`);
   return allData;
 }
 

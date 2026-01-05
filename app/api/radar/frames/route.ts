@@ -10,7 +10,7 @@ export const revalidate = 300; // Cache for 5 minutes
  * Data Sources: Multi-source radar system (NOAA, RainViewer, Windy, Weather.com)
  * Coverage: Global with priority for US/Northeast
  * Updates: Every 5 minutes for optimal performance
- * History: Up to 48 hours from multiple sources
+ * History: Up to 7 days from multiple sources
  */
 export async function GET(request: Request) {
   try {
@@ -18,12 +18,12 @@ export async function GET(request: Request) {
 
     const frames = await radarManager.getFrames();
 
-    // Take frames from the last 72 hours
+    // Take frames from the last 7 days
     const now = Date.now();
-    const cutoffTime = now - 72 * 60 * 60 * 1000; // 72 hours ago
+    const cutoffTime = now - 7 * 24 * 60 * 60 * 1000; // 7 days ago
     const recentFrames = frames.filter(frame => frame.time >= cutoffTime);
 
-    console.log(`[Radar Frames] Returning ${recentFrames.length} frames from last 72h (from ${frames.length} total)`);
+    console.log(`[Radar Frames] Returning ${recentFrames.length} frames from last 7 days (from ${frames.length} total)`);
 
     const result = {
       radar: {
@@ -39,7 +39,7 @@ export async function GET(request: Request) {
         source: 'Multi-Source Radar System',
         updateFrequency: '5 minutes',
         coverage: 'Global (US/Northeast priority)',
-        timeRange: 'Last 72 hours (multi-source)',
+        timeRange: 'Last 7 days (multi-source)',
         sources: radarManager.getSourceInfo(),
         totalAvailable: frames.length,
       }

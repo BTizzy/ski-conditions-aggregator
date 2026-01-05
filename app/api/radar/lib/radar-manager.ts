@@ -920,19 +920,19 @@ class SyntheticRadarSource implements RadarSource {
   name = 'synthetic';
   priority = 95; // Higher than RainViewer (90) - prefer our accurate resort data
   coverage = 'northeast-us';
-  maxHistoryHours = 72; // Extended to 72 hours
+  maxHistoryHours = 168; // 7 days instead of 72 hours
   requiresApiKey = false;
 
   async fetchFrames(): Promise<RadarFrame[]> {
     const frames: RadarFrame[] = [];
     const now = Date.now();
 
-    // Generate 72 frames: hour 0 (oldest, 71h ago) to hour 71 (newest, current time)
-    for (let hour = 0; hour < 72; hour++) {
-      const timestamp = now - (71 - hour) * 60 * 60 * 1000; // hour=0: 71h ago, hour=71: now
+    // Generate 7 frames: one per day for the past week
+    for (let day = 6; day >= 0; day--) { // day=6 (7 days ago) to day=0 (today)
+      const timestamp = now - day * 24 * 60 * 60 * 1000; // Each day
       frames.push({
         time: timestamp,
-        url: `/api/radar/synthetic?hour=${hour}`,
+        url: `/api/radar/synthetic?day=${day}`,
         source: this.name,
         coverage: 'northeast-us',
         quality: 5, // Highest quality - real resort data

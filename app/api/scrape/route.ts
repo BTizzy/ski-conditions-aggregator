@@ -244,6 +244,7 @@ async function scrapeResortConditions(url: string, resortId?: string): Promise<a
 
       // Return the scraped data in the expected format
       return {
+        success: true,
         snowDepth: scrapedData.baseDepth || 0,
         recentSnowfall: scrapedData.snowDepth24h || 0,
         trailOpen: 0, // Not available from scraping
@@ -259,6 +260,7 @@ async function scrapeResortConditions(url: string, resortId?: string): Promise<a
       console.log(`[API] Resort scraping failed: ${scrapedData.error}, will use model estimates`);
       // Return zeros/nulls for legacy fields when scraping fails
       return {
+        success: false,
         snowDepth: 0,
         recentSnowfall: 0,
         trailOpen: 0,
@@ -275,6 +277,7 @@ async function scrapeResortConditions(url: string, resortId?: string): Promise<a
     console.error(`[API] Unexpected error during resort scraping:`, error);
     // Return zeros/nulls for legacy fields on error
     return {
+      success: false,
       snowDepth: 0,
       recentSnowfall: 0,
       trailOpen: 0,
@@ -514,27 +517,27 @@ export async function GET(request: NextRequest) {
     // Override model predictions with scraped data when available
     if (scrapedData && scrapedData.success) {
       // Use scraped 24h snowfall if available and non-zero
-      if (scrapedData.snowDepth24h !== null && scrapedData.snowDepth24h > 0) {
-        pred.recentSnowfall = scrapedData.snowDepth24h;
-        console.log(`[API] Overriding recentSnowfall with scraped value: ${scrapedData.snowDepth24h}"`);
+      if (scrapedData.recentSnowfall !== null && scrapedData.recentSnowfall > 0) {
+        pred.recentSnowfall = scrapedData.recentSnowfall;
+        console.log(`[API] Overriding recentSnowfall with scraped value: ${scrapedData.recentSnowfall}"`);
       }
 
       // Use scraped 7d snowfall if available
-      if (scrapedData.snowDepth7d !== null && scrapedData.snowDepth7d > 0) {
-        pred.weeklySnowfall = scrapedData.snowDepth7d;
-        console.log(`[API] Overriding weeklySnowfall with scraped value: ${scrapedData.snowDepth7d}"`);
+      if (scrapedData.scrapedData && scrapedData.scrapedData.snowDepth7d !== null && scrapedData.scrapedData.snowDepth7d > 0) {
+        pred.weeklySnowfall = scrapedData.scrapedData.snowDepth7d;
+        console.log(`[API] Overriding weeklySnowfall with scraped value: ${scrapedData.scrapedData.snowDepth7d}"`);
       }
 
       // Use scraped base depth if available
-      if (scrapedData.baseDepth !== null && scrapedData.baseDepth > 0) {
-        pred.snowDepth = scrapedData.baseDepth;
-        console.log(`[API] Overriding snowDepth with scraped value: ${scrapedData.baseDepth}"`);
+      if (scrapedData.snowDepth !== null && scrapedData.snowDepth > 0) {
+        pred.snowDepth = scrapedData.snowDepth;
+        console.log(`[API] Overriding snowDepth with scraped value: ${scrapedData.snowDepth}"`);
       }
 
       // Use scraped temperature if available and different from model
-      if (scrapedData.temp !== null && Math.abs(scrapedData.temp - (pred.baseTemp || 0)) < 20) {
-        pred.baseTemp = scrapedData.temp;
-        console.log(`[API] Using scraped temperature: ${scrapedData.temp}°F`);
+      if (scrapedData.baseTemp !== null && Math.abs(scrapedData.baseTemp - (pred.baseTemp || 0)) < 20) {
+        pred.baseTemp = scrapedData.baseTemp;
+        console.log(`[API] Using scraped temperature: ${scrapedData.baseTemp}°F`);
       }
 
       // Use scraped wind speed if available

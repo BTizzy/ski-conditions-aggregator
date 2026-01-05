@@ -511,6 +511,39 @@ export async function GET(request: NextRequest) {
     const pred = snowModel.predictFromNWS(nwsData, extra);
     console.log(`[API] Prediction result:`, pred);
 
+    // Override model predictions with scraped data when available
+    if (scrapedData && scrapedData.success) {
+      // Use scraped 24h snowfall if available and non-zero
+      if (scrapedData.snowDepth24h !== null && scrapedData.snowDepth24h > 0) {
+        pred.recentSnowfall = scrapedData.snowDepth24h;
+        console.log(`[API] Overriding recentSnowfall with scraped value: ${scrapedData.snowDepth24h}"`);
+      }
+
+      // Use scraped 7d snowfall if available
+      if (scrapedData.snowDepth7d !== null && scrapedData.snowDepth7d > 0) {
+        pred.weeklySnowfall = scrapedData.snowDepth7d;
+        console.log(`[API] Overriding weeklySnowfall with scraped value: ${scrapedData.snowDepth7d}"`);
+      }
+
+      // Use scraped base depth if available
+      if (scrapedData.baseDepth !== null && scrapedData.baseDepth > 0) {
+        pred.snowDepth = scrapedData.baseDepth;
+        console.log(`[API] Overriding snowDepth with scraped value: ${scrapedData.baseDepth}"`);
+      }
+
+      // Use scraped temperature if available and different from model
+      if (scrapedData.temp !== null && Math.abs(scrapedData.temp - (pred.baseTemp || 0)) < 20) {
+        pred.baseTemp = scrapedData.temp;
+        console.log(`[API] Using scraped temperature: ${scrapedData.temp}°F`);
+      }
+
+      // Use scraped wind speed if available
+      if (scrapedData.windSpeed !== null) {
+        pred.windSpeed = scrapedData.windSpeed;
+        console.log(`[API] Using scraped wind speed: ${scrapedData.windSpeed} mph`);
+      }
+    }
+
     // Trail data is not available from our sources, so set to 0
     const trailOpen = 0;
     const trailTotal = 0;

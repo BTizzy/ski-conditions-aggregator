@@ -9,14 +9,18 @@ let resortConditionsCache: ResortPoint[] | null = null;
 let cacheTimestamp: number = 0;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
+// Cache for historical precipitation data
+let historicalCache = new Map<string, HistoricalPrecipitationPoint[]>();
+let historicalCacheTimestamp: number = 0;
+
 /**
- * Synthetic Radar Tile Generator - REALISTIC APPROACH
+ * Synthetic Radar Tile Generator - HISTORICAL DATA APPROACH
  *
- * Creates 48-frame animation using current resort data as the "end state"
- * Backtracks storm positions over time for realistic temporal coherence
+ * Creates 72-frame animation using REAL historical precipitation data
+ * No artificial storm simulation - uses actual weather observations
  *
  * Query Params:
- *   hour - Hour offset from now (0-47, where 47 = current time)
+ *   hour - Hour offset from now (0-71, where 71 = current time)
  *   z, x, y - Tile coordinates (standard Web Mercator)
  */
 export async function GET(request: NextRequest) {
@@ -31,7 +35,7 @@ export async function GET(request: NextRequest) {
     const x = parseInt(searchParams.get('x') || '0');
     const y = parseInt(searchParams.get('y') || '0');
 
-    if (isNaN(hour) || hour < 0 || hour > 47) {
+    if (isNaN(hour) || hour < 0 || hour > 71) {
       console.warn(`[Synthetic Tile] [${reqId}] Invalid hour param -> transparent`, { hour });
       return getTransparentTile();
     }
@@ -46,101 +50,37 @@ export async function GET(request: NextRequest) {
       return getTransparentTile();
     }
 
-    // Get current resort conditions (most accurate data)
-    const currentConditions = await getCurrentResortConditions();
+    // Calculate target time for this hour
+    const targetTime = new Date(Date.now() - (71 - hour) * 60 * 60 * 1000); // hour=71 is now; hour=0 is 71h ago
 
-    if (!currentConditions || currentConditions.length === 0) {
-      console.warn(`[Synthetic Tile] [${reqId}] No resort conditions -> transparent`);
+    // Get historical precipitation data for the specific hour requested
+    const hourData = await getHistoricalPrecipitationForHour(targetTime);
+
+    if (!hourData || hourData.length === 0) {
+      console.warn(`[Synthetic Tile] [${reqId}] No data for hour ${hour} -> transparent`);
       return getTransparentTile();
     }
 
-    // Diagnostic logs to understand "uniform green" output
-    // (We need to confirm snowfall values have variance and that some resorts have > 0 snowfall.)
-    const snowfallValues = currentConditions.map(r => r.recentSnowfall ?? 0);
-    const withSnow = currentConditions.filter(r => (r.recentSnowfall ?? 0) > 0);
-    const minSnowfall = Math.min(...snowfallValues);
-    const maxSnowfall = Math.max(...snowfallValues);
-    const avgSnowfall = snowfallValues.reduce((a, v) => a + v, 0) / (snowfallValues.length || 1);
-    console.log('[Synthetic Debug] [${reqId}] Resort snowfall stats:', {
-      total: currentConditions.length,
-      withSnow: withSnow.length,
-      minSnowfall,
-      maxSnowfall,
-      avgSnowfall,
-      sampleResorts: currentConditions.slice(0, 5).map(r => ({
-        name: r.name,
-        lat: r.lat.toFixed(2),
-        lon: r.lon.toFixed(2),
-        snow: r.recentSnowfall,
-      })),
-    });
-
-    console.log(`[Synthetic Tile] Hour ${hour}: ${currentConditions.length} resorts loaded`);
-    console.log(`[Synthetic Tile] Sample resorts:`, currentConditions.slice(0, 3).map((r: any) => ({
-      name: r.name, lat: r.lat, lon: r.lon, snowfall: r.recentSnowfall
-    })));
-
-    // Generate storm evolution for this hour
-    const stormConditions = generateStormEvolution(currentConditions, hour);
-
-    // --- Deep diagnostics: storm evolution + tile bounds + IDW sanity sampling ---
-    // (Goal: determine whether resorts are being moved outside the requested tile
-    //  and whether IDW has any neighbors within maxDistance.)
-    console.log('[Tile Debug] Storm-evolved resorts:', stormConditions.slice(0, 3).map(r => {
-      const original = currentConditions.find(c => c.id === r.id);
-      return {
-        name: r.name,
-        originalLat: original ? original.lat.toFixed(4) : null,
-        originalLon: original ? original.lon.toFixed(4) : null,
-        stormLat: r.lat.toFixed(4),
-        stormLon: r.lon.toFixed(4),
-        snowfall: (r.recentSnowfall ?? 0).toFixed(2),
-      };
+    // Convert historical data to resort points for interpolation
+    const resortPoints: ResortPoint[] = hourData.map(point => ({
+      id: point.resortId,
+      name: point.name,
+      lat: point.lat,
+      lon: point.lon,
+      snowDepth: 0, // Not used for radar
+      recentSnowfall: point.isSnow ? point.precipitationMm / 25.4 : 0, // Convert mm to inches, only snow
+      recentRainfall: !point.isSnow ? point.precipitationMm / 25.4 : 0, // Only rain
+      totalPrecipitation: point.precipitationMm / 25.4, // Total precipitation in inches
+      baseTemp: point.temperatureC * 9/5 + 32, // Convert to Fahrenheit
+      windSpeed: 0, // Not available in historical data
+      visibility: 'Good' // Default
     }));
 
-    const n = Math.pow(2, z);
-    const tileLonMin = (x / n) * 360 - 180;
-    const tileLonMax = ((x + 1) / n) * 360 - 180;
-    const tileLatMax = (Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / n))) * 180) / Math.PI;
-    const tileLatMin = (Math.atan(Math.sinh(Math.PI * (1 - (2 * (y + 1)) / n))) * 180) / Math.PI;
-
-    console.log('[Tile Debug] Tile bounds:', {
-      z,
-      x,
-      y,
-      latRange: [tileLatMin.toFixed(2), tileLatMax.toFixed(2)],
-      lonRange: [tileLonMin.toFixed(2), tileLonMax.toFixed(2)],
-    });
-
-    const resortsInBounds = stormConditions.filter(r =>
-      r.lat >= tileLatMin && r.lat <= tileLatMax && r.lon >= tileLonMin && r.lon <= tileLonMax
-    );
-    console.log('[Tile Debug] Resorts in tile bounds:', resortsInBounds.length);
-
-    const centerLat = (tileLatMin + tileLatMax) / 2;
-    const centerLon = (tileLonMin + tileLonMax) / 2;
-    const centerSnow = interpolateIDW(
-      { lat: centerLat, lon: centerLon },
-      stormConditions,
-      6,
-      5.0,
-      { logTag: 'center', z, x, y }
-    );
-    console.log('[Tile Debug] Center pixel interpolation:', {
-      lat: centerLat.toFixed(4),
-      lon: centerLon.toFixed(4),
-      snowfall: centerSnow.toFixed(4),
-    });
-
-    console.log(`[Synthetic Tile] After storm evolution:`, stormConditions.slice(0, 3).map((r: any) => ({
-      name: r.name, lat: r.lat.toFixed(4), lon: r.lon.toFixed(4), snowfall: r.recentSnowfall.toFixed(2)
-    })));
-
-    // Generate tile from storm data
+    // Generate tile from historical precipitation data
     const tileBuffer = generateSyntheticTile(
-      stormConditions,
+      resortPoints,
       z, x, y,
-      new Date(Date.now() - (47 - hour) * 60 * 60 * 1000) // hour=47 is now; hour=0 is 47h ago
+      targetTime
     );
 
     return new NextResponse(new Uint8Array(tileBuffer), {
@@ -160,6 +100,17 @@ export async function GET(request: NextRequest) {
   }
 }
 
+interface HistoricalPrecipitationPoint {
+  resortId: string;
+  name: string;
+  lat: number;
+  lon: number;
+  timestamp: Date;
+  precipitationMm: number; // Total precipitation in mm for this hour
+  temperatureC: number;
+  isSnow: boolean; // Whether this precipitation fell as snow
+}
+
 interface ResortPoint {
   id: string;
   name: string;
@@ -167,15 +118,342 @@ interface ResortPoint {
   lon: number;
   snowDepth: number;
   recentSnowfall: number; // inches in last 24h
+  recentRainfall?: number; // inches in last 24h (estimated)
+  totalPrecipitation: number; // total precipitation (snow + rain) in inches
   weeklySnowfall?: number;
   baseTemp: number;
   windSpeed: number;
   visibility: string;
+  elevationFt?: number;
 }
 
 /**
- * Get CURRENT resort conditions (most accurate data available)
- * This is our "end state" - the most recent snowfall data
+ * Get historical precipitation data for the past 72 hours from all resorts
+ * Uses Open-Meteo historical API for accurate hourly data
+ */
+// Cache for historical precipitation data
+interface CachedHistoricalData {
+  data: HistoricalPrecipitationPoint[];
+  lastFetch: Date;
+  resortId: string;
+}
+
+const historicalDataCache = new Map<string, CachedHistoricalData>();
+const CACHE_DURATION_MS = 30 * 60 * 1000; // 30 minutes
+
+/**
+ * Get historical precipitation data for a specific hour across all resorts
+ * Uses cached data when available, fetches new data only when needed
+ */
+async function getHistoricalPrecipitationForHour(targetTime: Date): Promise<HistoricalPrecipitationPoint[]> {
+  // Get all historical data (this will use cache when available)
+  const allData = await getHistoricalPrecipitationData();
+
+  // Find data points within 30 minutes of the target time
+  const tolerance = 30 * 60 * 1000; // 30 minutes
+  return allData.filter(point =>
+    Math.abs(point.timestamp.getTime() - targetTime.getTime()) <= tolerance
+  );
+}
+
+async function getHistoricalPrecipitationData(): Promise<HistoricalPrecipitationPoint[]> {
+  const allData: HistoricalPrecipitationPoint[] = [];
+  const resorts = await getBasicResortList();
+  const now = new Date();
+
+  // Get data for the past 72 hours
+  const endTime = new Date();
+  const startTime = new Date(endTime.getTime() - 72 * 60 * 60 * 1000);
+
+  console.log(`[Historical Data] Fetching 72h precipitation data from ${startTime.toISOString()} to ${endTime.toISOString()}`);
+
+  // Check which resorts need fresh data
+  const resortsToFetch: Array<{id: string, name: string, lat: number, lon: number}> = [];
+  const cachedResorts: string[] = [];
+
+  for (const resort of resorts) {
+    const cached = historicalDataCache.get(resort.id);
+    if (!cached || (now.getTime() - cached.lastFetch.getTime()) > CACHE_DURATION_MS) {
+      resortsToFetch.push(resort);
+    } else {
+      cachedResorts.push(resort.id);
+      allData.push(...cached.data);
+    }
+  }
+
+  console.log(`[Historical Data] Using cached data for ${cachedResorts.length} resorts, fetching ${resortsToFetch.length} new`);
+
+  // Fetch data for resorts that need it
+  if (resortsToFetch.length > 0) {
+    // Process in smaller batches to avoid overwhelming the API
+    const batchSize = 2; // Even smaller batches for reliability
+    for (let i = 0; i < resortsToFetch.length; i += batchSize) {
+      const batch = resortsToFetch.slice(i, i + batchSize);
+      const promises = batch.map(async (resort) => {
+        try {
+          // Use Open-Meteo historical archive API
+          const historicalUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${resort.lat}&longitude=${resort.lon}&start_date=${startTime.toISOString().split('T')[0]}&end_date=${endTime.toISOString().split('T')[0]}&hourly=precipitation,temperature_2m,relative_humidity_2m,dewpoint_2m&timezone=America/New_York`;
+
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 15000); // Longer timeout for historical data
+          const response = await fetch(historicalUrl, { signal: controller.signal });
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            console.warn(`[Historical Data] Failed to fetch for ${resort.name}: ${response.status}`);
+            return [];
+          }
+
+          const data = await response.json();
+
+          if (!data.hourly?.time) {
+            console.warn(`[Historical Data] No hourly data for ${resort.name}`);
+            return [];
+          }
+
+          const { time, precipitation, temperature_2m, relative_humidity_2m, dewpoint_2m } = data.hourly;
+
+          // Convert to our data structure
+          const resortData: HistoricalPrecipitationPoint[] = [];
+          for (let j = 0; j < time.length; j++) {
+            const timestamp = new Date(time[j]);
+            const precipMm = precipitation[j] || 0;
+            const tempC = temperature_2m[j] ?? 0;
+            const humidity = relative_humidity_2m[j] ?? 50;
+            const dewpointC = dewpoint_2m[j] ?? tempC - 5;
+
+            // Classify as snow vs rain
+            const snowFraction = classifyPrecipitationType(tempC, dewpointC, humidity);
+            const isSnow = snowFraction > 0.5; // More than 50% snow
+
+            resortData.push({
+              resortId: resort.id,
+              name: resort.name,
+              lat: resort.lat,
+              lon: resort.lon,
+              timestamp,
+              precipitationMm: precipMm,
+              temperatureC: tempC,
+              isSnow
+            });
+          }
+
+          // Cache the data
+          historicalDataCache.set(resort.id, {
+            data: resortData,
+            lastFetch: now,
+            resortId: resort.id
+          });
+
+          console.log(`[Historical Data] ${resort.name}: ${resortData.length} hourly records (fetched)`);
+          return resortData;
+
+        } catch (error) {
+          console.warn(`[Historical Data] Error for ${resort.name}:`, error);
+          return [];
+        }
+      });
+
+      const batchResults = await Promise.all(promises);
+      batchResults.forEach(data => allData.push(...data));
+
+      // Longer delay between batches for historical API
+      if (i + batchSize < resortsToFetch.length) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+  }
+
+  console.log(`[Historical Data] Total records: ${allData.length} from ${resorts.length} resorts (${cachedResorts.length} cached, ${resortsToFetch.length} fetched)`);
+  return allData;
+}
+
+/**
+ * Get precipitation data for a specific hour across all resorts
+ */
+function getPrecipitationForHour(allData: HistoricalPrecipitationPoint[], targetTime: Date): HistoricalPrecipitationPoint[] {
+  // Find data points within 30 minutes of the target time
+  const tolerance = 30 * 60 * 1000; // 30 minutes
+  return allData.filter(point =>
+    Math.abs(point.timestamp.getTime() - targetTime.getTime()) <= tolerance
+  );
+}
+
+/**
+ * Get basic resort list for historical data fetching
+ */
+async function getBasicResortList(): Promise<Array<{id: string, name: string, lat: number, lon: number}>> {
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/resorts/conditions`);
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    return data.resorts?.map((r: any) => ({
+      id: r.id,
+      name: r.name,
+      lat: r.lat,
+      lon: r.lon
+    })) || [];
+  } catch (error) {
+    console.warn('[Basic Resort List] Failed to fetch:', error);
+    return [];
+  }
+}
+
+/**
+ * Get precipitation data from nearby weather stations for each resort
+ * Uses Open-Meteo API to get accurate total precipitation and weather conditions
+ */
+async function getResortPrecipitationData(resorts: Array<{id: string, name: string, lat: number, lon: number}>): Promise<Map<string, {totalPrecipMm: number, tempC: number, humidity: number, dewpointC: number}>> {
+  const precipitationData = new Map<string, {totalPrecipMm: number, tempC: number, humidity: number, dewpointC: number}>();
+
+  // Process resorts in batches to avoid rate limiting
+  const batchSize = 5;
+  for (let i = 0; i < resorts.length; i += batchSize) {
+    const batch = resorts.slice(i, i + batchSize);
+    const promises = batch.map(async (resort) => {
+      try {
+        // Get current weather conditions and recent precipitation
+        const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${resort.lat}&longitude=${resort.lon}&current=temperature_2m,relative_humidity_2m,dewpoint_2m,precipitation&hourly=precipitation&forecast_days=1&timezone=America/New_York`;
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        const response = await fetch(weatherUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`Open-Meteo API returned ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Get current conditions
+        const current = data.current;
+        const tempC = current?.temperature_2m ?? 0;
+        const humidity = current?.relative_humidity_2m ?? 50;
+        const dewpointC = current?.dewpoint_2m ?? tempC - 5; // Estimate if not available
+        const currentPrecipMm = current?.precipitation ?? 0;
+
+        // Get hourly precipitation for the last 24 hours
+        const hourlyPrecip = data.hourly?.precipitation ?? [];
+        const last24hPrecipMm = hourlyPrecip.slice(-24).reduce((sum: number, precip: number) => sum + (precip || 0), 0);
+
+        const totalPrecipMm = Math.max(currentPrecipMm, last24hPrecipMm);
+
+        precipitationData.set(resort.id, {
+          totalPrecipMm,
+          tempC,
+          humidity,
+          dewpointC
+        });
+
+        console.log(`[Precipitation] ${resort.name}: ${totalPrecipMm.toFixed(2)}mm total precip, ${tempC.toFixed(1)}°C, ${humidity}% humidity`);
+
+      } catch (error) {
+        console.warn(`[Precipitation] Open-Meteo failed for ${resort.name}, trying NWS fallback:`, error);
+
+        // Fallback: Try to get NWS data
+        try {
+          const nwsResponse = await fetch(`http://localhost:3000/api/scrape?resortId=${resort.id}`);
+          if (nwsResponse.ok) {
+            const nwsData = await nwsResponse.json();
+            const tempC = nwsData.baseTemp ? (nwsData.baseTemp - 32) * 5/9 : 0; // Convert F to C
+            const totalPrecipMm = (nwsData.recentSnowfall || 0) * 25.4; // Rough estimate: assume all precip is snow
+
+            precipitationData.set(resort.id, {
+              totalPrecipMm,
+              tempC,
+              humidity: 50, // Default
+              dewpointC: tempC - 5 // Estimate
+            });
+
+            console.log(`[Precipitation] ${resort.name} (NWS fallback): ${totalPrecipMm.toFixed(2)}mm total precip`);
+          } else {
+            throw new Error('NWS fallback failed');
+          }
+        } catch (nwsError) {
+          console.warn(`[Precipitation] All APIs failed for ${resort.name}, using estimates`);
+
+          // Final fallback: Use seasonal estimates based on location and time of year
+          const month = new Date().getMonth(); // 0-11
+          const isWinter = month >= 10 || month <= 3; // Nov-Apr
+          const isNortheast = resort.lat > 40 && resort.lat < 48 && resort.lon > -80 && resort.lon < -65;
+
+          let estimatedPrecipMm = 0;
+          let estimatedTempC = 0;
+
+          if (isWinter && isNortheast) {
+            // Winter in Northeast: expect some snow/rain mix
+            estimatedPrecipMm = Math.random() * 10; // 0-10mm random variation
+            estimatedTempC = -5 + Math.random() * 10; // -5 to +5°C
+          } else if (isNortheast) {
+            // Non-winter Northeast: expect rain
+            estimatedPrecipMm = Math.random() * 5; // 0-5mm
+            estimatedTempC = 5 + Math.random() * 15; // 5-20°C
+          }
+
+          precipitationData.set(resort.id, {
+            totalPrecipMm: estimatedPrecipMm,
+            tempC: estimatedTempC,
+            humidity: 60,
+            dewpointC: estimatedTempC - 3
+          });
+
+          console.log(`[Precipitation] ${resort.name} (estimate): ${estimatedPrecipMm.toFixed(2)}mm total precip`);
+        }
+      }
+    });
+
+    await Promise.all(promises);
+
+    // Small delay between batches to be respectful to the API
+    if (i + batchSize < resorts.length) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  }
+
+  return precipitationData;
+}
+
+/**
+ * Classify precipitation as snow vs rain using dewpoint depression method
+ * Returns the fraction that falls as snow (0.0 = all rain, 1.0 = all snow)
+ */
+function classifyPrecipitationType(tempC: number, dewpointC: number, humidity: number): number {
+  const dewpointDepression = tempC - dewpointC;
+
+  let snowFraction = 0.0;
+
+  if (dewpointDepression <= 0) {
+    // Dewpoint >= temperature: supercooled conditions, likely all snow
+    snowFraction = 1.0;
+  } else if (dewpointDepression <= 2) {
+    // Very small depression: sleet or wet snow
+    snowFraction = 0.9;
+  } else if (dewpointDepression <= 5) {
+    // Moderate depression: snow likely
+    snowFraction = 0.8;
+  } else if (dewpointDepression <= 8) {
+    // Larger depression: mixed precipitation
+    snowFraction = 0.5;
+  } else {
+    // Large depression: rain likely
+    snowFraction = 0.1;
+  }
+
+  // Adjust based on humidity for additional confidence
+  if (humidity > 90 && snowFraction < 0.8) {
+    snowFraction = Math.min(0.8, snowFraction + 0.2); // High humidity favors snow
+  } else if (humidity < 50 && snowFraction > 0.3) {
+    snowFraction = Math.max(0.2, snowFraction - 0.2); // Low humidity favors rain
+  }
+
+  return snowFraction;
+}
+
+/**
+ * Get CURRENT resort conditions with accurate precipitation data
+ * This is our "end state" - the most recent weather data with proper snow/rain classification
  * Uses caching to avoid repeated API calls
  */
 async function getCurrentResortConditions(): Promise<ResortPoint[]> {
@@ -187,6 +465,7 @@ async function getCurrentResortConditions(): Promise<ResortPoint[]> {
   }
 
   try {
+    // First get basic resort data
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/resorts/conditions`,
       { next: { revalidate: 60 } }
@@ -196,19 +475,50 @@ async function getCurrentResortConditions(): Promise<ResortPoint[]> {
 
     const data = await response.json();
 
-    // Transform API response to ResortPoint format
-    const conditions = data.resorts?.map((resort: any) => ({
+    // Get basic resort info
+    const basicResorts = data.resorts?.map((resort: any) => ({
       id: resort.id,
       name: resort.name,
       lat: resort.lat,
       lon: resort.lon,
-      snowDepth: resort.conditions?.snowDepth || 0,
-      recentSnowfall: resort.conditions?.recentSnowfall || 0,
-      weeklySnowfall: resort.conditions?.weeklySnowfall,
-      baseTemp: resort.conditions?.baseTemp || 20,
-      windSpeed: resort.conditions?.windSpeed || 0,
-      visibility: resort.conditions?.visibility || 'Good'
+      elevationFt: resort.elevationFt
     })) || [];
+
+    // Get accurate precipitation data from weather stations
+    const precipitationData = await getResortPrecipitationData(basicResorts);
+
+    // Transform API response to ResortPoint format with accurate precipitation
+    const conditions = data.resorts?.map((resort: any) => {
+      const precipData = precipitationData.get(resort.id);
+      const totalPrecipMm = precipData?.totalPrecipMm ?? 0;
+      const totalPrecipIn = totalPrecipMm / 25.4; // Convert mm to inches
+
+      // Classify precipitation as snow vs rain
+      const snowFraction = precipData ?
+        classifyPrecipitationType(precipData.tempC, precipData.dewpointC, precipData.humidity) : 0.8;
+
+      // Split total precipitation into snow and rain components
+      const snowfallIn = totalPrecipIn * snowFraction;
+      const rainfallIn = totalPrecipIn * (1 - snowFraction);
+
+      console.log(`[Resort Conditions] ${resort.name}: ${totalPrecipIn.toFixed(2)}" total (${snowfallIn.toFixed(2)}" snow, ${rainfallIn.toFixed(2)}" rain, ${snowFraction.toFixed(2)} snow fraction)`);
+
+      return {
+        id: resort.id,
+        name: resort.name,
+        lat: resort.lat,
+        lon: resort.lon,
+        snowDepth: resort.conditions?.snowDepth || 0,
+        recentSnowfall: Math.max(snowfallIn, resort.conditions?.recentSnowfall || 0), // Use max of calculated vs reported
+        recentRainfall: rainfallIn,
+        totalPrecipitation: totalPrecipIn,
+        weeklySnowfall: resort.conditions?.weeklySnowfall,
+        baseTemp: precipData?.tempC ? (precipData.tempC * 9/5 + 32) : (resort.conditions?.baseTemp || 20),
+        windSpeed: resort.conditions?.windSpeed || 0,
+        visibility: resort.conditions?.visibility || 'Good',
+        elevationFt: resort.elevationFt
+      };
+    }) || [];
 
     // Update cache
     resortConditionsCache = conditions;
@@ -292,12 +602,16 @@ function generateStormEvolution(currentConditions: ResortPoint[], hourOffset: nu
 
     // Apply intensity and ensure minimum values
     const snowfall = Math.max(0, resort.recentSnowfall * intensityMultiplier);
+    const rainfall = Math.max(0, (resort.recentRainfall || 0) * intensityMultiplier);
+    const totalPrecip = Math.max(0, resort.totalPrecipitation * intensityMultiplier);
 
     return {
       ...resort,
       lat: stormLat,
       lon: stormLon,
-      recentSnowfall: snowfall
+      recentSnowfall: snowfall,
+      recentRainfall: rainfall,
+      totalPrecipitation: totalPrecip
     };
   });
 }

@@ -18,10 +18,12 @@ export async function GET(request: Request) {
 
     const frames = await radarManager.getFrames();
 
-    // Take the most recent 48 hours worth of frames (assuming ~10 min intervals = ~288 frames)
-    const recentFrames = frames.slice(0, 288);
+    // Take frames from the last 72 hours
+    const now = Date.now();
+    const cutoffTime = now - 72 * 60 * 60 * 1000; // 72 hours ago
+    const recentFrames = frames.filter(frame => frame.time >= cutoffTime);
 
-    console.log(`[Radar Frames] Returning ${recentFrames.length} frames from ${frames.length} total`);
+    console.log(`[Radar Frames] Returning ${recentFrames.length} frames from last 72h (from ${frames.length} total)`);
 
     const result = {
       radar: {
@@ -37,7 +39,7 @@ export async function GET(request: Request) {
         source: 'Multi-Source Radar System',
         updateFrequency: '5 minutes',
         coverage: 'Global (US/Northeast priority)',
-        timeRange: 'Last 48 hours (multi-source)',
+        timeRange: 'Last 72 hours (multi-source)',
         sources: radarManager.getSourceInfo(),
         totalAvailable: frames.length,
       }

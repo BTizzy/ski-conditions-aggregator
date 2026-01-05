@@ -918,20 +918,21 @@ class GOESSatelliteSource implements RadarSource {
 
 class SyntheticRadarSource implements RadarSource {
   name = 'synthetic';
-  priority = 10; // Much lower priority - only use as fallback
+  priority = 95; // Higher than RainViewer (90) - prefer our accurate resort data
   coverage = 'northeast-us';
-  maxHistoryHours = 48;
+  maxHistoryHours = 72; // Extended to 72 hours
   requiresApiKey = false;
 
   async fetchFrames(): Promise<RadarFrame[]> {
     const frames: RadarFrame[] = [];
     const now = Date.now();
 
-    for (let i = 0; i < 48; i++) {
-      const timestamp = now - i * 60 * 60 * 1000;
+    // Generate 72 frames: hour 0 (oldest, 71h ago) to hour 71 (newest, current time)
+    for (let hour = 0; hour < 72; hour++) {
+      const timestamp = now - (71 - hour) * 60 * 60 * 1000; // hour=0: 71h ago, hour=71: now
       frames.push({
         time: timestamp,
-        url: `/api/radar/synthetic?hour=${i}`,
+        url: `/api/radar/synthetic?hour=${hour}`,
         source: this.name,
         coverage: 'northeast-us',
         quality: 5, // Highest quality - real resort data

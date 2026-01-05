@@ -543,7 +543,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
         const debugCanvas = document.createElement('canvas');
         debugCanvas.width = bitmap.width;
         debugCanvas.height = bitmap.height;
-        const debugCtx = debugCanvas.getContext('2d');
+        const debugCtx = debugCanvas.getContext('2d', { willReadFrequently: true });
         if (debugCtx) {
           debugCtx.drawImage(bitmap, 0, 0);
           const imageData = debugCtx.getImageData(0, 0, Math.min(50, bitmap.width), Math.min(50, bitmap.height));
@@ -777,7 +777,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
         // Render current frame to canvas1
         const currentFrameC = await renderFrameToCanvas(frames[currentFrameIndex], z, size.x, size.y, keyCurrent);
         if (currentFrameC) {
-          const ctx1 = c1.getContext('2d');
+          const ctx1 = c1.getContext('2d', { willReadFrequently: true });
           if (ctx1) {
             ctx1.clearRect(0, 0, c1.width, c1.height);
             ctx1.drawImage(currentFrameC, 0, 0);

@@ -74,7 +74,7 @@ export const resorts: Resort[] = [
     lon: -72.8944,
     baseElevationFt: 1483,
     summitElevationFt: 4083,
-    scrapeUrl: 'https://www.sugarbush.com/mountain-info/conditions/',
+    scrapeUrl: 'https://www.sugarbush.com/mountain/conditions',
   },
   {
     id: 'okemo',
@@ -114,7 +114,7 @@ export const resorts: Resort[] = [
     lon: -72.5316,
     baseElevationFt: 1816,
     summitElevationFt: 3968,
-    scrapeUrl: 'https://jaypeakresort.com/ski-ride/conditions',
+    scrapeUrl: 'https://jaypeakresort.com/skiing-riding/snow-report-maps/snow-report',
   },
   {
     id: 'smugglers-notch',
@@ -124,7 +124,7 @@ export const resorts: Resort[] = [
     lon: -72.7815,
     baseElevationFt: 1036,
     summitElevationFt: 3640,
-    scrapeUrl: 'https://www.smuggs.com/pages/winter/skiride/conditions.php',
+    scrapeUrl: 'https://www.smuggs.com/conditions/winter-report/',
   },
   {
     id: 'bromley',
@@ -134,7 +134,7 @@ export const resorts: Resort[] = [
     lon: -72.9362,
     baseElevationFt: 1950,
     summitElevationFt: 3284,
-    scrapeUrl: 'https://www.bromley.com/the-mountain/conditions/',
+    scrapeUrl: 'https://www.bromley.com/snow-report',
   },
   {
     id: 'mad-river-glen',
@@ -185,7 +185,7 @@ export const resorts: Resort[] = [
     lon: -71.5072,
     baseElevationFt: 1985,
     summitElevationFt: 4003,
-    scrapeUrl: 'https://www.waterville.com/mountain-report',
+    scrapeUrl: 'https://www.waterville.com/snow-report-maps',
   },
   {
     id: 'wildcat',

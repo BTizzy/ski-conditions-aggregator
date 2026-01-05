@@ -109,7 +109,7 @@ async function generate24HourObservationsFromHistoricalData(lat: number, lon: nu
 
 // Generate weekly observations using REAL historical weather data from Open-Meteo
 async function generateWeeklyObservationsFromHistoricalData(lat: number, lon: number) {
-  const observations: Array<{ precipMm: number; tempC: number; windKph: number; humidity: number; timestamp: string }> = [];
+  const observations: Array<{ precipMm: number; tempC: number; windKph: number; humidity: number; timestamp: string; isSnowfall: boolean }> = [];
   const now = new Date();
 
   // Calculate date range for past 7 days
@@ -125,7 +125,7 @@ async function generateWeeklyObservationsFromHistoricalData(lat: number, lon: nu
 
   try {
     // Use Open-Meteo's FREE historical weather API
-    const historicalUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${startDateStr}&end_date=${endDateStr}&hourly=precipitation,temperature_2m,relative_humidity_2m,wind_speed_10m&timezone=America/New_York`;
+    const historicalUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${startDateStr}&end_date=${endDateStr}&hourly=precipitation,snowfall,temperature_2m,relative_humidity_2m,wind_speed_10m&timezone=America/New_York`;
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
@@ -142,7 +142,7 @@ async function generateWeeklyObservationsFromHistoricalData(lat: number, lon: nu
       throw new Error('Invalid response format from Open-Meteo API');
     }
 
-    const { time, precipitation, temperature_2m, relative_humidity_2m, wind_speed_10m } = data.hourly;
+    const { time, precipitation, snowfall, temperature_2m, relative_humidity_2m, wind_speed_10m } = data.hourly;
 
     console.log(`[API] Got ${time.length} historical hourly records`);
 
@@ -156,6 +156,7 @@ async function generateWeeklyObservationsFromHistoricalData(lat: number, lon: nu
       if (!dailyData.has(dateKey)) {
         dailyData.set(dateKey, {
           precipMm: 0,
+          snowfallMm: 0,
           temps: [],
           humidities: [],
           windSpeeds: []
@@ -164,6 +165,7 @@ async function generateWeeklyObservationsFromHistoricalData(lat: number, lon: nu
 
       const dayData = dailyData.get(dateKey);
       dayData.precipMm += precipitation[i] || 0;
+      dayData.snowfallMm += (snowfall[i] || 0) * 10; // Convert cm to mm
       if (temperature_2m[i] != null) dayData.temps.push(temperature_2m[i]);
       if (relative_humidity_2m[i] != null) dayData.humidities.push(relative_humidity_2m[i]);
       if (wind_speed_10m[i] != null) dayData.windSpeeds.push(wind_speed_10m[i]);
@@ -191,20 +193,33 @@ async function generateWeeklyObservationsFromHistoricalData(lat: number, lon: nu
         ? dayData.windSpeeds.reduce((sum: number, wind: number) => sum + wind, 0) / dayData.windSpeeds.length
         : 7.2;
 
+      // Use snowfall data directly when available, otherwise use liquid precipitation
+      // Open-Meteo snowfall represents actual snow accumulation, precipitation is liquid equivalent
+      let effectivePrecipMm = dayData.precipMm;
+      if (dayData.snowfallMm > 0) {
+        // Use actual snowfall data when available - this represents real snow accumulation
+        effectivePrecipMm = dayData.snowfallMm;
+        console.log(`[API] Using snowfall data: ${dayData.snowfallMm.toFixed(2)}mm snow vs ${dayData.precipMm.toFixed(2)}mm liquid`);
+      } else {
+        // No snowfall reported, use liquid precipitation (could be rain)
+        console.log(`[API] Using liquid precipitation: ${dayData.precipMm.toFixed(2)}mm (no snowfall reported)`);
+      }
+
       observations.push({
-        precipMm: dayData.precipMm,
+        precipMm: effectivePrecipMm,
         tempC: avgTempC,
         windKph: avgWindKph,
         humidity: avgHumidity,
-        timestamp: timestamp.toISOString()
+        timestamp: timestamp.toISOString(),
+        isSnowfall: dayData.snowfallMm > 0 // Flag to indicate if this precipitation is actual snowfall
       });
 
-      totalPrecipMm += dayData.precipMm;
+      totalPrecipMm += effectivePrecipMm;
       totalTempC += avgTempC;
       totalWindKph += avgWindKph;
       validDays++;
 
-      console.log(`[API] Day ${dateStr}: ${dayData.precipMm.toFixed(2)}mm precip, ${avgTempC.toFixed(1)}°C, ${avgWindKph.toFixed(1)}km/h wind`);
+      console.log(`[API] Day ${dateStr}: ${dayData.precipMm.toFixed(2)}mm precip, ${dayData.snowfallMm.toFixed(2)}mm snow, ${avgTempC.toFixed(1)}°C, ${avgWindKph.toFixed(1)}km/h wind`);
     });
 
     console.log(`[API] Historical data summary: ${validDays} days, ${totalPrecipMm.toFixed(2)}mm total precipitation`);
@@ -508,6 +523,21 @@ export async function GET(request: NextRequest) {
       } catch (fallbackError) {
         console.error(`[API] Fallback historical data also failed:`, fallbackError);
       }
+    }
+
+    // Always try to fetch 7-day historical observations for accurate weekly snowfall calculation
+    console.log(`[API] Fetching 7-day historical observations for accurate weekly snowfall`);
+    try {
+      const historicalWeeklyObs = await generateWeeklyObservationsFromHistoricalData(resort.lat, resort.lon);
+      console.log(`[API] 7d historical data: ${historicalWeeklyObs.observations.length} observations, total precip: ${historicalWeeklyObs.totalPrecipMm}mm`);
+      extra.weeklyObservations = historicalWeeklyObs.observations;
+      extra.weeklyPrecipMm = historicalWeeklyObs.totalPrecipMm;
+      extra.avgTemp7d = historicalWeeklyObs.avgTempC;
+      extra.avgWind7d = historicalWeeklyObs.avgWindKph;
+      console.log(`[API] Using real 7d historical data for weekly calculation`);
+    } catch (weeklyError) {
+      console.error(`[API] Failed to fetch 7d historical data:`, weeklyError);
+      console.log(`[API] Will fall back to model estimates for weekly snowfall`);
     }
 
     console.log(`[API] Calling predictFromNWS with nws=`, nwsData !== null, 'extra keys=', Object.keys(extra));

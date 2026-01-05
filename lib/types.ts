@@ -50,7 +50,7 @@ export interface ObservationLike {
   tempC?: number | null; // Celsius
   precipMm?: number | null; // mm in recent period
   weeklyPrecipMm?: number | null; // mm over last 7 days (if available)
-  weeklyObservations?: Array<{ precipMm?: number | null; tempC?: number | null; windKph?: number | null; timestamp?: string | null }>;
+  weeklyObservations?: Array<{ precipMm?: number | null; tempC?: number | null; windKph?: number | null; timestamp?: string | null; isSnowfall?: boolean }>;
   windKph?: number | null;
   visibilityM?: number | null;
   text?: string | null;

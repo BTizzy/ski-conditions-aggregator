@@ -31,6 +31,10 @@ export class AlterraResortScraper implements ResortScraper {
       } else if (url.includes('stratton.com')) {
         scrapeUrl = 'https://globalconditionsfeed.azurewebsites.net/sm/printablereports';
         isPrintableReport = true;
+      } else if (url.includes('sugarbush.com')) {
+        // Sugarbush has data on main page, try that first
+        scrapeUrl = url;
+        isPrintableReport = false;
       }
 
       console.log(`[Alterra Scraper] Using URL: ${scrapeUrl}`);
@@ -102,6 +106,39 @@ export class AlterraResortScraper implements ResortScraper {
         if (htmlData) {
           Object.assign(result, htmlData);
         }
+
+      // Sugarbush specific extraction
+        if (url.includes('sugarbush.com')) {
+          const sugarbushData = this.extractSugarbushData($, textContent);
+          if (sugarbushData) {
+            Object.assign(result, sugarbushData);
+          }
+        }
+
+        // If this is Sugarbush and no data was found on main page, skip Azure feed (shows wrong resort data)
+        // if (url.includes('sugarbush.com') && !result.snowDepth24h && !result.baseDepth) {
+        //   console.log(`[Alterra Scraper] No data found on Sugarbush main page, trying Azure feed`);
+        //   try {
+        //     const azureResponse = await fetch('https://globalconditionsfeed.azurewebsites.net/sb/printablereports', {
+        //       signal: AbortSignal.timeout(5000),
+        //       headers: {
+        //         'User-Agent': 'Mozilla/5.0 (compatible; SkiConditionsAggregator/1.0)'
+        //       }
+        //     });
+
+        //     if (azureResponse.ok) {
+        //       const azureHtml = await azureResponse.text();
+        //       const azure$ = cheerio.load(azureHtml);
+        //       const azureData = this.extractFromPrintableReport(azure$);
+        //       if (azureData) {
+        //         Object.assign(result, azureData);
+        //         console.log(`[Alterra Scraper] Successfully extracted data from Sugarbush Azure feed:`, azureData);
+        //       }
+        //     }
+        //   } catch (azureError) {
+        //     console.log(`[Alterra Scraper] Failed to fetch Sugarbush Azure feed:`, azureError);
+        //   }
+        // }
 
         // Fall back to text parsing
         const snowfallData = ScrapingUtils.findSnowfallData(textContent);
@@ -356,40 +393,54 @@ export class AlterraResortScraper implements ResortScraper {
       });
 
       // Look for snowfall data in paragraphs or other elements
-      $('p, div, span').each((_, element) => {
-        const $el = $(element);
-        const text = $el.text().trim();
+      const fullText = $('body').text();
 
-        // Look for patterns like "24 Hours: 2""
-        const patterns = [
-          /24\s*hours?:\s*(\d+(?:\.\d+)?)/i,
-          /48\s*hours?:\s*(\d+(?:\.\d+)?)/i,
-          /7\s*days?:\s*(\d+(?:\.\d+)?)/i,
-          /base\s*depth:\s*(\d+(?:\.\d+)?)/i,
-          /base:\s*(\d+(?:\.\d+)?)/i
-        ];
+      // Simple text-based extraction for Azure printable reports
+      const baseDepthMatch = fullText.match(/BASE DEPTH\s+(\d+(?:\.\d+)?)/i);
+      if (baseDepthMatch) {
+        const value = parseFloat(baseDepthMatch[1]);
+        if (value > 0 && value < 300) { // Reasonable base depth
+          result.baseDepth = value;
+        }
+      }
 
-        patterns.forEach((pattern, index) => {
-          const match = text.match(pattern);
-          if (match) {
-            const value = parseFloat(match[1]);
-            switch (index) {
-              case 0:
-                result.snowDepth24h = value;
-                break;
-              case 1:
-                result.snowDepth48h = value;
-                break;
-              case 2:
-                result.snowDepth7d = value;
-                break;
-              case 3:
-              case 4:
-                result.baseDepth = value;
-                break;
-            }
+      const snowfallMatch = fullText.match(/SNOWFALL\s+(\d+(?:\.\d+)?)/i);
+      if (snowfallMatch) {
+        const value = parseFloat(snowfallMatch[1]);
+        if (value >= 0 && value < 100) { // Reasonable snowfall
+          result.snowDepth24h = value;
+        }
+      }
+
+      // Look for patterns like "24 Hours: 2""
+      const patterns = [
+        /24\s*hours?:\s*(\d+(?:\.\d+)?)/i,
+        /48\s*hours?:\s*(\d+(?:\.\d+)?)/i,
+        /7\s*days?:\s*(\d+(?:\.\d+)?)/i,
+        /base\s*depth:?\s*(\d+(?:\.\d+)?)/i,
+        /base:?\s*(\d+(?:\.\d+)?)/i
+      ];
+
+      patterns.forEach((pattern, index) => {
+        const match = fullText.match(pattern);
+        if (match) {
+          const value = parseFloat(match[1]);
+          switch (index) {
+            case 0:
+              result.snowDepth24h = value;
+              break;
+            case 1:
+              result.snowDepth48h = value;
+              break;
+            case 2:
+              result.snowDepth7d = value;
+              break;
+            case 3:
+            case 4:
+              result.baseDepth = value;
+              break;
           }
-        });
+        }
       });
 
       // Extract temperature and wind from the current weather section
@@ -506,6 +557,43 @@ export class AlterraResortScraper implements ResortScraper {
     }
 
     return result;
+  }
+
+  private extractSugarbushData($: cheerio.CheerioAPI, textContent: string): Partial<ScrapedSnowData> | null {
+    const result: Partial<ScrapedSnowData> = {};
+
+    try {
+      // Sugarbush displays snowfall as: "0" Today, 0" 2-Day, 4" 3-Day, 91" Season Total
+      // Look for this specific pattern in the text content
+      const todayMatch = textContent.match(/(\d+(?:\.\d+)?)"?\s*today/i);
+      if (todayMatch) {
+        result.snowDepth24h = parseFloat(todayMatch[1]);
+        console.log(`[Alterra Scraper] Found Sugarbush 24h snow: ${result.snowDepth24h}"`);
+      }
+
+      const twoDayMatch = textContent.match(/(\d+(?:\.\d+)?)"?\s*2-day/i);
+      if (twoDayMatch) {
+        result.snowDepth48h = parseFloat(twoDayMatch[1]);
+        console.log(`[Alterra Scraper] Found Sugarbush 48h snow: ${result.snowDepth48h}"`);
+      }
+
+      const threeDayMatch = textContent.match(/(\d+(?:\.\d+)?)"?\s*3-day/i);
+      if (threeDayMatch) {
+        result.snowDepth7d = parseFloat(threeDayMatch[1]);
+        console.log(`[Alterra Scraper] Found Sugarbush 7d snow: ${result.snowDepth7d}"`);
+      }
+
+      const seasonMatch = textContent.match(/(\d+(?:\.\d+)?)"?\s*season\s*total/i);
+      if (seasonMatch) {
+        result.baseDepth = parseFloat(seasonMatch[1]);
+        console.log(`[Alterra Scraper] Found Sugarbush season total: ${result.baseDepth}"`);
+      }
+
+      return Object.keys(result).length > 0 ? result : null;
+    } catch (error) {
+      console.log(`[Alterra Scraper] Error extracting Sugarbush data:`, error);
+      return null;
+    }
   }
 }
 

@@ -381,36 +381,49 @@ export interface SnowPrediction {
     // Prefer detailed weeklyObservations if available (array of precip+temp samples)
     if (extra && Array.isArray(extra.weeklyObservations) && extra.weeklyObservations.length > 0) {
       let sumSnow = 0;
+
       for (const o of extra.weeklyObservations) {
         const pMm = (o && typeof o.precipMm === 'number') ? o.precipMm : 0;
         const tC = (o && typeof o.tempC === 'number') ? o.tempC : (extra.avgTemp7d ?? null);
-        const precipIn = pMm / 25.4;
-        // simple temp-based snow fraction per observation
-        let sf = 0.0;
-        if (tC != null) {
-          if (tC <= -10) sf = 1.0;
-          else if (tC <= 0) sf = 0.95;
-          else if (tC <= 3) sf = 0.9;
-          else sf = 0.1;
+        const isSnowfall = o && typeof o.isSnowfall === 'boolean' ? o.isSnowfall : false;
+
+        if (isSnowfall) {
+          // This observation contains actual snowfall data
+          const snowIn = pMm / 25.4;
+          sumSnow += snowIn;
+          weeklySnowIn += snowIn;
+          // No rain from snowfall data
+          console.log(`[SnowModel] Using direct snowfall: ${snowIn.toFixed(2)}" from ${pMm.toFixed(2)}mm`);
         } else {
-          sf = mentionsSnow ? 0.8 : 0.2;
+          // This observation contains liquid precipitation data, apply snow fraction logic
+          const precipIn = pMm / 25.4;
+          // simple temp-based snow fraction per observation
+          let sf = 0.0;
+          if (tC != null) {
+            if (tC <= -10) sf = 1.0;
+            else if (tC <= 0) sf = 0.95;
+            else if (tC <= 3) sf = 0.9;
+            else sf = 0.1;
+          } else {
+            sf = mentionsSnow ? 0.8 : 0.2;
+          }
+          // choose ratio by temp
+          let ratioLocal = liquidToSnowRatio;
+          if (tC != null) {
+            if (tC <= -10) ratioLocal = 18;
+            else if (tC <= -2) ratioLocal = 14;
+            else if (tC <= 0) ratioLocal = 12;
+            else if (tC <= 3) ratioLocal = 10;
+            else ratioLocal = 8;
+          }
+          let snowIn = precipIn * ratioLocal * sf;
+          if (precipIn > 0 && precipIn < 0.5) snowIn *= 0.6;
+          sumSnow += snowIn;
+          // rain liquid inches that fell (liquid portion not snow)
+          const rainLiquid = precipIn * (1 - sf);
+          weeklyRainIn += rainLiquid;
+          weeklySnowIn += snowIn;
         }
-        // choose ratio by temp
-        let ratioLocal = liquidToSnowRatio;
-        if (tC != null) {
-          if (tC <= -10) ratioLocal = 18;
-          else if (tC <= -2) ratioLocal = 14;
-          else if (tC <= 0) ratioLocal = 12;
-          else if (tC <= 3) ratioLocal = 10;
-          else ratioLocal = 8;
-        }
-        let snowIn = precipIn * ratioLocal * sf;
-        if (precipIn > 0 && precipIn < 0.5) snowIn *= 0.6;
-        sumSnow += snowIn;
-        // rain liquid inches that fell (liquid portion not snow)
-        const rainLiquid = precipIn * (1 - sf);
-        weeklyRainIn += rainLiquid;
-        weeklySnowIn += snowIn;
       }
       weekly = Math.round(sumSnow * 2) / 2;
     } else if (extra && typeof extra.weeklyPrecipMm === 'number' && extra.weeklyPrecipMm !== null) {

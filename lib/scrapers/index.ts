@@ -74,8 +74,8 @@ export class ScrapingUtils {
     ];
 
     for (const pattern of patterns) {
-      const matches = [...text.matchAll(pattern)];
-      for (const match of matches) {
+      let match;
+      while ((match = pattern.exec(text)) !== null) {
         const temp = parseFloat(match[1]);
 
         // Validate temperature is reasonable (-50°F to 100°F)
@@ -132,16 +132,32 @@ export class ScrapingUtils {
 
   static findSnowfallData(text: string): { value: number; unit: string; type: string }[] {
     const patterns = [
-      // 24-hour patterns
-      /(?:24\s*h(?:our)?|overnight|last\s*24h?)\s*:?\s*(\d+(?:\.\d+)?)\s*(inch|inches|in|"|cm)/gi,
+      // 24-hour patterns - handle both formats: "Last 24 Hours0" and "24 hour: 5 inches"
+      /(?:24\s*h(?:our)?|overnight|last\s*24\s*h(?:our)?s?|24h?)\s*:?\s*(\d+(?:\.\d+)?)\s*(inch|inches|in|"|cm)/gi,
+      /(?:last\s*24\s*h(?:our)?s?)\s*(\d+(?:\.\d+)?)\s*(inch|inches|in|"|cm)/gi,
       // 48-hour patterns
-      /(?:48\s*h(?:our)?|last\s*48h?)\s*:?\s*(\d+(?:\.\d+)?)\s*(inch|inches|in|"|cm)/gi,
+      /(?:48\s*h(?:our)?|last\s*48\s*h(?:our)?s?|48h?)\s*:?\s*(\d+(?:\.\d+)?)\s*(inch|inches|in|"|cm)/gi,
+      /(?:last\s*48\s*h(?:our)?s?)\s*(\d+(?:\.\d+)?)\s*(inch|inches|in|"|cm)/gi,
       // 7-day patterns
-      /(?:7\s*day|week|weekly)\s*:?\s*(\d+(?:\.\d+)?)\s*(inch|inches|in|"|cm)/gi,
-      // Base depth patterns
+      /(?:7\s*day|week|weekly|last\s*7\s*days?|7d)\s*:?\s*(\d+(?:\.\d+)?)\s*(inch|inches|in|"|cm)/gi,
+      /(?:last\s*7\s*days?)\s*(\d+(?:\.\d+)?)\s*(inch|inches|in|"|cm)/gi,
+      // Today/2-Day/3-Day patterns (Sugarbush format)
+      /(?:today|24h?)\s*:?\s*(\d+(?:\.\d+)?)\s*(inch|inches|in|"|cm)/gi,
+      /(?:2(?:\s*|-)day|48h?)\s*:?\s*(\d+(?:\.\d+)?)\s*(inch|inches|in|"|cm)/gi,
+      /(?:3(?:\s*|-)day|72h?|7d)\s*:?\s*(\d+(?:\.\d+)?)\s*(inch|inches|in|"|cm)/gi,
+      // Base depth patterns - handle ranges and mashed text
+      /(?:base|depth|natural\s*snow\s*depth)\s*:?\s*(\d+(?:\.\d+)?)\s*(?:to|-|–)\s*(\d+(?:\.\d+)?)\s*(inch|inches|in|"|cm)/gi,
       /(?:base|depth)\s*:?\s*(\d+(?:\.\d+)?)\s*(inch|inches|in|"|cm)/gi,
-      // New snow patterns
+      /(\d+(?:\.\d+)?)\s*(?:–|-|to)\s*(\d+(?:\.\d+)?)\s*(inch|inches|in|"|cm)\s*base\s*depth/gi,  // "18–30" base depth"
+      /"(\d+(?:\.\d+)?)\s*(?:–|-|to)\s*(\d+(?:\.\d+)?)\s*base\s*depth/gi,  // "18–30 base depth"
+      // New snow patterns - handle various formats including mashed text
+      /(?:new\s*snow|fresh\s*snow|new\s*snowfall)\s*:?\s*(\d+(?:\.\d+)?)\s*(inch|inches|in|"|cm)/gi,
+      /(\d+(?:\.\d+)?)\s*(?:–|-|to)\s*(\d+(?:\.\d+)?)?\s*(?:inch|inches|in|"|cm)?\s*new\s*snow/gi,
+      /(\d+(?:\.\d+)?)\s*(inch|inches|in|"|cm)\s*new\s*snow/gi,  // "1" new snow"
+      /"(\d+(?:\.\d+)?)\s*new\s*snow/gi,  // "1 new snow"
       /(?:new\s*snow|fresh\s*snow)\s*:?\s*(\d+(?:\.\d+)?)\s*(inch|inches|in|"|cm)/gi,
+      // Season total patterns - treat as base depth for resorts that show this
+      /(?:season\s*total|season)\s*:?\s*(\d+(?:\.\d+)?)\s*(inch|inches|in|"|cm)/gi,
     ];
 
     const results: { value: number; unit: string; type: string }[] = [];
@@ -149,20 +165,30 @@ export class ScrapingUtils {
     for (const pattern of patterns) {
       let match;
       while ((match = pattern.exec(text)) !== null) {
-        const rawValue = match[1];
+        let rawValue = match[1];
         const unit = match[2];
         let type = 'unknown';
 
+        // Handle range patterns (e.g., "14 to 20″")
+        if (match[0].includes('to') || match[0].includes('-') || match[0].includes('–')) {
+          // This is a range pattern with 3 capture groups: (num1)(num2)(unit)
+          if (match[3]) {
+            const value1 = parseFloat(match[1]);
+            const value2 = parseFloat(match[2]);
+            rawValue = Math.max(value1, value2).toString(); // Use the higher value for base depth
+          }
+        }
+
         const lowerText = match[0].toLowerCase();
-        if (lowerText.includes('24') || lowerText.includes('overnight')) {
+        if (lowerText.includes('24') || lowerText.includes('overnight') || lowerText.includes('last 24') || lowerText.includes('today')) {
           type = '24h';
-        } else if (lowerText.includes('48')) {
+        } else if (lowerText.includes('48') || lowerText.includes('last 48') || lowerText.includes('2-day') || lowerText.includes('2 day')) {
           type = '48h';
-        } else if (lowerText.includes('7') || lowerText.includes('week')) {
+        } else if (lowerText.includes('7') || lowerText.includes('week') || lowerText.includes('last 7') || lowerText.includes('3-day') || lowerText.includes('3 day') || lowerText.includes('72')) {
           type = '7d';
-        } else if (lowerText.includes('base') || lowerText.includes('depth')) {
+        } else if (lowerText.includes('base') || lowerText.includes('depth') || lowerText.includes('natural snow depth') || lowerText.includes('season')) {
           type = 'base';
-        } else if (lowerText.includes('new') || lowerText.includes('fresh')) {
+        } else if (lowerText.includes('new') || lowerText.includes('fresh') || lowerText.includes('new snowfall')) {
           type = '24h'; // Assume new snow is 24h
         }
 

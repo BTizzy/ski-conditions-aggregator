@@ -50,15 +50,38 @@ export async function GET(request: NextRequest) {
       return getTransparentTile();
     }
 
-    // Calculate target time for this day
-    const targetTime = new Date(Date.now() - day * 24 * 60 * 60 * 1000); // day=0 is today; day=6 is 7 days ago
+    // Calculate target time for this day (weekly radar: day 0 = today, day 6 = 6 days ago)
+    // day=0 is today; day=6 is 6 days ago
+    const targetTime = new Date(Date.now() - day * 24 * 60 * 60 * 1000);
 
     // Get daily precipitation data for the specific day requested
     const dayData = await getDailyPrecipitationForDay(targetTime);
 
-    if (!dayData || dayData.length === 0) {
-      console.warn(`[Synthetic Tile] [${reqId}] No data for day ${day} -> transparent`);
-      return getTransparentTile();
+    // TEMP: Debug response
+    if (dayData.length === 0) {
+      // Get some debug info about the filtering
+      const allData = await getDailyPrecipitationData();
+      const targetDate = new Date(Date.now() - day * 24 * 60 * 60 * 1000);
+      const startOfDay = new Date(targetDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(targetDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      return NextResponse.json({
+        debug: {
+          targetTime: targetTime.toISOString(),
+          targetDate: targetDate.toISOString(),
+          dateRange: `${startOfDay.toISOString()} to ${endOfDay.toISOString()}`,
+          dayDataLength: dayData.length,
+          totalDataPoints: allData.length,
+          sampleData: allData.slice(0, 5).map(d => ({
+            name: d.name,
+            date: d.timestamp.toISOString(),
+            precip: d.precipitationMm,
+            inRange: d.timestamp >= startOfDay && d.timestamp <= endOfDay
+          }))
+        }
+      });
     }
 
     // Convert daily data to resort points for interpolation
@@ -149,20 +172,40 @@ async function getDailyPrecipitationForDay(targetDate: Date): Promise<Historical
   // Get all daily data (this will use cache when available)
   const allData = await getDailyPrecipitationData();
 
+  console.log(`[Daily Filter] Looking for data on ${targetDate.toDateString()}, total data points: ${allData.length}`);
+  console.log(`[Daily Filter] Target date: ${targetDate.toISOString()}`);
+
   // Find data points for the target date (within 24 hours)
   const startOfDay = new Date(targetDate);
   startOfDay.setHours(0, 0, 0, 0);
   const endOfDay = new Date(targetDate);
   endOfDay.setHours(23, 59, 59, 999);
 
-  return allData.filter(point =>
-    point.timestamp >= startOfDay && point.timestamp <= endOfDay
-  );
+  console.log(`[Daily Filter] Date range: ${startOfDay.toISOString()} to ${endOfDay.toISOString()}`);
+
+  // Show first few data points for debugging
+  if (allData.length > 0) {
+    console.log(`[Daily Filter] Sample data points:`);
+    allData.slice(0, 3).forEach(point => {
+      console.log(`  ${point.name}: ${point.timestamp.toISOString()} - ${point.precipitationMm}mm`);
+    });
+  }
+  const filtered = allData.filter(point => {
+    const pointDate = new Date(point.timestamp);
+    const matches = pointDate >= startOfDay && pointDate <= endOfDay;
+    if (matches) {
+      console.log(`[Daily Filter] Found data for ${point.name}: ${point.precipitationMm}mm on ${pointDate.toDateString()}`);
+    }
+    return matches;
+  });
+
+  console.log(`[Daily Filter] Found ${filtered.length} data points for ${targetDate.toDateString()}`);
+  return filtered;
 }
 
 async function getDailyPrecipitationData(): Promise<HistoricalPrecipitationPoint[]> {
   const now = Date.now();
-  const cacheKey = 'daily';
+  const cacheKey = 'daily-weekly-final';
 
   // Return cached data if recent (5 minutes)
   if (dailyCache.has(cacheKey) && (now - dailyCacheTimestamp) < CACHE_DURATION) {
@@ -180,11 +223,17 @@ async function getDailyPrecipitationData(): Promise<HistoricalPrecipitationPoint
     const batch = resorts.slice(i, i + batchSize);
     const promises = batch.map(async (resort) => {
       try {
-        // Get daily weather data for the past week
-        const endDate = new Date();
-        const startDate = new Date(endDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+        // Get daily weather data for the past week (from today back 7 days)
+        const endDate = new Date(); // Today
+        const startDate = new Date(endDate);
+        startDate.setDate(startDate.getDate() - 6); // 7 days ago (including today = 7 days total)
 
-        const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${resort.lat}&longitude=${resort.lon}&daily=precipitation_sum,temperature_2m_max,temperature_2m_min&start_date=${startDate.toISOString().split('T')[0]}&end_date=${endDate.toISOString().split('T')[0]}&timezone=America/New_York`;
+        console.log('Date range:', {
+            startDate: startDate.toISOString().split('T')[0],
+            endDate: endDate.toISOString().split('T')[0]
+        });
+
+        const weatherUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${resort.lat}&longitude=${resort.lon}&start_date=${startDate.toISOString().split('T')[0]}&end_date=${endDate.toISOString().split('T')[0]}&daily=precipitation_sum,temperature_2m_max,temperature_2m_min&timezone=America/New_York`;
 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -639,7 +688,7 @@ function interpolateIDW(
     const nextFew = nearbySamples.slice(0, 6).map(n => ({
       name: n.sample.name,
       dist: Number(n.dist.toFixed(3)),
-      snow: Number((n.sample.recentSnowfall ?? 0).toFixed(2)),
+      snow: Number((n.sample.totalPrecipitation ?? 0).toFixed(2)),
     }));
     console.log(`[IDW] (${debug?.logTag}) Nearby samples within radius: ${nearbySamples.length}`, nextFew);
   }
@@ -662,7 +711,7 @@ function interpolateIDW(
 
   // Weighted average
   const result = neighbors.reduce(
-    (acc, n, i) => acc + n.sample.recentSnowfall * (weights[i] / sum),
+    (acc, n, i) => acc + n.sample.totalPrecipitation * (weights[i] / sum),
     0
   );
 
@@ -746,6 +795,11 @@ function generateSyntheticTile(
   const n = Math.pow(2, z);
   
   console.log(`[Tile Generation] z=${z} x=${x} y=${y}, ${conditions.length} conditions`);
+  
+  // Debug: if we have any conditions, make the tile visible
+  if (conditions.length > 0) {
+    console.log(`[Tile Debug] First condition: ${conditions[0].name} at (${conditions[0].lat}, ${conditions[0].lon}) with ${conditions[0].totalPrecipitation} inches precip`);
+  }
 
   // Create image data
   const imageData = ctx.createImageData(256, 256);
@@ -761,16 +815,23 @@ function generateSyntheticTile(
       const lon = (xtile / n) * 360 - 180;
       const lat = (Math.atan(Math.sinh(Math.PI * (1 - (2 * ytile) / n))) * 180) / Math.PI;
 
-    // Interpolate snowfall at this location.
-    const snowfall = interpolateIDW({ lat, lon }, conditions, 6, 5.0);
+    // Interpolate precipitation at this location.
+    const precipitation = interpolateIDW({ lat, lon }, conditions, 6, 5.0);
 
       // Sample a few points to verify interpolation is working
       if (px === 128 && py === 128) { // Center pixel
-        console.log(`[Tile] Center pixel snowfall: ${snowfall.toFixed(3)} inches at (${lat.toFixed(4)}, ${lon.toFixed(4)})`);
+        console.log(`[Tile] Center pixel precipitation: ${precipitation.toFixed(3)} inches at (${lat.toFixed(4)}, ${lon.toFixed(4)})`);
+      }
+
+      // Debug: if we have conditions but no precipitation, show a faint color
+      let displayPrecip = precipitation;
+      if (precipitation === 0 && conditions.length > 0) {
+        // Show a faint blue if we have resort data but no precipitation
+        displayPrecip = 0.01;
       }
 
       // Convert to color
-      const rgba = snowfallToRGBA(snowfall);
+      const rgba = snowfallToRGBA(displayPrecip);
 
       data[idx++] = rgba[0]; // R
       data[idx++] = rgba[1]; // G

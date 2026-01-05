@@ -73,8 +73,39 @@ export class VailResortScraper implements ResortScraper {
         result.snowDepth7d = parseFloat(structuredData.SevenDaySnowfall?.Inches || '0');
         result.baseDepth = parseFloat(structuredData.BaseDepth?.Inches || '0');
         console.log(`[Vail Scraper] Used structured data for snowfall`);
-      } else {
-        // Fallback to text pattern matching
+      } else if (url.includes('killington.com')) {
+        // Special handling for Killington - use the dor_snow_report API
+        console.log(`[Vail Scraper] Using Killington API endpoint`);
+        try {
+          const apiController = new AbortController();
+          const apiTimeoutId = setTimeout(() => apiController.abort(), 10000);
+
+          const apiResponse = await fetch('https://cms.killington.com/jsonapi/dor_snow_report/dor_snow_report?sort=-date&page[limit]=1', {
+            signal: apiController.signal,
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (compatible; SkiConditionsAggregator/1.0)'
+            }
+          });
+
+          clearTimeout(apiTimeoutId);
+
+          if (apiResponse.ok) {
+            const apiData = await apiResponse.json();
+            if (apiData.data && apiData.data.length > 0) {
+              const latestReport = apiData.data[0].attributes;
+              result.snowDepth24h = parseFloat(latestReport.amount || '0');
+              result.snowDepth48h = parseFloat(latestReport.overnight_amount || '0') + result.snowDepth24h;
+              result.baseDepth = parseFloat(latestReport.base_depth || '0');
+              console.log(`[Vail Scraper] Used Killington API data: 24h=${result.snowDepth24h}", base=${result.baseDepth}"`);
+            }
+          }
+        } catch (apiError) {
+          console.log(`[Vail Scraper] Killington API failed, falling back to text parsing:`, apiError);
+        }
+      }
+
+      // If we still don't have data, fall back to text pattern matching
+      if (!result.snowDepth24h && !result.snowDepth48h && !result.snowDepth7d && !result.baseDepth) {
         const snowfallData = ScrapingUtils.findSnowfallData(textContent);
         console.log(`[Vail Scraper] Found ${snowfallData.length} snowfall data points:`, snowfallData);
 

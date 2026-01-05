@@ -400,10 +400,10 @@ export async function GET(request: NextRequest) {
       extra.resortReported24h = scrapedData.recentSnowfall;
       console.log(`[API] Using scraped 24h snowfall: ${scrapedData.recentSnowfall}"`);
     }
-    if (scrapedData && scrapedData.scrapedData?.snowDepth7d !== null && scrapedData.scrapedData.snowDepth7d > 0) {
-      extra.resortReportedWeekly = scrapedData.scrapedData.snowDepth7d;
+    if (scrapedData && scrapedData.snowDepth7d !== null && scrapedData.snowDepth7d > 0) {
+      extra.resortReportedWeekly = scrapedData.snowDepth7d;
       extra.resortWeight = 0.85; // High trust in resort reports
-      console.log(`[API] Using scraped 7d snowfall: ${scrapedData.scrapedData.snowDepth7d}" with high weight`);
+      console.log(`[API] Using scraped 7d snowfall: ${scrapedData.snowDepth7d}" with high weight`);
     }
 
     // Add scraped weather data if available

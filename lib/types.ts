@@ -17,6 +17,10 @@ export interface Conditions {
     groomed: number;
   };
   rawData: any; // JSON from API/scrape
+  // Elevation data for temperature corrections
+  elevationFt?: number | null; // computed midpoint elevation
+  baseElevationFt?: number | null; // base lodge elevation
+  summitElevationFt?: number | null; // summit elevation
 }
 
 export interface UserAlertPreferences {
@@ -65,6 +69,7 @@ export interface ObservationLike {
   humidity?: number | null; // relative humidity (0-100)
   dewpoint?: number | null; // dewpoint temperature in Celsius
   pressure?: number | null; // barometric pressure in hPa
+  pressureTrend?: string | null; // 'rising', 'falling', or 'stable'
   windDirection?: number | null; // wind direction in degrees
   windChill?: number | null; // wind chill temperature in Celsius
   clouds?: any[] | null; // cloud layer information
@@ -76,4 +81,7 @@ export interface ObservationLike {
     observation: any;
     quality: number; // 0-1 quality score
   }>;
+  // Real 24-hour historical precipitation data from Open-Meteo API
+  recent24hPrecipMm?: number | null; // total mm precipitation over last 24 hours
+  recent24hObservations?: Array<{ precipMm?: number | null; tempC?: number | null; humidity?: number | null; windKph?: number | null; timestamp?: string | null }>;
 }

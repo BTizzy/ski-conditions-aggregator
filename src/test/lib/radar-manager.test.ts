@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { radarManager } from '@/app/api/radar/lib/radar-manager'
+import { radarManager } from '../../../app/api/radar/lib/radar-manager'
 
 describe('RadarManager', () => {
   beforeEach(() => {

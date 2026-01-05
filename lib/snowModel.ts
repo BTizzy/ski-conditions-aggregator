@@ -113,11 +113,20 @@ export interface SnowPrediction {
     }
     // Many NWS observation payloads include 'precipitationLastHour' or in properties with unitCode/value.
     let precipIn = null as null | number; // inches in last window
-    // try a few known fields (value might be mm or in depending on the source) — prefer explicit inches
-    if (nws?.raw?.precipitationLastHour?.value != null) {
-      const mm = nws.raw.precipitationLastHour.value;
-      if (!Number.isNaN(mm)) precipIn = +(mm / 25.4);
+
+    // PRIORITY: Use real 24-hour historical precipitation data if available (from Open-Meteo)
+    if (extra?.recent24hPrecipMm != null && extra.recent24hPrecipMm > 0) {
+      precipIn = extra.recent24hPrecipMm / 25.4; // Convert mm to inches
+      console.log(`[SnowModel] Using real 24h historical precipitation: ${extra.recent24hPrecipMm.toFixed(2)}mm (${precipIn.toFixed(2)}in)`);
+    } else {
+      // Fallback to NWS forecast-based precipitation data
+      // try a few known fields (value might be mm or in depending on the source) — prefer explicit inches
+      if (nws?.raw?.precipitationLastHour?.value != null) {
+        const mm = nws.raw.precipitationLastHour.value;
+        if (!Number.isNaN(mm)) precipIn = +(mm / 25.4);
+      }
     }
+
     // check raw precipitation container
     if (precipIn == null && nws?.raw?.precipitation?.value != null) {
       const v = nws.raw.precipitation.value;
@@ -338,7 +347,20 @@ export interface SnowPrediction {
 
     // Enhanced pressure trend analysis for storm intensification detection
     let pressureTrendBoost = 1.0; // multiplier for weekly estimate
-    if (barometricPressure != null && seaLevelPressure != null) {
+    const pressureTrend = extra?.pressureTrend || null;
+
+    if (pressureTrend) {
+      // Use explicit pressure trend from external data
+      if (pressureTrend === 'falling') {
+        pressureTrendBoost = 1.3; // Boost weekly estimate by 30%
+        result.factors.push('pressure-falling');
+        console.log(`[SnowModel] External pressure trend: falling, boosting weekly estimate by 30%`);
+      } else if (pressureTrend === 'rising') {
+        pressureTrendBoost = 0.8; // Reduce weekly estimate by 20%
+        result.factors.push('pressure-rising');
+        console.log(`[SnowModel] External pressure trend: rising, reducing weekly estimate by 20%`);
+      }
+    } else if (barometricPressure != null && seaLevelPressure != null) {
       // Calculate pressure change over time if we have multiple readings
       // For now, use current vs reference pressure (could be enhanced with historical data)
       const pressureDiff = seaLevelPressure - barometricPressure; // hPa difference

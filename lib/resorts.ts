@@ -21,6 +21,8 @@ export const resorts: Resort[] = [
     state: 'NH',
     lat: 44.0367,
     lon: -71.6217,
+    baseElevationFt: 950,
+    summitElevationFt: 3050,
     scrapeUrl: 'https://www.loonmtn.com/mountain-info/conditions',
   },
   {
@@ -29,6 +31,8 @@ export const resorts: Resort[] = [
     state: 'ME',
     lat: 44.4722,
     lon: -70.8567,
+    baseElevationFt: 864,
+    summitElevationFt: 3140,
     scrapeUrl: 'https://www.sundayriver.com/mountain-info/conditions',
   },
   {
@@ -37,6 +41,8 @@ export const resorts: Resort[] = [
     state: 'ME',
     lat: 45.0311,
     lon: -70.3133,
+    baseElevationFt: 2820,
+    summitElevationFt: 4237,
     scrapeUrl: 'https://www.sugarloaf.com/conditions',
   },
   // --- Major Vermont Resorts ---
@@ -46,6 +52,8 @@ export const resorts: Resort[] = [
     state: 'VT',
     lat: 44.4654,
     lon: -72.6874,
+    baseElevationFt: 2031,
+    summitElevationFt: 4393,
     scrapeUrl: 'https://www.stowe.com/the-mountain/mountain-conditions/',
   },
   {
@@ -54,6 +62,8 @@ export const resorts: Resort[] = [
     state: 'VT',
     lat: 43.6045,
     lon: -72.8201,
+    baseElevationFt: 1165,
+    summitElevationFt: 4241,
     scrapeUrl: 'https://www.killington.com/the-mountain/mountain-conditions',
   },
   {
@@ -62,6 +72,8 @@ export const resorts: Resort[] = [
     state: 'VT',
     lat: 44.1436,
     lon: -72.8944,
+    baseElevationFt: 1483,
+    summitElevationFt: 4083,
     scrapeUrl: 'https://www.sugarbush.com/mountain-info/conditions/',
   },
   {
@@ -70,6 +82,8 @@ export const resorts: Resort[] = [
     state: 'VT',
     lat: 43.4036,
     lon: -72.7202,
+    baseElevationFt: 1144,
+    summitElevationFt: 3344,
     scrapeUrl: 'https://www.okemo.com/the-mountain/mountain-conditions/',
   },
   {
@@ -78,6 +92,8 @@ export const resorts: Resort[] = [
     state: 'VT',
     lat: 42.9606,
     lon: -72.9205,
+    baseElevationFt: 1900,
+    summitElevationFt: 3600,
     scrapeUrl: 'https://www.mountsnow.com/the-mountain/mountain-conditions/',
   },
   {
@@ -86,6 +102,8 @@ export const resorts: Resort[] = [
     state: 'VT',
     lat: 43.1135,
     lon: -72.9205,
+    baseElevationFt: 1872,
+    summitElevationFt: 3875,
     scrapeUrl: 'https://www.stratton.com/the-mountain/mountain-conditions',
   },
   {
@@ -94,6 +112,8 @@ export const resorts: Resort[] = [
     state: 'VT',
     lat: 44.9242,
     lon: -72.5316,
+    baseElevationFt: 1816,
+    summitElevationFt: 3968,
     scrapeUrl: 'https://jaypeakresort.com/ski-ride/conditions',
   },
   {
@@ -102,6 +122,8 @@ export const resorts: Resort[] = [
     state: 'VT',
     lat: 44.5884,
     lon: -72.7815,
+    baseElevationFt: 1036,
+    summitElevationFt: 3640,
     scrapeUrl: 'https://www.smuggs.com/pages/winter/skiride/conditions.php',
   },
   {
@@ -110,6 +132,8 @@ export const resorts: Resort[] = [
     state: 'VT',
     lat: 43.2137,
     lon: -72.9362,
+    baseElevationFt: 1950,
+    summitElevationFt: 3284,
     scrapeUrl: 'https://www.bromley.com/the-mountain/conditions/',
   },
   {
@@ -118,7 +142,19 @@ export const resorts: Resort[] = [
     state: 'VT',
     lat: 44.2019,
     lon: -72.9172,
+    baseElevationFt: 1600,
+    summitElevationFt: 3637,
     scrapeUrl: 'https://www.madriverglen.com/mountain-info/conditions',
+  },
+  {
+    id: 'burke-mountain',
+    name: 'Burke Mountain',
+    state: 'VT',
+    lat: 44.57,
+    lon: -71.895,
+    baseElevationFt: 2057,
+    summitElevationFt: 3267,
+    scrapeUrl: 'https://www.skiburke.com/the-mountain/weather-conditions',
   },
   // --- Major New Hampshire Resorts ---
   {
@@ -127,6 +163,8 @@ export const resorts: Resort[] = [
     state: 'NH',
     lat: 44.2547,
     lon: -71.4417,
+    baseElevationFt: 1601,
+    summitElevationFt: 3100,
     scrapeUrl: 'https://www.brettonwoods.com/mountain-info/conditions',
   },
   {
@@ -135,6 +173,8 @@ export const resorts: Resort[] = [
     state: 'NH',
     lat: 44.1786,
     lon: -71.6981,
+    baseElevationFt: 1963,
+    summitElevationFt: 4078,
     scrapeUrl: 'https://www.cannonmt.com/mountain-info/conditions',
   },
   {
@@ -143,6 +183,8 @@ export const resorts: Resort[] = [
     state: 'NH',
     lat: 43.9506,
     lon: -71.5072,
+    baseElevationFt: 1985,
+    summitElevationFt: 4003,
     scrapeUrl: 'https://www.waterville.com/mountain-report',
   },
   {
@@ -151,6 +193,8 @@ export const resorts: Resort[] = [
     state: 'NH',
     lat: 44.2581,
     lon: -71.2256,
+    baseElevationFt: 1949,
+    summitElevationFt: 4062,
     scrapeUrl: 'https://www.skiwildcat.com/the-mountain/mountain-conditions',
   },
   {
@@ -159,6 +203,8 @@ export const resorts: Resort[] = [
     state: 'NH',
     lat: 44.0822,
     lon: -71.2292,
+    baseElevationFt: 600,
+    summitElevationFt: 2350,
     scrapeUrl: 'https://www.attitash.com/the-mountain/mountain-conditions',
   },
   {
@@ -167,6 +213,8 @@ export const resorts: Resort[] = [
     state: 'NH',
     lat: 44.0584,
     lon: -71.1284,
+    baseElevationFt: 800,
+    summitElevationFt: 2000,
     scrapeUrl: 'https://www.cranmore.com/conditions',
   },
   // --- Southern New Hampshire additions ---
@@ -176,9 +224,8 @@ export const resorts: Resort[] = [
     state: 'NH',
     lat: 43.0740,
     lon: -71.7508,
-    // approximate base and summit elevations (ft). These are best-effort values and can be updated later.
-    baseElevationFt: 620,
-    summitElevationFt: 1030,
+    baseElevationFt: 590,
+    summitElevationFt: 1398,
     scrapeUrl: 'https://www.patspeak.com',
     conditionsUrl: 'https://www.patspeak.com/conditions',
   },
@@ -188,7 +235,7 @@ export const resorts: Resort[] = [
     state: 'NH',
     lat: 43.3337,
     lon: -72.0586,
-    baseElevationFt: 1600,
+    baseElevationFt: 1230,
     summitElevationFt: 2743,
     scrapeUrl: 'https://www.mountsunapee.com',
     conditionsUrl: 'https://www.mountsunapee.com/mountain/conditions',
@@ -199,8 +246,8 @@ export const resorts: Resort[] = [
     state: 'NH',
     lat: 43.5792,
     lon: -71.4246,
-    baseElevationFt: 600,
-    summitElevationFt: 2240,
+    baseElevationFt: 1400,
+    summitElevationFt: 2267,
     scrapeUrl: 'https://www.gunstock.com',
     conditionsUrl: 'https://www.gunstock.com/mountain-report',
   },
@@ -210,7 +257,7 @@ export const resorts: Resort[] = [
     state: 'NH',
     lat: 42.8537,
     lon: -71.6146,
-    baseElevationFt: 400,
+    baseElevationFt: 1166,
     summitElevationFt: 2066,
     scrapeUrl: 'https://www.crotchedmountain.org',
     conditionsUrl: 'https://www.crotchedmountain.org/mountain-report',
@@ -222,7 +269,7 @@ export const resorts: Resort[] = [
     lat: 42.9955,
     lon: -71.4601,
     baseElevationFt: 200,
-    summitElevationFt: 350,
+    summitElevationFt: 400,
     scrapeUrl: 'https://www.mcintyreskiarea.com',
     conditionsUrl: 'https://www.mcintyreskiarea.com/conditions',
   },
@@ -232,10 +279,21 @@ export const resorts: Resort[] = [
     state: 'NH',
     lat: 43.2986,
     lon: -71.8514,
-    baseElevationFt: 600,
-    summitElevationFt: 1350,
+    baseElevationFt: 1115,
+    summitElevationFt: 2231,
     scrapeUrl: 'https://skiragged.com',
     conditionsUrl: 'https://skiragged.com/mountain-report',
+  },
+  {
+    id: 'dartmouth-skiway',
+    name: 'Dartmouth Skiway',
+    state: 'NH',
+    lat: 43.7869,
+    lon: -72.1008,
+    baseElevationFt: 975,
+    summitElevationFt: 1943,
+    scrapeUrl: 'https://sites.dartmouth.edu/skiway',
+    conditionsUrl: 'https://sites.dartmouth.edu/skiway/conditions',
   },
   // --- Additional Maine Resorts ---
   {
@@ -244,6 +302,8 @@ export const resorts: Resort[] = [
     state: 'ME',
     lat: 44.9531,
     lon: -70.5272,
+    baseElevationFt: 2440,
+    summitElevationFt: 4120,
     scrapeUrl: 'https://www.saddlebackmaine.com/conditions/',
   },
   {
@@ -252,6 +312,8 @@ export const resorts: Resort[] = [
     state: 'ME',
     lat: 44.0822,
     lon: -70.7567,
+    baseElevationFt: 1600,
+    summitElevationFt: 2000,
     scrapeUrl: 'https://www.squawmt.com/conditions/',
   },
   // --- Massachusetts Resorts ---
@@ -261,6 +323,8 @@ export const resorts: Resort[] = [
     state: 'MA',
     lat: 42.5556,
     lon: -73.2922,
+    baseElevationFt: 1245,
+    summitElevationFt: 2375,
     scrapeUrl: 'https://www.jiminypeak.com/mountain/conditions',
   },
   {
@@ -269,6 +333,8 @@ export const resorts: Resort[] = [
     state: 'MA',
     lat: 42.5031,
     lon: -71.8867,
+    baseElevationFt: 1006,
+    summitElevationFt: 2006,
     scrapeUrl: 'https://www.wachusett.com/The-Mountain/Conditions.aspx',
   },
   // --- New York Resorts ---
@@ -278,6 +344,8 @@ export const resorts: Resort[] = [
     state: 'NY',
     lat: 44.3656,
     lon: -73.9022,
+    baseElevationFt: 3166,
+    summitElevationFt: 4386,
     scrapeUrl: 'https://whiteface.com/conditions',
   },
   {
@@ -286,6 +354,8 @@ export const resorts: Resort[] = [
     state: 'NY',
     lat: 43.6747,
     lon: -74.0061,
+    baseElevationFt: 1000,
+    summitElevationFt: 3600,
     scrapeUrl: 'https://goremountain.com/conditions/',
   },
   {
@@ -294,6 +364,8 @@ export const resorts: Resort[] = [
     state: 'NY',
     lat: 42.2022,
     lon: -74.2331,
+    baseElevationFt: 1600,
+    summitElevationFt: 3200,
     scrapeUrl: 'https://www.huntermtn.com/the-mountain/mountain-conditions',
   },
   {
@@ -302,6 +374,8 @@ export const resorts: Resort[] = [
     state: 'NY',
     lat: 42.2917,
     lon: -74.2581,
+    baseElevationFt: 1500,
+    summitElevationFt: 3100,
     scrapeUrl: 'https://www.windhammountain.com/the-mountain/mountain-conditions',
   },
   {
@@ -310,7 +384,19 @@ export const resorts: Resort[] = [
     state: 'NY',
     lat: 42.1356,
     lon: -74.5061,
+    baseElevationFt: 1900,
+    summitElevationFt: 3420,
     scrapeUrl: 'https://www.belleayre.com/conditions/',
+  },
+  {
+    id: 'plattekill-mountain',
+    name: 'Plattekill Mountain',
+    state: 'NY',
+    lat: 42.2903,
+    lon: -74.6537,
+    baseElevationFt: 2400,
+    summitElevationFt: 3500,
+    scrapeUrl: 'https://www.plattekill.com/mountain-info/conditions',
   },
   // --- Pennsylvania Resorts ---
   {
@@ -319,6 +405,8 @@ export const resorts: Resort[] = [
     state: 'PA',
     lat: 41.1081,
     lon: -75.6581,
+    baseElevationFt: 1706,
+    summitElevationFt: 2690,
     scrapeUrl: 'https://www.jfbb.com/conditions/',
   },
   {
@@ -327,6 +415,8 @@ export const resorts: Resort[] = [
     state: 'PA',
     lat: 41.7131,
     lon: -75.5781,
+    baseElevationFt: 1742,
+    summitElevationFt: 2667,
     scrapeUrl: 'https://www.elkskier.com/conditions/',
   },
   {
@@ -335,6 +425,8 @@ export const resorts: Resort[] = [
     state: 'PA',
     lat: 40.8117,
     lon: -75.5217,
+    baseElevationFt: 460,
+    summitElevationFt: 1600,
     scrapeUrl: 'https://www.skibluemt.com/mountain-report/',
   },
   {
@@ -343,7 +435,19 @@ export const resorts: Resort[] = [
     state: 'PA',
     lat: 40.0231,
     lon: -79.2981,
+    baseElevationFt: 2240,
+    summitElevationFt: 2994,
     scrapeUrl: 'https://www.7springs.com/conditions/',
+  },
+  {
+    id: 'roundtop-mountain',
+    name: 'Roundtop Mountain',
+    state: 'PA',
+    lat: 39.9500,
+    lon: -76.9833,
+    baseElevationFt: 1706,
+    summitElevationFt: 2690,
+    scrapeUrl: 'https://www.roundtopmountain.org/conditions/',
   },
   // --- Connecticut Resorts ---
   {
@@ -352,6 +456,8 @@ export const resorts: Resort[] = [
     state: 'CT',
     lat: 41.5992,
     lon: -72.9272,
+    baseElevationFt: 400,
+    summitElevationFt: 700,
     scrapeUrl: 'https://mountsouthington.com/conditions/',
   },
   {
@@ -360,6 +466,8 @@ export const resorts: Resort[] = [
     state: 'CT',
     lat: 41.4992,
     lon: -72.8272,
+    baseElevationFt: 400,
+    summitElevationFt: 720,
     scrapeUrl: 'https://www.powderridgepark.com/conditions/',
   },
   // --- New Jersey Resorts ---
@@ -369,6 +477,8 @@ export const resorts: Resort[] = [
     state: 'NJ',
     lat: 41.1822,
     lon: -74.5081,
+    baseElevationFt: 280,
+    summitElevationFt: 1280,
     scrapeUrl: 'https://www.mountaincreek.com/mountain/conditions/',
   },
   {
@@ -377,6 +487,8 @@ export const resorts: Resort[] = [
     state: 'NJ',
     lat: 41.0481,
     lon: -74.2081,
+    baseElevationFt: 200,
+    summitElevationFt: 800,
     scrapeUrl: 'https://www.campgaw.com/conditions/',
   },
   // --- Additional New Hampshire Resorts ---
@@ -386,7 +498,31 @@ export const resorts: Resort[] = [
     state: 'NH',
     lat: 44.1667,
     lon: -71.1667,
+    baseElevationFt: 1190,
+    summitElevationFt: 3300,
     scrapeUrl: 'https://www.blackmt.com/conditions/',
+  },
+  {
+    id: 'whaleback-mountain',
+    name: 'Whaleback Mountain',
+    state: 'NH',
+    lat: 43.4986,
+    lon: -72.1786,
+    baseElevationFt: 1100,
+    summitElevationFt: 1800,
+    scrapeUrl: 'https://www.whaleback.com',
+    conditionsUrl: 'https://www.whaleback.com/mountain-report',
+  },
+  {
+    id: 'tenney-mountain',
+    name: 'Tenney Mountain',
+    state: 'NH',
+    lat: 43.7417,
+    lon: -71.7833,
+    baseElevationFt: 748,
+    summitElevationFt: 2149,
+    scrapeUrl: 'https://www.skitenney.com',
+    conditionsUrl: 'https://www.skitenney.com/mountain-report',
   },
 ];
 

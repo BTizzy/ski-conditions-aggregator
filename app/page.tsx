@@ -2,15 +2,15 @@
 import React, { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { resorts } from '../lib/resorts';
-import { FaSkiing, FaSnowboarding } from 'react-icons/fa';
 
 // Dynamically import the map component to avoid SSR issues with Leaflet
 const ResortMap = dynamic(() => import('./components/ResortMap'), {
   ssr: false,
-  loading: () => {
-    console.log('[Page] ResortMap loading...');
-    return <div className="flex-1 flex items-center justify-center"><div className="text-blue-500 text-xl">Loading map...</div></div>;
-  }
+  loading: () => (
+    <div className="flex-1 flex items-center justify-center bg-gray-900">
+      <div className="text-blue-500 text-xl">Loading map...</div>
+    </div>
+  )
 });
 
 interface ResortConditions {
@@ -126,29 +126,44 @@ const HomePage: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-blue-300 via-white to-blue-500 flex flex-col relative overflow-hidden">
-      {/* Header */}
-      <header className="relative z-10 p-6 text-center bg-white/10 backdrop-blur-sm rounded-lg mx-4 mt-4 shadow-lg">
-        <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-4 drop-shadow-2xl tracking-tight flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
-          <FaSkiing className="text-blue-300 drop-shadow-lg animate-bounce" />
-          <span>Northeast Ski Resort Conditions</span>
-          <FaSnowboarding className="text-blue-300 drop-shadow-lg animate-bounce" />
-        </h1>
-        <p className="text-blue-100 text-lg font-medium drop-shadow-lg">
-          Interactive map showing real-time weather conditions
-        </p>
+    <div className="w-full h-screen flex flex-col bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+      {/* Enhanced Header */}
+      <header className="bg-gradient-to-r from-gray-900/95 to-gray-800/95 backdrop-blur-sm 
+                         border-b border-white/10 shadow-xl">
+        <div className="px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="text-4xl">⛷️</div>
+              <div>
+                <h1 className="text-2xl font-bold text-transparent bg-clip-text 
+                               bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">
+                  Ski Resort Conditions
+                </h1>
+                <p className="text-xs text-white/60 mt-0.5">
+                  Real-time weather & snowfall tracking
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <div className="text-sm font-semibold text-white/90">
+                  {resorts.length} Resorts
+                </div>
+                <div className="text-xs text-white/60">
+                  {mounted && !error.global ? (
+                    <span className="text-emerald-400">✓ {Object.keys(data).length} loaded</span>
+                  ) : (
+                    <span className="text-yellow-400 animate-pulse">● Loading...</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </header>
 
-      {/* Status Bar */}
-      <div className="relative z-10 px-4 py-2 text-center bg-white/20 backdrop-blur-sm text-blue-100 text-sm font-medium">
-        <span>
-          🗻 {resorts.length} resorts •{' '}
-          {mounted ? (error.global ? `Error: ${error.global}` : 'Loading conditions…') : ''}
-        </span>
-      </div>
-
-      {/* Map */}
-      <div className="flex-1 relative">
+      {/* Full-Screen Map */}
+      <div className="flex-1 w-full relative">
         <ResortMap
           resorts={resorts}
           conditions={data}
@@ -156,12 +171,6 @@ const HomePage: React.FC = () => {
           errors={error}
         />
       </div>
-
-      {/* Footer */}
-      <footer className="relative z-10 p-4 text-center text-blue-800 opacity-90 font-semibold drop-shadow-lg">
-        <span>&copy; {new Date().getFullYear()} Ski Conditions Aggregator</span>
-        <span className="block text-blue-400 text-sm mt-1">Designed for snow lovers &mdash; Feel the mountain vibes!</span>
-      </footer>
     </div>
   );
 };

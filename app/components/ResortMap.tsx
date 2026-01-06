@@ -44,6 +44,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
 }) => {
   console.log('[ResortMap] Component function called');
 
+  const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<Map<string, L.CircleMarker>>(new Map());
@@ -51,9 +52,14 @@ const ResortMap: React.FC<ResortMapProps> = ({
   const canvas2Ref = useRef<HTMLCanvasElement | null>(null);
   const popupsRef = useRef<Map<string, L.Popup>>(new Map());
   const precipOverlayRef = useRef<L.LayerGroup | null>(null);
+
+  // Ensure we only render on client-side
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   const [radarPlaying, setRadarPlaying] = useState(true);
-  const [radarSpeedMs, setRadarSpeedMs] = useState(800);
+  const [radarSpeedMs, setRadarSpeedMs] = useState(1500); // Slower for daily frames
   const [mapReady, setMapReady] = useState(false);
   const [radarOpacity, setRadarOpacity] = useState(0.6);
   const [radarVisible, setRadarVisible] = useState(true);
@@ -138,6 +144,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
 
   // Initialize map
   useEffect(() => {
+    if (!mounted) return;
     if (mapRef.current || !containerRef.current) return;
     if (containerRef.current.innerHTML !== '') containerRef.current.innerHTML = '';
 
@@ -275,7 +282,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
     return () => {
       map.remove();
     };
-  }, []);
+  }, [mounted]);
 
   // Load radar frames - try REAL radar first, synthetic as fallback
   useEffect(() => {
@@ -301,16 +308,17 @@ const ResortMap: React.FC<ResortMapProps> = ({
           console.warn('[Frames] Real radar fetch failed or timed out; continuing with synthetic', err);
         }
 
-        // FORCE SYNTHETIC MODE: Skip real radar and always use synthetic for better animation
-        console.log('[Frames] Forcing synthetic radar mode for better precipitation animation...');
+        // USE REAL RESORT DATA: Use actual daily precipitation from resort observations
+        console.log('[Frames] Loading real resort precipitation data for 7-day radar animation...');
 
-        // Generate 48 synthetic "frames" client-side for smooth 7-day precipitation animation
-        console.log('[Frames] Generating 48 synthetic frames client-side...');
+        // Generate 7 daily frames (1 per day for the past week)
+        // Each frame uses real snowfall/rainfall data from resort observations
+        console.log('[Frames] Generating 7 daily frames from real resort data...');
 
         const now = Date.now();
-        const frameObjects = Array.from({ length: 48 }, (_, hour) => ({
-          url: `/api/radar/synthetic?hour=${hour}`,
-          time: now - (47 - hour) * 60 * 60 * 1000,
+        const frameObjects = Array.from({ length: 7 }, (_, day) => ({
+          url: `/api/radar/synthetic?day=${day}`,
+          time: now - day * 24 * 60 * 60 * 1000, // Each frame represents 1 day of real precipitation
         }));
 
         // Clear existing caches to ensure fresh animation
@@ -321,9 +329,9 @@ const ResortMap: React.FC<ResortMapProps> = ({
         radarIndexRef.current = 0;
         setFrameCount(frameObjects.length);
         setRadarFramesAvailable(true);
-        console.log('[Frames] Set radarFramesAvailable to: true (synthetic), frames:', frameObjects.length);
+        console.log('[Frames] Set radarFramesAvailable to: true (real resort data), frames:', frameObjects.length);
         setRadarSource('synthetic');
-        setLoadingStatus('Ready: 48 synthetic frames (7-day precipitation animation)');
+        setLoadingStatus('Ready: 7 days of real resort precipitation data');
       } catch (e) {
         console.error('[Frames] Load failed:', e);
         setLoadingStatus(`Failed to load frames: ${e}`);
@@ -361,13 +369,17 @@ const ResortMap: React.FC<ResortMapProps> = ({
         markerColor = '#EF4444';
         markerRadius = 7;
       } else if (cond) {
-        if (cond.recentSnowfall >= 12) {
+        if (cond.recentSnowfall >= 6) {
+          // Heavy snow: Dark blue
           markerColor = '#0EA5E9'; markerRadius = 12; markerWeight = 3;
-        } else if (cond.recentSnowfall >= 6) {
-          markerColor = '#06B6D4'; markerRadius = 10; markerWeight = 3;
-        } else if (cond.recentSnowfall >= 1) {
-          markerColor = '#3B82F6'; markerRadius = 9;
+        } else if (cond.recentSnowfall >= 2) {
+          // Moderate snow: Medium blue
+          markerColor = '#3B82F6'; markerRadius = 10; markerWeight = 3;
+        } else if (cond.recentSnowfall >= 0.2) {
+          // Light snow: Light blue/cyan
+          markerColor = '#06B6D4'; markerRadius = 9;
         } else {
+          // No snow: Orange
           markerColor = '#F59E0B'; markerRadius = 8;
         }
       }
@@ -519,18 +531,18 @@ const ResortMap: React.FC<ResortMapProps> = ({
           : undefined;
 
       // Handle synthetic radar URLs directly
-      if (layerStr.includes('/api/radar/synthetic?hour=')) {
-        // Extract hour parameter and build tile URL
-        const hourMatch = layerStr.match(/hour=(\d+)/);
-        if (hourMatch) {
-          const hour = hourMatch[1];
-          // Cache-bust synthetic tiles so server-side diagnostics always fire during dev.
-          url = `/api/radar/synthetic?hour=${hour}&z=${z}&x=${x}&y=${y}&cb=${Date.now()}`;
+      if (layerStr.includes('/api/radar/synthetic?day=') || layerStr.includes('/api/radar/simple-synthetic?day=')) {
+        // Extract day parameter and build tile URL
+        const dayMatch = layerStr.match(/day=(\d+)/);
+        const endpoint = layerStr.includes('simple-synthetic') ? '/api/radar/simple-synthetic' : '/api/radar/synthetic';
+        if (dayMatch) {
+          const day = dayMatch[1];
+          url = `${endpoint}?day=${day}&z=${z}&x=${x}&y=${y}`;
         } else {
           return null;
         }
-      } else if (layerStr.startsWith('/api/radar/synthetic?')) {
-        // Robust: if a synthetic URL comes through without the exact hour= matcher above,
+      } else if (layerStr.startsWith('/api/radar/synthetic?') || layerStr.startsWith('/api/radar/simple-synthetic?')) {
+        // Robust: if a synthetic URL comes through without the exact day= matcher above,
         // we still treat it as a base URL and just append tile coords.
         url = `${layerStr}${layerStr.includes('?') ? '&' : '?'}z=${z}&x=${x}&y=${y}&cb=${Date.now()}`;
       } else if (!layerStr.startsWith('http://') && !layerStr.startsWith('https://') && !layerStr.startsWith('/')) {
@@ -911,6 +923,15 @@ const ResortMap: React.FC<ResortMapProps> = ({
     if (canvas2Ref.current) canvas2Ref.current.style.opacity = String(effectiveOpacity);
   }, [radarOpacity, radarVisible]);
 
+  // Don't render until mounted on client
+  if (!mounted) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-gray-900">
+        <div className="text-blue-500 text-xl">Loading map...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative w-full h-screen bg-gray-100 flex flex-col">
       {(() => {
@@ -984,49 +1005,88 @@ const ResortMap: React.FC<ResortMapProps> = ({
       )}
 
       {selectedResort && (
-        <div className="absolute top-4 right-4 z-[1001] max-w-sm">
-          <div className="rounded-2xl border border-white/20 bg-white/10 backdrop-blur-xl shadow-[0_10px_40px_rgba(0,0,0,0.25)] overflow-hidden">
-            <div className="flex items-start justify-between px-4 py-3 border-b border-white/15">
-              <div>
-                <div className="text-white font-semibold text-sm">{selectedResort.resort.name}</div>
-                <div className="text-white/70 text-xs">{selectedResort.resort.state}</div>
+        <div className="absolute top-4 right-4 z-[1001] max-w-sm w-80">
+          <div className="rounded-2xl border border-white/20 bg-gradient-to-br from-gray-900/98 to-gray-800/98 
+                          backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.4)] overflow-hidden">
+            {/* Header */}
+            <div className="flex items-start justify-between px-5 py-4 border-b border-white/10 
+                            bg-gradient-to-r from-blue-500/10 to-purple-500/10">
+              <div className="flex-1">
+                <div className="text-white font-bold text-lg mb-1">{selectedResort.resort.name}</div>
+                <div className="flex items-center gap-2 text-white/60 text-xs">
+                  <span>📍 {selectedResort.resort.state}</span>
+                  {selectedResort.resort.elevationFt && (
+                    <span>• ⛰️ {selectedResort.resort.elevationFt.toLocaleString()}ft</span>
+                  )}
+                </div>
               </div>
               <button
                 onClick={() => setSelectedResort(null)}
-                className="text-white/70 hover:text-white text-lg leading-none"
+                className="text-white/50 hover:text-white hover:bg-white/10 rounded-lg p-1.5
+                           transition-all duration-200 active:scale-95"
                 aria-label="Close"
               >
-                ✕
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
 
-            <div className="px-4 py-3 space-y-2 text-sm">
-              <div className="flex justify-between items-center">
-                <span className="text-white/70">24h Snow</span>
-                <span className="text-white font-semibold">{selectedResort.conditions.recentSnowfall}&quot;</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-white/70">7d Snow</span>
-                <span className="text-white font-semibold">{selectedResort.conditions.weeklySnowfall ?? 0}&quot;</span>
-              </div>
-                {/* Base depth is unreliable; emphasize 7d instead */}
-              <div className="flex justify-between items-center">
-                <span className="text-white/70">Temp</span>
-                <span className="text-white font-semibold">{selectedResort.conditions.baseTemp}°F</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-white/70">Wind</span>
-                <span className="text-white font-semibold">{selectedResort.conditions.windSpeed} mph</span>
+            {/* Snow Stats - Highlighted */}
+            <div className="px-5 py-4 bg-gradient-to-br from-blue-500/5 to-purple-500/5">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-xl p-3 border border-blue-400/30">
+                  <div className="text-blue-300 text-xs font-semibold mb-1">24h Snowfall</div>
+                  <div className="text-white text-2xl font-bold">
+                    {selectedResort.conditions.recentSnowfall}
+                    <span className="text-sm text-white/70 ml-1">in</span>
+                  </div>
+                </div>
+                <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-xl p-3 border border-purple-400/30">
+                  <div className="text-purple-300 text-xs font-semibold mb-1">7d Snowfall</div>
+                  <div className="text-white text-2xl font-bold">
+                    {selectedResort.conditions.weeklySnowfall ?? 0}
+                    <span className="text-sm text-white/70 ml-1">in</span>
+                  </div>
+                </div>
               </div>
             </div>
 
+            {/* Weather Stats */}
+            <div className="px-5 py-4 space-y-2.5">
+              <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
+                <span className="text-white/70 text-sm flex items-center gap-2">
+                  <span className="text-lg">🌡️</span> Temperature
+                </span>
+                <span className="text-white font-bold text-sm">{selectedResort.conditions.baseTemp}°F</span>
+              </div>
+              <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
+                <span className="text-white/70 text-sm flex items-center gap-2">
+                  <span className="text-lg">💨</span> Wind Speed
+                </span>
+                <span className="text-white font-bold text-sm">{selectedResort.conditions.windSpeed} mph</span>
+              </div>
+              {selectedResort.conditions.visibility && (
+                <div className="flex justify-between items-center p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors">
+                  <span className="text-white/70 text-sm flex items-center gap-2">
+                    <span className="text-lg">👁️</span> Visibility
+                  </span>
+                  <span className="text-white font-bold text-sm">{selectedResort.conditions.visibility}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Action Button */}
             {(selectedResort.resort.conditionsUrl || selectedResort.resort.scrapeUrl) && (
-              <div className="px-4 pb-4">
+              <div className="px-5 pb-5">
                 <a
                   href={selectedResort.resort.conditionsUrl || selectedResort.resort.scrapeUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block text-center rounded-xl bg-white/15 hover:bg-white/20 border border-white/20 text-white font-semibold py-2 text-sm transition"
+                  className="block text-center rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 
+                             hover:from-blue-600 hover:to-purple-700 border border-white/20 
+                             text-white font-bold py-3 text-sm transition-all duration-200
+                             shadow-lg hover:shadow-xl active:scale-95"
                 >
                   View Full Report →
                 </a>

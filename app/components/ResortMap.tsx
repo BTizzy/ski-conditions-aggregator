@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import RadarControls from './RadarControls';
@@ -44,24 +44,28 @@ const ResortMap: React.FC<ResortMapProps> = ({
 }) => {
   console.log('[ResortMap] Component function called');
 
-  try {
-    const containerRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<Map<string, L.CircleMarker>>(new Map());
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const canvas2Ref = useRef<HTMLCanvasElement | null>(null);
   const popupsRef = useRef<Map<string, L.Popup>>(new Map());
+  const precipOverlayRef = useRef<L.LayerGroup | null>(null);
   
   const [radarPlaying, setRadarPlaying] = useState(true);
   const [radarSpeedMs, setRadarSpeedMs] = useState(800);
+  const [mapReady, setMapReady] = useState(false);
   const [radarOpacity, setRadarOpacity] = useState(0.6);
+  const [radarVisible, setRadarVisible] = useState(true);
   const [radarFramesAvailable, setRadarFramesAvailable] = useState(false);
+  const [radarMode, setRadarMode] = useState<'synthetic' | 'live'>('synthetic');
+  const [framesReloadKey, setFramesReloadKey] = useState(0);
   const [frameCount, setFrameCount] = useState(0);
   const [loadingStatus, setLoadingStatus] = useState('Initializing map...');
-  const [mapReady, setMapReady] = useState(false);
   const [selectedResort, setSelectedResort] = useState<{ resort: Resort; conditions: ResortConditions } | null>(null);
   const [radarSource, setRadarSource] = useState('synthetic');
   const [currentFrameTime, setCurrentFrameTime] = useState<number | null>(null);
+  const [highlightPrecip, setHighlightPrecip] = useState(true);
 
   const radarFramesRef = useRef<Array<{ url: string; time?: number }>>([]); 
   const radarIndexRef = useRef(0);
@@ -79,6 +83,53 @@ const ResortMap: React.FC<ResortMapProps> = ({
     radarPlayingRef.current = false;
   };
 
+  const handleStep = (delta: number) => {
+    const frames = radarFramesRef.current;
+    if (!frames.length) return;
+    const next = (radarIndexRef.current + delta + frames.length) % frames.length;
+    radarIndexRef.current = next;
+    setRadarPlaying(false);
+    radarPlayingRef.current = false;
+  };
+
+  const handleScrub = (frame: number) => {
+    const frames = radarFramesRef.current;
+    if (!frames.length) return;
+    const idx = Math.min(frames.length - 1, Math.max(0, frame - 1));
+    radarIndexRef.current = idx;
+    setRadarPlaying(false);
+    radarPlayingRef.current = false;
+  };
+
+  const handleRefresh = () => {
+    tileBitmapCache.current.clear();
+    frameCanvasCache.current.clear();
+    setFramesReloadKey(k => k + 1);
+    setLoadingStatus('Refreshing radar...');
+  };
+
+  const handleJumpStart = () => {
+    if (!radarFramesRef.current.length) return;
+    radarIndexRef.current = 0;
+    setRadarPlaying(false);
+    radarPlayingRef.current = false;
+  };
+
+  const handleJumpEnd = () => {
+    const len = radarFramesRef.current.length;
+    if (!len) return;
+    radarIndexRef.current = len - 1;
+    setRadarPlaying(false);
+    radarPlayingRef.current = false;
+  };
+
+  const handleSourceChange = (source: string) => {
+    const next = source === 'live' ? 'live' : 'synthetic';
+    setRadarMode(next as 'live' | 'synthetic');
+    setRadarSource(next);
+    handleRefresh();
+  };
+
   const handlePlayPause = () => {
     const newPlaying = !radarPlaying;
     setRadarPlaying(newPlaying);
@@ -87,211 +138,174 @@ const ResortMap: React.FC<ResortMapProps> = ({
 
   // Initialize map
   useEffect(() => {
-    if (mapRef.current) return;
-    if (!containerRef.current) return;
+    if (mapRef.current || !containerRef.current) return;
     if (containerRef.current.innerHTML !== '') containerRef.current.innerHTML = '';
 
     console.log('[Map] Starting initialization...');
 
+    const map = L.map(containerRef.current, {
+      center: [43.5, -71.5],
+      zoom: 7,
+      scrollWheelZoom: true,
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+      maxZoom: 19,
+    }).addTo(map);
+
+    mapRef.current = map;
+
+    // MONKEY PATCH: Log any radar-related fetches at the global level so we
+    // can reliably observe requests regardless of local code path.
     try {
-      const map = L.map(containerRef.current, {
-        center: [43.5, -71.5],
-        zoom: 7,
-        scrollWheelZoom: true,
-      });
-
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors',
-        maxZoom: 19,
-      }).addTo(map);
-
-      mapRef.current = map;
-
-      // MONKEY PATCH: Log any radar-related fetches at the global level so we
-      // can reliably observe requests regardless of local code path.
-      try {
-        // Avoid double-patching in HMR/dev reloads
-        if (!(window as any).__radarFetchPatched) {
-          const origFetch = window.fetch.bind(window);
-          (window as any).__radarFetchPatched = true;
-          window.fetch = async (input: any, init?: any) => {
-            try {
-              const url = typeof input === 'string' ? input : (input && input.url) || '';
-              if (typeof url === 'string' && url.includes('/api/radar')) {
-                console.log('[Radar Debug] global fetch', { url, init });
-              }
-            } catch (e) { /* ignore */ }
-            return origFetch(input, init);
-          };
-        }
-      } catch (e) {
-        console.warn('[Radar Debug] failed to patch fetch', e);
+      if (!(window as any).__radarFetchPatched) {
+        const origFetch = window.fetch.bind(window);
+        (window as any).__radarFetchPatched = true;
+        window.fetch = async (input: any, init?: any) => {
+          try {
+            const url = typeof input === 'string' ? input : (input && input.url) || '';
+            if (typeof url === 'string' && url.includes('/api/radar')) {
+              console.log('[Radar Debug] global fetch', { url, init });
+            }
+          } catch (e) { /* ignore */ }
+          return origFetch(input, init);
+        };
       }
+    } catch (e) {
+      console.warn('[Radar Debug] failed to patch fetch', e);
+    }
 
-      if (!map.getPane('radarPane')) map.createPane('radarPane');
-      const radarPane = map.getPane('radarPane') as HTMLElement;
-      radarPane.style.zIndex = '400';
-      radarPane.style.pointerEvents = 'none';
+    if (!map.getPane('radarPane')) map.createPane('radarPane');
+    const radarPane = map.getPane('radarPane') as HTMLElement;
+    radarPane.id = 'radarPane';
+    radarPane.style.zIndex = '400';
+    radarPane.style.pointerEvents = 'none';
 
-      const markerPane = map.getPane('markerPane') as HTMLElement;
-      markerPane.style.zIndex = '700';
+    const markerPane = map.getPane('markerPane') as HTMLElement;
+    markerPane.style.zIndex = '700';
 
-      const container2 = document.createElement('div');
-      container2.style.position = 'absolute';
-      container2.style.left = '0';
-      container2.style.top = '0';
-      container2.style.width = '100%';
-      container2.style.height = '100%';
-      container2.style.pointerEvents = 'none';
+    const container2 = document.createElement('div');
+    container2.style.position = 'absolute';
+    container2.style.left = '0';
+    container2.style.top = '0';
+    container2.style.width = '100%';
+    container2.style.height = '100%';
+    container2.style.pointerEvents = 'none';
 
-      // Create two canvases for smooth cross-fading
-      const canvas1 = document.createElement('canvas');
-      canvas1.style.position = 'absolute';
-      canvas1.style.left = '0';
-      canvas1.style.top = '0';
-      canvas1.style.pointerEvents = 'none';
-      canvas1.style.opacity = '1';
-      canvas1.style.willChange = 'opacity';
+    // Create two canvases for smooth cross-fading
+  const canvas1 = document.createElement('canvas');
+  canvas1.setAttribute('data-testid', 'radar-canvas-1');
+  canvas1.dataset.testid = 'radar-canvas-1';
+    canvas1.style.position = 'absolute';
+    canvas1.style.left = '0';
+    canvas1.style.top = '0';
+    canvas1.style.pointerEvents = 'none';
+    canvas1.style.opacity = '1';
+    canvas1.style.willChange = 'opacity';
+  canvas1.style.display = 'block';
 
-      const canvas2 = document.createElement('canvas');
-      canvas2.style.position = 'absolute';
-      canvas2.style.left = '0';
-      canvas2.style.top = '0';
-      canvas2.style.pointerEvents = 'none';
-      canvas2.style.opacity = '0';
-      canvas2.style.willChange = 'opacity';
+  const canvas2 = document.createElement('canvas');
+  canvas2.setAttribute('data-testid', 'radar-canvas-2');
+  canvas2.dataset.testid = 'radar-canvas-2';
+    canvas2.style.position = 'absolute';
+    canvas2.style.left = '0';
+    canvas2.style.top = '0';
+    canvas2.style.pointerEvents = 'none';
+    canvas2.style.opacity = '0';
+    canvas2.style.willChange = 'opacity';
+  canvas2.style.display = 'block';
 
-      container2.appendChild(canvas1);
-      container2.appendChild(canvas2);
-      radarPane.appendChild(container2);
-      canvasRef.current = canvas1;
-      canvas2Ref.current = canvas2;
+    container2.appendChild(canvas1);
+    container2.appendChild(canvas2);
+    radarPane.appendChild(container2);
+    canvasRef.current = canvas1;
+    canvas2Ref.current = canvas2;
 
-      const resizeCanvas = () => {
-        if (!canvas1 || !canvas2 || !map) return;
-        const size = map.getSize();
-        const dpr = window.devicePixelRatio || 1;
-        canvas1.width = size.x * dpr;
-        canvas1.height = size.y * dpr;
-        canvas1.style.width = `${size.x}px`;
-        canvas1.style.height = `${size.y}px`;
-        const ctx1 = canvas1.getContext('2d');
-        if (ctx1) ctx1.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const resizeCanvas = () => {
+      if (!canvas1 || !canvas2 || !map) return;
+      const size = map.getSize();
+      const dpr = window.devicePixelRatio || 1;
+      canvas1.width = size.x * dpr;
+      canvas1.height = size.y * dpr;
+      canvas1.style.width = `${size.x}px`;
+      canvas1.style.height = `${size.y}px`;
+      const ctx1 = canvas1.getContext('2d');
+      if (ctx1) ctx1.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-        canvas2.width = size.x * dpr;
-        canvas2.height = size.y * dpr;
-        canvas2.style.width = `${size.x}px`;
-        canvas2.style.height = `${size.y}px`;
-        const ctx2 = canvas2.getContext('2d');
-        if (ctx2) ctx2.setTransform(dpr, 0, 0, dpr, 0, 0);
-        // Don't clear cache on resize - let it rebuild naturally to prevent flashing
-      };
+      canvas2.width = size.x * dpr;
+      canvas2.height = size.y * dpr;
+      canvas2.style.width = `${size.x}px`;
+      canvas2.style.height = `${size.y}px`;
+      const ctx2 = canvas2.getContext('2d');
+      if (ctx2) ctx2.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
 
-      resizeCanvas();
-      map.on('resize', resizeCanvas);
-      
-      map.on('movestart', () => { mapPanZoomRef.current.panning = true; });
-      map.on('moveend', () => {
-        mapPanZoomRef.current.panning = false;
-        // Don't clear cache immediately, let it rebuild naturally
-        setTimeout(() => frameCanvasCache.current.clear(), 1000);
-      });
-      map.on('zoomstart', () => { mapPanZoomRef.current.zooming = true; });
-      map.on('zoomend', () => {
-        mapPanZoomRef.current.zooming = false;
-        // Don't clear cache immediately, let it rebuild naturally
-        setTimeout(() => frameCanvasCache.current.clear(), 1000);
-      });
+    resizeCanvas();
+    map.on('resize', resizeCanvas);
+    
+    map.on('movestart', () => { mapPanZoomRef.current.panning = true; });
+    map.on('moveend', () => {
+      mapPanZoomRef.current.panning = false;
+      setTimeout(() => frameCanvasCache.current.clear(), 1000);
+    });
+    map.on('zoomstart', () => { mapPanZoomRef.current.zooming = true; });
+    map.on('zoomend', () => {
+      mapPanZoomRef.current.zooming = false;
+      setTimeout(() => frameCanvasCache.current.clear(), 1000);
+    });
 
-      setTimeout(() => map.invalidateSize(), 200);
+    // Overlay layer for precip highlights
+    precipOverlayRef.current = L.layerGroup();
+    precipOverlayRef.current.addTo(map);
+
+    map.whenReady(() => {
+      // Ensure Leaflet computes pane positions before rendering
+      map.invalidateSize();
+      const center = map.getCenter();
+      if (center) {
+        map.setView(center);
+      }
 
       console.log('[Map] Initialization complete');
       setMapReady(true);
       setLoadingStatus('Map ready. Loading frames...');
-    } catch (error) {
-      console.error('[Map] Initialization failed:', error);
-      setLoadingStatus('Map initialization failed');
-    }
+    });
+
+    return () => {
+      map.remove();
+    };
   }, []);
 
   // Load radar frames - try REAL radar first, synthetic as fallback
   useEffect(() => {
+    console.log('[Frames] effect triggered', { mapReady, framesReloadKey, radarMode });
     if (!mapReady) return;
 
     const loadFrames = async () => {
       try {
-        // Clear any existing cache and force fresh data
         console.log('[Frames] Loading radar frames with cache busting...');
 
-        // Try multi-source radar system (NOAA, RainViewer, OpenWeatherMap)
-        const radarRes = await fetch(`/api/radar/frames?t=${Date.now()}`, {
-          signal: AbortSignal.timeout(8000),
-          headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          }
-        });
-
-        console.log('[Frames] Fetch result - ok:', radarRes.ok, 'status:', radarRes.status);
-
-        if (radarRes.ok) {
-          const data = await radarRes.json();
-          const frames = data?.radar?.past || [];
-
-          if (frames.length > 0) {
-            console.log('[Frames] Using multi-source radar:', frames.length, 'frames from', data?.metadata?.sources?.length || 0, 'sources');
-
-            // Filter to only use provider frames (exclude synthetic frames that start with /api/radar/synthetic)
-            const providerFrames = frames.filter((frame: any) => 
-              !frame.url.startsWith('/api/radar/synthetic')
-            );
-
-            console.log('[Frames] Filtered to provider frames only:', providerFrames.length, 'out of', frames.length);
-
-            const frameObjects = providerFrames.map((frame: any) => ({
-              url: frame.url,
-              time: frame.time
-            }));
-
-            // If no provider frames, fall back to all frames
-            if (frameObjects.length === 0) {
-              console.warn('[Frames] No provider frames found, using all frames');
-              const allFrameObjects = frames.map((frame: any) => ({
-                url: frame.url,
-                time: frame.time
-              }));
-              radarFramesRef.current = allFrameObjects;
-              setFrameCount(allFrameObjects.length);
-              setRadarFramesAvailable(allFrameObjects.length > 0);
-              setRadarSource('multi-source (with synthetic)');
-            } else {
-              // Clear existing caches to ensure fresh animation
-              tileBitmapCache.current.clear();
-              frameCanvasCache.current.clear();
-
-              radarFramesRef.current = frameObjects;
-              setFrameCount(frameObjects.length);
-              setRadarFramesAvailable(frameObjects.length > 0);
-              console.log('[Frames] Set radarFramesAvailable to:', frameObjects.length > 0, 'provider frames:', frameObjects.length);
-              setRadarSource('multi-source (provider only)');
+        // Try multi-source radar system (NOAA, RainViewer, OpenWeatherMap) but never block synthetic fallback
+        try {
+          const signal = typeof AbortSignal !== 'undefined' && 'timeout' in AbortSignal ? AbortSignal.timeout(2000) : undefined;
+          const radarRes = await fetch(`/api/radar/frames?t=${Date.now()}`, {
+            signal,
+            headers: {
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache'
             }
-            
-            setLoadingStatus(`Ready: ${radarFramesRef.current.length} frames (${radarSource})`);
-            return;
-          } else {
-            console.warn('[Frames] Multi-source radar returned empty frames array');
-          }
-        } else {
-          console.error('[Frames] Multi-source radar failed:', radarRes.status, radarRes.statusText);
-          const errorText = await radarRes.text().catch(() => 'Unknown error');
-          console.error('[Frames] Error details:', errorText);
+          });
+          console.log('[Frames] Fetch result - ok:', radarRes.ok, 'status:', radarRes.status);
+        } catch (err) {
+          console.warn('[Frames] Real radar fetch failed or timed out; continuing with synthetic', err);
         }
 
-        // Fallback to synthetic
-        // IMPORTANT: Do NOT fetch a synthetic frames endpoint.
-        // We generate 48 synthetic "frames" client-side, each one referencing /api/radar/synthetic?hour={0..47}
-        // so this works even if the server doesn't maintain a separate frames manifest.
-        console.log('[Frames] Real radar failed, generating 48 synthetic frames client-side...');
+        // FORCE SYNTHETIC MODE: Skip real radar and always use synthetic for better animation
+        console.log('[Frames] Forcing synthetic radar mode for better precipitation animation...');
+
+        // Generate 48 synthetic "frames" client-side for smooth 7-day precipitation animation
+        console.log('[Frames] Generating 48 synthetic frames client-side...');
 
         const now = Date.now();
         const frameObjects = Array.from({ length: 48 }, (_, hour) => ({
@@ -304,15 +318,12 @@ const ResortMap: React.FC<ResortMapProps> = ({
         frameCanvasCache.current.clear();
 
         radarFramesRef.current = frameObjects;
+        radarIndexRef.current = 0;
         setFrameCount(frameObjects.length);
         setRadarFramesAvailable(true);
         console.log('[Frames] Set radarFramesAvailable to: true (synthetic), frames:', frameObjects.length);
         setRadarSource('synthetic');
-        setLoadingStatus('Ready: 48 synthetic frames (IDW from resorts)');
-        return;
-
-        throw new Error('All radar sources failed');
-
+        setLoadingStatus('Ready: 48 synthetic frames (7-day precipitation animation)');
       } catch (e) {
         console.error('[Frames] Load failed:', e);
         setLoadingStatus(`Failed to load frames: ${e}`);
@@ -320,7 +331,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
     };
 
     loadFrames();
-  }, [mapReady]);
+  }, [mapReady, framesReloadKey, radarMode]);
 
   // Add resort markers with proper popup binding
   useEffect(() => {
@@ -404,6 +415,41 @@ const ResortMap: React.FC<ResortMapProps> = ({
     });
   }, [resorts, conditions, loading, errors]);
 
+  // Precipitation highlight overlay (visible even during map moves)
+  useEffect(() => {
+    const map = mapRef.current;
+    const overlay = precipOverlayRef.current;
+    if (!map || !overlay) return;
+
+    overlay.clearLayers();
+    if (!radarVisible || !highlightPrecip) return;
+
+    resorts.forEach((resort) => {
+      const cond = conditions[resort.id];
+      if (!cond) return;
+      const snow = (cond.recentSnowfall || 0) + (cond.weeklySnowfall || 0);
+      const rain = (cond.recentRainfall || 0) + (cond.weeklyRainfall || 0);
+      const total = snow + rain;
+      if (total <= 0) return;
+
+      const color = snow >= rain ? '#60a5fa' : '#34d399';
+      const weight = snow >= rain ? 2 : 1.5;
+      const radius = Math.min(18, 8 + total * 2);
+
+      const circle = L.circleMarker([resort.lat, resort.lon], {
+        radius,
+        fillColor: color,
+        color,
+        weight,
+        fillOpacity: 0.45,
+        opacity: 0.6,
+        pane: 'radarPane',
+      });
+      circle.bindTooltip(`${resort.name}: ${snow.toFixed(1)}" snow / ${rain.toFixed(1)}" rain`, { direction: 'top' });
+      overlay.addLayer(circle);
+    });
+  }, [radarVisible, highlightPrecip, resorts, conditions, mapReady]);
+
   const buildPopupContent = (
     resort: Resort,
     cond: ResortConditions | null | undefined,
@@ -454,7 +500,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
     return div;
   };
 
-  const getTileBitmap = async (
+  const getTileBitmap = useCallback(async (
     layer: string | { url: string; time?: number },
     z: number,
     x: number,
@@ -567,9 +613,9 @@ const ResortMap: React.FC<ResortMapProps> = ({
       console.error('[Radar Debug] getTileBitmap error', e);
       return null;
     }
-  };
+  }, []);
 
-  const renderFrameToCanvas = async (
+  const renderFrameToCanvas = useCallback(async (
     layer: string | { url: string; time?: number },
     z: number,
     widthPx: number,
@@ -592,10 +638,16 @@ const ResortMap: React.FC<ResortMapProps> = ({
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
       const map = mapRef.current;
-      if (!map) return null;
+      if (!map || !mapReady || !(map as any)._loaded) return null;
+
+      const mapPane = (map as any)._mapPane;
+      if (!mapPane || !mapPane._leaflet_pos) return null;
 
       const size = map.getSize();
+      if (!size || size.x === 0 || size.y === 0) return null;
+
       const center = map.getCenter();
+      if (!center) return null;
       const centerWorld = (map as any).project(center, z);
       const leftWorldX = centerWorld.x - size.x / 2;
       const topWorldY = centerWorld.y - size.y / 2;
@@ -643,35 +695,48 @@ const ResortMap: React.FC<ResortMapProps> = ({
       console.error('[Radar Debug] renderFrameToCanvas error', e);
       return null;
     }
-  };
+  }, [getTileBitmap, mapReady]);
 
   useEffect(() => {
+    if (!mapReady) return;
+
     let lastTime = performance.now();
     let progress = 0;
     let currentFrameIndex = 0;
     let nextFrameIndex = 1;
 
-    // Calculate proper frame timing based on timestamps
+    // Calculate proper frame timing based on timestamps and speed control
     const calculateFrameDuration = () => {
       const frames = radarFramesRef.current;
-      if (frames.length < 2) return 800; // fallback
+      if (frames.length < 2) return radarSpeedMs; // fallback to speed control
 
       // Get timestamps from frames
       const timestamps = frames.map(f => f.time).filter((t): t is number => t !== undefined && !isNaN(t)).sort((a, b) => a - b);
-      if (timestamps.length < 2) return 800;
+      if (timestamps.length < 2) return radarSpeedMs;
 
       const timeSpanMs = timestamps[timestamps.length - 1] - timestamps[0]; // Total time span in ms
-      const desiredAnimationDurationMs = 60000; // 60 seconds for full animation
+      const desiredAnimationDurationMs = Math.max(5000, Math.min(radarSpeedMs * frames.length, 120000)); // Use speed control, clamp between 5s and 2min total
       const frameDuration = desiredAnimationDurationMs / frames.length;
 
-      console.log(`[Animation] Time span: ${timeSpanMs}ms (${timeSpanMs/3600000}h), Frame duration: ${frameDuration}ms`);
-      return Math.max(100, Math.min(frameDuration, 2000)); // Clamp between 100ms and 2000ms
+      console.log(`[Animation] Time span: ${timeSpanMs}ms (${timeSpanMs/3600000}h), Frame duration: ${frameDuration}ms, Speed: ${radarSpeedMs}ms per frame equivalent`);
+      return Math.max(50, Math.min(frameDuration, 5000)); // Clamp between 50ms and 5000ms per frame
     };
 
     const frameDuration = calculateFrameDuration();
 
     const step = async (now: number) => {
-      console.log('[Animation] Step function called, radarPlaying:', radarPlayingRef.current, 'radarFramesAvailable:', radarFramesAvailable);
+      console.log('[Animation] Step function called, radarPlaying:', radarPlayingRef.current, 'radarFramesAvailable:', radarFramesAvailable, 'radarVisible:', radarVisible);
+
+      if (!mapReady) {
+        rafRef.current = requestAnimationFrame(step);
+        return;
+      }
+
+      // Don't animate if radar is not visible
+      if (!radarVisible) {
+        rafRef.current = requestAnimationFrame(step);
+        return;
+      }
 
       const c1 = canvasRef.current;
       const c2 = canvas2Ref.current;
@@ -694,7 +759,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
         }
 
         const map = mapRef.current;
-        if (!map) { rafRef.current = requestAnimationFrame(step); return; }
+        if (!map || !mapReady) { rafRef.current = requestAnimationFrame(step); return; }
 
         const z = Math.max(0, Math.round(map.getZoom() || 5));
         const size = map.getSize();
@@ -740,8 +805,8 @@ const ResortMap: React.FC<ResortMapProps> = ({
       }
 
       try {
-        const map = mapRef.current;
-        if (!map) { rafRef.current = requestAnimationFrame(step); return; }
+  const map = mapRef.current;
+  if (!map || !mapReady) { rafRef.current = requestAnimationFrame(step); return; }
 
         const z = Math.max(0, Math.round(map.getZoom() || 5));
         const size = map.getSize();
@@ -838,12 +903,13 @@ const ResortMap: React.FC<ResortMapProps> = ({
 
     rafRef.current = requestAnimationFrame(step);
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [radarFramesAvailable]);
+  }, [mapReady, radarFramesAvailable, radarSpeedMs, radarVisible, radarOpacity, renderFrameToCanvas]);
 
   useEffect(() => {
-    if (canvasRef.current) canvasRef.current.style.opacity = String(radarOpacity);
-    if (canvas2Ref.current) canvas2Ref.current.style.opacity = String(radarOpacity);
-  }, [radarOpacity]);
+    const effectiveOpacity = radarVisible ? radarOpacity : 0;
+    if (canvasRef.current) canvasRef.current.style.opacity = String(effectiveOpacity);
+    if (canvas2Ref.current) canvas2Ref.current.style.opacity = String(effectiveOpacity);
+  }, [radarOpacity, radarVisible]);
 
   return (
     <div className="relative w-full h-screen bg-gray-100 flex flex-col">
@@ -851,7 +917,18 @@ const ResortMap: React.FC<ResortMapProps> = ({
         console.log('[ResortMap] Rendering - radarFramesAvailable:', radarFramesAvailable, 'frames:', radarFramesRef.current.length);
         return null;
       })()}
-      <div ref={containerRef} className="flex-1 w-full" style={{ position: 'relative', width: '100%', height: '100%', minHeight: '400px' }} />
+      <div
+        ref={containerRef}
+        data-testid="leaflet-map-container"
+        className="flex-1 w-full"
+        style={{
+          position: 'relative',
+          width: '100%',
+          height: '100%',
+          minHeight: '600px',
+          background: '#0b111a',
+        }}
+      />
 
       {radarFramesAvailable && (
         <RadarControls
@@ -864,7 +941,29 @@ const ResortMap: React.FC<ResortMapProps> = ({
           frameCount={radarFramesRef.current.length}
           currentFrame={Math.floor(radarIndexRef.current) + 1}
           radarSource={radarSource}
+          isVisible={radarVisible}
+          onVisibilityChange={setRadarVisible}
+          onStepPrev={() => handleStep(-1)}
+          onStepNext={() => handleStep(1)}
+          onRefresh={handleRefresh}
+          onScrub={handleScrub}
+          onSourceChange={handleSourceChange}
+          onJumpStart={handleJumpStart}
+          onJumpEnd={handleJumpEnd}
+          highlightPrecip={highlightPrecip}
+          onHighlightChange={setHighlightPrecip}
+          currentFrameTime={currentFrameTime}
         />
+      )}
+
+      {/* Readiness indicator for tests and debugging */}
+      {mapReady && radarFramesAvailable && (
+        <div
+          data-testid="radar-ready"
+          className="absolute bottom-4 right-4 z-[1500] text-xs font-mono bg-black/60 text-white px-3 py-1 rounded"
+        >
+          radar-ready
+        </div>
       )}
 
       {/* Timestamp Overlay */}
@@ -904,16 +1003,13 @@ const ResortMap: React.FC<ResortMapProps> = ({
             <div className="px-4 py-3 space-y-2 text-sm">
               <div className="flex justify-between items-center">
                 <span className="text-white/70">24h Snow</span>
-                <span className="text-white font-semibold">{selectedResort.conditions.recentSnowfall}"</span>
+                <span className="text-white font-semibold">{selectedResort.conditions.recentSnowfall}&quot;</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-white/70">7d Snow</span>
-                <span className="text-white font-semibold">{selectedResort.conditions.weeklySnowfall ?? 0}"</span>
+                <span className="text-white font-semibold">{selectedResort.conditions.weeklySnowfall ?? 0}&quot;</span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-white/70">Base</span>
-                <span className="text-white font-semibold">{selectedResort.conditions.snowDepth}"</span>
-              </div>
+                {/* Base depth is unreliable; emphasize 7d instead */}
               <div className="flex justify-between items-center">
                 <span className="text-white/70">Temp</span>
                 <span className="text-white font-semibold">{selectedResort.conditions.baseTemp}°F</span>
@@ -942,14 +1038,6 @@ const ResortMap: React.FC<ResortMapProps> = ({
 
     </div>
   );
-  } catch (error) {
-    console.error('[ResortMap] Component error:', error);
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-red-500 text-xl">Map Error: {String(error)}</div>
-      </div>
-    );
-  }
 };
 
 export default ResortMap;

@@ -7,12 +7,73 @@ import { getHistoricalObservations, getMultiStationObservations } from '../../..
 import snowModel from '../../../lib/snowModel';
 import { scraperManager } from '../../../lib/scrapers/manager';
 
-// Calculate pressure trend from historical data (placeholder for future enhancement)
-function calculatePressureTrend(historicalPressures: number[]): string {
-  // For now, return 'stable' as we don't have historical pressure data
-  // Future enhancement: analyze pressure changes over time
-  // 'falling' if pressure decreasing, 'rising' if increasing, 'stable' otherwise
-  return 'stable';
+// Helper functions for OpenMeteo weather code conversion
+function getWeatherDescription(code: number): string {
+  const descriptions: Record<number, string> = {
+    0: 'Clear sky',
+    1: 'Mainly clear',
+    2: 'Partly cloudy',
+    3: 'Overcast',
+    45: 'Fog',
+    48: 'Depositing rime fog',
+    51: 'Light drizzle',
+    53: 'Moderate drizzle',
+    55: 'Dense drizzle',
+    56: 'Light freezing drizzle',
+    57: 'Dense freezing drizzle',
+    61: 'Slight rain',
+    63: 'Moderate rain',
+    65: 'Heavy rain',
+    66: 'Light freezing rain',
+    67: 'Heavy freezing rain',
+    71: 'Slight snow fall',
+    73: 'Moderate snow fall',
+    75: 'Heavy snow fall',
+    77: 'Snow grains',
+    80: 'Slight rain showers',
+    81: 'Moderate rain showers',
+    82: 'Violent rain showers',
+    85: 'Slight snow showers',
+    86: 'Heavy snow showers',
+    95: 'Thunderstorm',
+    96: 'Thunderstorm with slight hail',
+    99: 'Thunderstorm with heavy hail'
+  };
+  return descriptions[code] || 'Unknown';
+}
+
+function getWeatherIcon(code: number): string {
+  const icons: Record<number, string> = {
+    0: 'clear_day',
+    1: 'mostly_clear_day',
+    2: 'partly_cloudy_day',
+    3: 'cloudy',
+    45: 'fog',
+    48: 'fog',
+    51: 'drizzle',
+    53: 'drizzle',
+    55: 'drizzle',
+    56: 'drizzle',
+    57: 'drizzle',
+    61: 'rain_light',
+    63: 'rain',
+    65: 'rain_heavy',
+    66: 'rain_light',
+    67: 'rain_heavy',
+    71: 'snow_light',
+    73: 'snow',
+    75: 'snow_heavy',
+    77: 'snow',
+    80: 'rain_light',
+    81: 'rain',
+    82: 'rain_heavy',
+    85: 'snow_light',
+    86: 'snow_heavy',
+    95: 'thunderstorm',
+    96: 'thunderstorm',
+    99: 'thunderstorm'
+  };
+  return icons[code] || 'unknown';
 }
 
 // Generate 24-hour historical observations using REAL past weather data from Open-Meteo
@@ -257,16 +318,20 @@ async function scrapeResortConditions(url: string, resortId?: string): Promise<a
     if (scrapedData.success) {
       console.log(`[API] Successfully scraped resort data:`, scrapedData);
 
-      // Return the scraped data in the expected format
+      // Return the scraped data in the expected format. IMPORTANT: return null
+      // for fields that were not reported by the resort (instead of 0) so the
+      // snow model can merge resort-reported values with weather/model inputs.
       return {
         success: true,
-        snowDepth: scrapedData.baseDepth || 0,
-        recentSnowfall: scrapedData.snowDepth24h || 0,
+        // Use null when the scraper didn't provide a value so downstream
+        // merging logic can decide whether to fallback to modeled data.
+        snowDepth: (scrapedData.baseDepth != null) ? scrapedData.baseDepth : null,
+        recentSnowfall: (scrapedData.snowDepth24h != null) ? scrapedData.snowDepth24h : null,
         trailOpen: 0, // Not available from scraping
         trailTotal: 0, // Not available from scraping
         groomed: 0, // Not available from scraping
-        baseTemp: scrapedData.temp || null,
-        windSpeed: scrapedData.windSpeed || null,
+        baseTemp: (scrapedData.temp != null) ? scrapedData.temp : null,
+        windSpeed: (scrapedData.windSpeed != null) ? scrapedData.windSpeed : null,
         visibility: null, // Not available from scraping
         rawHtml: null, // Not storing raw HTML
         scrapedData: scrapedData // Include full scraped data for debugging
@@ -308,6 +373,7 @@ async function scrapeResortConditions(url: string, resortId?: string): Promise<a
 }
 
 export async function GET(request: NextRequest) {
+  console.log(`[API] GET /api/scrape called with url: ${request.url}`);
   const { searchParams } = new URL(request.url);
   const resortId = searchParams.get('resortId');
 
@@ -324,14 +390,34 @@ export async function GET(request: NextRequest) {
     console.log(`[API] Starting conditions fetch for ${resort.name} (${resortId})`);
 
     // Fetch all data in parallel to reduce response time
-    console.log(`[API] Fetching NWS data and OpenWeatherMap current weather in parallel`);
+    console.log(`[API] Fetching weather data: OpenMeteo (primary), NWS (fallback), OpenWeatherMap (tertiary)`);
 
-    const [nws, openWeatherData] = await Promise.allSettled([
+    const [openMeteoData, nws, openWeatherData] = await Promise.allSettled([
+      // Fetch current weather from OpenMeteo (primary source)
+      (async () => {
+        try {
+          const currentUrl = `https://api.open-meteo.com/v1/forecast?latitude=${resort.lat}&longitude=${resort.lon}&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_direction_10m&timezone=America/New_York`;
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 8000); // Increased timeout for OpenMeteo
+          const response = await fetch(currentUrl, { signal: controller.signal });
+          clearTimeout(timeoutId);
+          if (response.ok) {
+            const data = await response.json();
+            console.log(`[API] OpenMeteo current weather for ${resort.name}:`, data.current);
+            return data;
+          } else {
+            console.log(`[API] OpenMeteo API returned ${response.status} for ${resort.name}`);
+          }
+        } catch (error) {
+          console.log(`[API] OpenMeteo fetch failed for ${resort.name}:`, error instanceof Error ? error.message : String(error));
+        }
+        return null;
+      })(),
       getNWSObservation(resort.lat, resort.lon).catch(e => {
         console.error(`[API] NWS fetch failed:`, e);
         return null;
       }),
-      // Fetch current weather from OpenWeatherMap for more realistic synthetic data
+      // Fetch current weather from OpenWeatherMap for additional fallback
       (async () => {
         try {
           const apiKey = process.env.OPENWEATHER_API_KEY;
@@ -352,11 +438,46 @@ export async function GET(request: NextRequest) {
       })()
     ]);
 
+    const openMeteo = openMeteoData.status === 'fulfilled' ? openMeteoData.value : null;
     const nwsData = nws.status === 'fulfilled' ? nws.value : null;
     const currentWeather = openWeatherData.status === 'fulfilled' ? openWeatherData.value : null;
 
-    console.log(`[API] NWS data received:`, nwsData ? 'success' : 'failed');
-    console.log(`[API] OpenWeatherMap data received:`, currentWeather ? 'success' : 'failed');
+    console.log(`[API] Weather sources: OpenMeteo=${openMeteo ? 'success' : 'failed'}, NWS=${nwsData ? 'success' : 'failed'}, OpenWeatherMap=${currentWeather ? 'success' : 'failed'}`);
+
+    // Create unified weather data, preferring OpenMeteo > NWS > OpenWeatherMap
+    let effectiveNwsData = null;
+
+    if (openMeteo?.current) {
+      // Convert OpenMeteo data to NWS-like format
+      const current = openMeteo.current;
+      effectiveNwsData = {
+        temperature: current.temperature_2m,
+        windSpeed: current.wind_speed_10m ? Math.round(current.wind_speed_10m * 2.237) : null, // m/s to mph
+        windDirection: current.wind_direction_10m || null,
+        textDescription: getWeatherDescription(current.weather_code),
+        icon: `https://open-meteo.com/images/weather_icons/${getWeatherIcon(current.weather_code)}.png`,
+        timestamp: new Date().toISOString(),
+        raw: current
+      };
+      console.log(`[API] Using OpenMeteo as primary weather source`);
+    } else if (nwsData) {
+      effectiveNwsData = nwsData;
+      console.log(`[API] Using NWS as secondary weather source`);
+    } else if (currentWeather) {
+      // Convert OpenWeatherMap data to NWS-like format (tertiary fallback)
+      effectiveNwsData = {
+        temperature: currentWeather.main.temp,
+        windSpeed: currentWeather.wind?.speed ? Math.round(currentWeather.wind.speed * 2.237) : null, // m/s to mph
+        windDirection: currentWeather.wind?.deg || null,
+        textDescription: currentWeather.weather?.[0]?.description || 'Unknown',
+        icon: currentWeather.weather?.[0]?.icon ? `https://openweathermap.org/img/wn/${currentWeather.weather[0].icon}@2x.png` : '',
+        timestamp: new Date(currentWeather.dt * 1000).toISOString(),
+        raw: currentWeather
+      };
+      console.log(`[API] Using OpenWeatherMap as tertiary weather source`);
+    } else {
+      console.log(`[API] No weather data available from any source`);
+    }
 
     // Extract additional weather parameters for improved snow model accuracy
     let humidity = null;
@@ -396,42 +517,37 @@ export async function GET(request: NextRequest) {
       console.log(`[API] Resort scraping failed, will use model estimates:`, e);
     }
 
-    // Allow callers to pass resort-reported weekly totals and a resort weight to bias the model.
-    try {
-      const urlObj = new URL(request.url);
-      const rp = urlObj.searchParams.get('resortReportedWeekly');
-      const rw = urlObj.searchParams.get('resortWeight');
-      if (rp != null) {
-        const parsed = parseFloat(rp as string);
-        if (!Number.isNaN(parsed)) extra.resortReportedWeekly = parsed;
+    // Always attempt to merge scraped data with weather sources for best accuracy
+    // Only fall back to weather models alone when scraping completely fails
+    if (scrapedData && scrapedData.success) {
+      console.log(`[API] Scraped data available, merging with weather sources for enhanced accuracy`);
+      
+      // Merge scraped snow data when available
+      if (scrapedData.recentSnowfall !== null && scrapedData.recentSnowfall >= 0) {
+        extra.resortReported24h = scrapedData.recentSnowfall;
+        console.log(`[API] Using scraped 24h snowfall: ${scrapedData.recentSnowfall}"`);
       }
-      if (rw != null) {
-        const parsed = parseFloat(rw as string);
-        if (!Number.isNaN(parsed)) extra.resortWeight = parsed;
+      if (scrapedData.snowDepth !== null && scrapedData.snowDepth >= 0) {
+        extra.resortReportedBaseDepth = scrapedData.snowDepth;
+        console.log(`[API] Using scraped base depth: ${scrapedData.snowDepth}"`);
       }
-    } catch (e) {
-      // ignore
-    }
+      if (scrapedData.scrapedData?.snowDepth7d !== null && scrapedData.scrapedData.snowDepth7d >= 0) {
+        extra.resortReportedWeekly = scrapedData.scrapedData.snowDepth7d;
+        extra.resortWeight = 0.9; // Very high trust in resort reports
+        console.log(`[API] Using scraped 7d snowfall: ${scrapedData.scrapedData.snowDepth7d}" with high weight`);
+      }
 
-    // If scraping succeeded, use those values preferentially
-    if (scrapedData && scrapedData.recentSnowfall !== null && scrapedData.recentSnowfall > 0) {
-      extra.resortReported24h = scrapedData.recentSnowfall;
-      console.log(`[API] Using scraped 24h snowfall: ${scrapedData.recentSnowfall}"`);
-    }
-    if (scrapedData && scrapedData.snowDepth7d !== null && scrapedData.snowDepth7d > 0) {
-      extra.resortReportedWeekly = scrapedData.snowDepth7d;
-      extra.resortWeight = 0.85; // High trust in resort reports
-      console.log(`[API] Using scraped 7d snowfall: ${scrapedData.snowDepth7d}" with high weight`);
-    }
-
-    // Add scraped weather data if available
-    if (scrapedData && scrapedData.baseTemp !== null) {
-      // Use scraped temperature if available (takes precedence over NWS)
-      console.log(`[API] Using scraped temperature: ${scrapedData.baseTemp}°F`);
-    }
-    if (scrapedData && scrapedData.windSpeed !== null) {
-      // Use scraped wind if available
-      console.log(`[API] Using scraped wind speed: ${scrapedData.windSpeed} mph`);
+      // Merge scraped weather data when available (takes precedence over weather APIs)
+      if (scrapedData.baseTemp !== null) {
+        extra.resortReportedTemp = scrapedData.baseTemp;
+        console.log(`[API] Using scraped temperature: ${scrapedData.baseTemp}°F`);
+      }
+      if (scrapedData.windSpeed !== null) {
+        extra.resortReportedWind = scrapedData.windSpeed;
+        console.log(`[API] Using scraped wind speed: ${scrapedData.windSpeed} mph`);
+      }
+    } else {
+      console.log(`[API] Scraping failed or no data available, using weather APIs and snow model only`);
     }
     try {
       console.log(`[API] Fetching multi-station historical observations`);
@@ -540,8 +656,8 @@ export async function GET(request: NextRequest) {
       console.log(`[API] Will fall back to model estimates for weekly snowfall`);
     }
 
-    console.log(`[API] Calling predictFromNWS with nws=`, nwsData !== null, 'extra keys=', Object.keys(extra));
-    const pred = snowModel.predictFromNWS(nwsData, extra);
+    console.log(`[API] Calling predictFromNWS with nws=`, effectiveNwsData !== null, 'extra keys=', Object.keys(extra));
+    const pred = snowModel.predictFromNWS(effectiveNwsData, extra);
     console.log(`[API] Prediction result:`, pred);
 
     // Override model predictions with scraped data when available
@@ -595,7 +711,8 @@ export async function GET(request: NextRequest) {
       windSpeed: pred.windSpeed ?? 0,
       visibility: pred.visibility,
       trailStatus: { open: trailOpen, total: trailTotal, groomed },
-      rawData: { nws, model: pred },
+  // Include scraped raw data when available so callers can inspect both sources
+  rawData: { nws: effectiveNwsData, model: pred, scraped: scrapedData ?? null },
       // Include elevation data for temperature corrections
       elevationFt: resort.elevationFt ?? null,
       baseElevationFt: resort.baseElevationFt ?? null,

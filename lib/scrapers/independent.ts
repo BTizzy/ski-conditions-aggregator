@@ -19,12 +19,13 @@ export class IndependentResortScraper implements ResortScraper {
            url.includes('patspeak.com') ||
            url.includes('saddlebackmaine.com') ||
            url.includes('dartmouthskiway.com') ||
-           url.includes('mcintyreskiarea.com');
+           url.includes('mcintyreskiarea.com') ||
+           url.includes('cannonmt.com');
   }
 
   async scrape(url: string): Promise<ScrapedSnowData> {
     try {
-      console.log(`[Independent Scraper] Scraping ${url}`);
+      console.log(`[Independent Scraper] Scraping ${url} - checking if cannonmt.com is in URL: ${url.includes('cannonmt.com')}`);
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -163,6 +164,15 @@ export class IndependentResortScraper implements ResortScraper {
         }
       }
 
+      // Cannon Mountain specific patterns - uses Next.js structured data
+      if (url.includes('cannonmt.com')) {
+        console.log(`[Independent Scraper] Detected Cannon Mountain URL: ${url}`);
+        const cannonSnow = this.extractCannonMountainSnow(html);
+        if (cannonSnow) {
+          Object.assign(result, cannonSnow);
+        }
+      }
+
       // Extract weather data
       const tempMatch = textContent.match(/(\d+(?:\.\d+)?)\s*°?\s*[fc]/i);
       if (tempMatch && !result.temp) {
@@ -287,6 +297,33 @@ export class IndependentResortScraper implements ResortScraper {
       return Object.keys(result).length > 0 ? result : null;
     } catch (error) {
       console.log(`[Independent Scraper] Error extracting Wachusett data:`, error);
+      return null;
+    }
+  }
+
+  private extractCannonMountainSnow(html: string): Partial<ScrapedSnowData> | null {
+    console.log(`[Independent Scraper] extractCannonMountainSnow called with HTML length: ${html.length}`);
+    const result: Partial<ScrapedSnowData> = {};
+
+    try {
+      // Cannon Mountain uses Next.js with structured JSON data
+      // Look for the JSON data containing snowLast48Hours
+      const snowLast48Match = html.match(/"snowLast48Hours":(\d+(?:\.\d+)?)/);
+      if (snowLast48Match) {
+        // Map 48-hour snowfall to 24-hour snowfall since it's the most recent data available
+        result.snowDepth24h = parseFloat(snowLast48Match[1]);
+        console.log(`[Independent Scraper] Found Cannon Mountain 48h snow: ${result.snowDepth24h}", using as 24h snowfall`);
+      }
+
+      // Also look for snowConditions if available
+      const snowConditionsMatch = html.match(/"snowConditions":"([^"]+)"/);
+      if (snowConditionsMatch) {
+        console.log(`[Independent Scraper] Found Cannon Mountain snow conditions: ${snowConditionsMatch[1]}`);
+      }
+
+      return Object.keys(result).length > 0 ? result : null;
+    } catch (error) {
+      console.log(`[Independent Scraper] Error extracting Cannon Mountain data:`, error);
       return null;
     }
   }

@@ -16,10 +16,11 @@ export class ResortScraperManager {
         import('./independent')
       ]);
 
+      // Prefer the independent scraper first for single-resort sites, then chain scrapers
       this.scrapers = [
+        independentModule.independentScraper,
         vailModule.vailScraper,
-        alterraModule.alterraScraper,
-        independentModule.independentScraper
+        alterraModule.alterraScraper
       ];
 
       this.initialized = true;
@@ -37,6 +38,9 @@ export class ResortScraperManager {
 
     // Find the appropriate scraper
     const scraper = this.scrapers.find(s => s.canHandle(url));
+
+    console.log(`[Scraper Manager] Available scrapers: ${this.scrapers.map(s => s.constructor.name).join(', ')}`);
+    console.log(`[Scraper Manager] URL ${url} canHandle results: ${this.scrapers.map(s => s.canHandle(url)).join(', ')}`);
 
     if (!scraper) {
       console.log(`[Scraper Manager] No scraper found for ${url}, returning empty result`);

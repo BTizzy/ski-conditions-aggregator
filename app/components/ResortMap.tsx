@@ -1,9 +1,14 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, Suspense } from 'react';
 import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import RadarControls from './RadarControls';
+import dynamic from 'next/dynamic';
+
+// Dynamically import RadarControls to reduce initial bundle size
+const RadarControls = dynamic(() => import('./RadarControls'), {
+  loading: () => <div className="animate-pulse bg-gray-700 h-16 rounded-lg"></div>
+});
 
 interface Resort {
   id: string;
@@ -952,29 +957,31 @@ const ResortMap: React.FC<ResortMapProps> = ({
       />
 
       {radarFramesAvailable && (
-        <RadarControls
-          isPlaying={radarPlaying}
-          onPlayPause={handlePlayPause}
-          opacity={radarOpacity}
-          onOpacityChange={setRadarOpacity}
-          speed={radarSpeedMs}
-          onSpeedChange={setRadarSpeedMs}
-          frameCount={radarFramesRef.current.length}
-          currentFrame={Math.floor(radarIndexRef.current) + 1}
-          radarSource={radarSource}
-          isVisible={radarVisible}
-          onVisibilityChange={setRadarVisible}
-          onStepPrev={() => handleStep(-1)}
-          onStepNext={() => handleStep(1)}
-          onRefresh={handleRefresh}
-          onScrub={handleScrub}
-          onSourceChange={handleSourceChange}
-          onJumpStart={handleJumpStart}
-          onJumpEnd={handleJumpEnd}
-          highlightPrecip={highlightPrecip}
-          onHighlightChange={setHighlightPrecip}
-          currentFrameTime={currentFrameTime}
-        />
+        <Suspense fallback={<div className="animate-pulse bg-gray-700 h-16 rounded-lg"></div>}>
+          <RadarControls
+            isPlaying={radarPlaying}
+            onPlayPause={handlePlayPause}
+            opacity={radarOpacity}
+            onOpacityChange={setRadarOpacity}
+            speed={radarSpeedMs}
+            onSpeedChange={setRadarSpeedMs}
+            frameCount={radarFramesRef.current.length}
+            currentFrame={Math.floor(radarIndexRef.current) + 1}
+            radarSource={radarSource}
+            isVisible={radarVisible}
+            onVisibilityChange={setRadarVisible}
+            onStepPrev={() => handleStep(-1)}
+            onStepNext={() => handleStep(1)}
+            onRefresh={handleRefresh}
+            onScrub={handleScrub}
+            onSourceChange={handleSourceChange}
+            onJumpStart={handleJumpStart}
+            onJumpEnd={handleJumpEnd}
+            highlightPrecip={highlightPrecip}
+            onHighlightChange={setHighlightPrecip}
+            currentFrameTime={currentFrameTime}
+          />
+        </Suspense>
       )}
 
       {/* Readiness indicator for tests and debugging */}

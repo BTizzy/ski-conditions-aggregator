@@ -13,7 +13,13 @@ export class IndependentResortScraper implements ResortScraper {
            url.includes('brettonwoods.com') ||
            url.includes('waterville.com') ||
            url.includes('cranmore.com') ||
-           url.includes('wachusett.com');
+           url.includes('wachusett.com') ||
+           url.includes('crotchedmtn.com') ||
+           url.includes('raggedmountainresort.com') ||
+           url.includes('patspeak.com') ||
+           url.includes('saddlebackmaine.com') ||
+           url.includes('dartmouthskiway.com') ||
+           url.includes('mcintyreskiarea.com');
   }
 
   async scrape(url: string): Promise<ScrapedSnowData> {

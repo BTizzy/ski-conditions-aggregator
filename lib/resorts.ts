@@ -165,7 +165,8 @@ export const resorts: Resort[] = [
     lon: -71.4417,
     baseElevationFt: 1601,
     summitElevationFt: 3100,
-    scrapeUrl: 'https://www.brettonwoods.com/mountain-info/conditions',
+    scrapeUrl: 'https://www.brettonwoods.com/snow-trail-report/',
+    conditionsUrl: 'https://www.brettonwoods.com/snow-trail-report/',
   },
   {
     id: 'cannon-mountain',
@@ -175,7 +176,8 @@ export const resorts: Resort[] = [
     lon: -71.6981,
     baseElevationFt: 1963,
     summitElevationFt: 4078,
-    scrapeUrl: 'https://www.cannonmt.com/mountain-info/conditions',
+    scrapeUrl: 'https://www.cannonmt.com/mountain-report',
+    conditionsUrl: 'https://www.cannonmt.com/mountain-report',
   },
   {
     id: 'waterville-valley',
@@ -226,8 +228,8 @@ export const resorts: Resort[] = [
     lon: -71.7508,
     baseElevationFt: 590,
     summitElevationFt: 1398,
-    scrapeUrl: 'https://www.patspeak.com',
-    conditionsUrl: 'https://www.patspeak.com/conditions',
+    scrapeUrl: 'https://www.patspeak.com/the-mountain/mountain-info/snow-report/',
+    conditionsUrl: 'https://www.patspeak.com/the-mountain/mountain-info/snow-report/',
   },
   {
     id: 'mount-sunapee',
@@ -237,8 +239,8 @@ export const resorts: Resort[] = [
     lon: -72.0586,
     baseElevationFt: 1230,
     summitElevationFt: 2743,
-    scrapeUrl: 'https://www.mountsunapee.com',
-    conditionsUrl: 'https://www.mountsunapee.com/mountain/conditions',
+    scrapeUrl: 'https://www.mountsunapee.com/the-mountain/mountain-conditions/snow-and-weather-report.aspx',
+    conditionsUrl: 'https://www.mountsunapee.com/the-mountain/mountain-conditions/snow-and-weather-report.aspx',
   },
   {
     id: 'gunstock',
@@ -248,8 +250,8 @@ export const resorts: Resort[] = [
     lon: -71.4246,
     baseElevationFt: 1400,
     summitElevationFt: 2267,
-    scrapeUrl: 'https://www.gunstock.com',
-    conditionsUrl: 'https://www.gunstock.com/mountain-report',
+    scrapeUrl: 'https://www.gunstock.com/winter/snow-report/',
+    conditionsUrl: 'https://www.gunstock.com/winter/snow-report/',
   },
   {
     id: 'crotched-mountain',
@@ -259,8 +261,8 @@ export const resorts: Resort[] = [
     lon: -71.6146,
     baseElevationFt: 1166,
     summitElevationFt: 2066,
-    scrapeUrl: 'https://www.crotchedmountain.org',
-    conditionsUrl: 'https://www.crotchedmountain.org/mountain-report',
+    scrapeUrl: 'https://www.crotchedmtn.com/the-mountain/mountain-conditions/snow-and-weather-report.aspx',
+    conditionsUrl: 'https://www.crotchedmtn.com/the-mountain/mountain-conditions/snow-and-weather-report.aspx',
   },
   {
     id: 'mcintyre',
@@ -270,8 +272,8 @@ export const resorts: Resort[] = [
     lon: -71.4601,
     baseElevationFt: 200,
     summitElevationFt: 400,
-    scrapeUrl: 'https://www.mcintyreskiarea.com',
-    conditionsUrl: 'https://www.mcintyreskiarea.com/conditions',
+    scrapeUrl: 'https://www.mcintyreskiarea.com/mountain-report/',
+    conditionsUrl: 'https://www.mcintyreskiarea.com/mountain-report/',
   },
   {
     id: 'ragged-mountain',
@@ -281,8 +283,8 @@ export const resorts: Resort[] = [
     lon: -71.8514,
     baseElevationFt: 1115,
     summitElevationFt: 2231,
-    scrapeUrl: 'https://skiragged.com',
-    conditionsUrl: 'https://skiragged.com/mountain-report',
+    scrapeUrl: 'https://www.raggedmountainresort.com/mountain-report-cams/',
+    conditionsUrl: 'https://www.raggedmountainresort.com/mountain-report-cams/',
   },
   {
     id: 'dartmouth-skiway',
@@ -292,8 +294,8 @@ export const resorts: Resort[] = [
     lon: -72.1008,
     baseElevationFt: 975,
     summitElevationFt: 1943,
-    scrapeUrl: 'https://sites.dartmouth.edu/skiway',
-    conditionsUrl: 'https://sites.dartmouth.edu/skiway/conditions',
+    scrapeUrl: 'https://dartmouthskiway.com/mountain-2/',
+    conditionsUrl: 'https://dartmouthskiway.com/mountain-2/',
   },
   // --- Additional Maine Resorts ---
   {
@@ -304,7 +306,8 @@ export const resorts: Resort[] = [
     lon: -70.5272,
     baseElevationFt: 2440,
     summitElevationFt: 4120,
-    scrapeUrl: 'https://www.saddlebackmaine.com/conditions/',
+    scrapeUrl: 'https://www.saddlebackmaine.com/mountain-report/',
+    conditionsUrl: 'https://www.saddlebackmaine.com/mountain-report/',
   },
   {
     id: 'squaw-mountain',

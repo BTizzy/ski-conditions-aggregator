@@ -242,14 +242,14 @@ const ResortMap: React.FC<ResortMapProps> = ({
       canvas1.height = size.y * dpr;
       canvas1.style.width = `${size.x}px`;
       canvas1.style.height = `${size.y}px`;
-      const ctx1 = canvas1.getContext('2d');
+      const ctx1 = canvas1.getContext('2d', { willReadFrequently: true });
       if (ctx1) ctx1.setTransform(dpr, 0, 0, dpr, 0, 0);
 
       canvas2.width = size.x * dpr;
       canvas2.height = size.y * dpr;
       canvas2.style.width = `${size.x}px`;
       canvas2.style.height = `${size.y}px`;
-      const ctx2 = canvas2.getContext('2d');
+      const ctx2 = canvas2.getContext('2d', { willReadFrequently: true });
       if (ctx2) ctx2.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
 
@@ -300,7 +300,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
 
         // Try multi-source radar system (NOAA, RainViewer, OpenWeatherMap) but never block synthetic fallback
         try {
-          const signal = typeof AbortSignal !== 'undefined' && 'timeout' in AbortSignal ? AbortSignal.timeout(2000) : undefined;
+          const signal = typeof AbortSignal !== 'undefined' && 'timeout' in AbortSignal ? AbortSignal.timeout(10000) : undefined;
           const radarRes = await fetch(`/api/radar/frames?t=${Date.now()}`, {
             signal,
             headers: {
@@ -585,7 +585,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
       console.log('[Radar Debug] getTileBitmap called', { layerStr, z, x, y, url });
 
       const resp = await fetch(url, {
-        signal: AbortSignal.timeout(5000),
+        signal: AbortSignal.timeout(15000),
       });
       if (!resp.ok) {
         console.warn('[Radar Debug] getTileBitmap fetch failed', { url, status: resp.status });
@@ -650,7 +650,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
       c.width = widthPx * dpr;
       c.height = heightPx * dpr;
 
-      const ctx = c.getContext('2d');
+      const ctx = c.getContext('2d', { willReadFrequently: true });
       if (!ctx) return null;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
@@ -790,8 +790,8 @@ const ResortMap: React.FC<ResortMapProps> = ({
         if (frameCanvasCache.current.has(key)) {
           const cachedC = frameCanvasCache.current.get(key);
           if (cachedC) {
-            const ctx1 = c1.getContext('2d');
-            const ctx2 = c2.getContext('2d');
+            const ctx1 = c1.getContext('2d', { willReadFrequently: true });
+            const ctx2 = c2.getContext('2d', { willReadFrequently: true });
             if (ctx1 && ctx2) {
               ctx1.clearRect(0, 0, c1.width, c1.height);
               ctx2.clearRect(0, 0, c2.width, c2.height);
@@ -885,7 +885,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
         // Render next frame to canvas2
         const nextFrameC = await renderFrameToCanvas(frames[nextFrameIndex], z, size.x, size.y, keyNext);
         if (nextFrameC) {
-          const ctx2 = c2.getContext('2d');
+          const ctx2 = c2.getContext('2d', { willReadFrequently: true });
           if (ctx2) {
             ctx2.clearRect(0, 0, c2.width, c2.height);
             ctx2.drawImage(nextFrameC, 0, 0);

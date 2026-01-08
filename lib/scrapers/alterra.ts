@@ -8,7 +8,8 @@ export class AlterraResortScraper implements ResortScraper {
            url.includes('sundayriver.com') ||
            url.includes('sugarbush.com') ||
            url.includes('stratton.com') ||
-           url.includes('sugarloaf.com');
+           url.includes('sugarloaf.com') ||
+           url.includes('mountsunapee.com');
   }
 
   async scrape(url: string): Promise<ScrapedSnowData> {
